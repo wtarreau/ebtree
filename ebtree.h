@@ -723,6 +723,16 @@ __eb32_lookup(struct eb32_hnode *root, unsigned long x)
 		return NULL;
 	}
 
+#if 1
+	/* Optimization: if x is equal to the exact value in the link node,
+	 * it means that the node which carries it holds this value.
+	 * This can boost by up to 50% on randomly inserted values, but may
+	 * degrade by 5-10% when values have been carefully inserted in order,
+	 * which is not exactly what we try to use.
+	 */
+	if (unlikely((x ^ root->val) == 0))
+		return LIST_ELEM(root, struct eb32_node*, link);
+#endif
 	if (unlikely((x ^ root->val) >> root->bit))
 	    /* no common bits anymore */
 	    return NULL;
