@@ -668,7 +668,16 @@ __eb32_delete(struct eb32_node *node)
 	return sibling;
 
     /* Note that now, link and newlink are necessary different */
-    *newlink = *link;
+
+    /* Important: do not change newlink->val, as it is still equal to the value
+     * of the node which carries it. By definition, <newlink> is at least below
+     * <link>, so keeping its value for the bit string is OK.
+     */
+    //*newlink = *link;
+    newlink->ptr = link->ptr;
+    newlink->parent = link->parent;
+    newlink->bit = link->bit;
+
 
     /* We must now update the link's parent and the link's leaves */
     gparent = link->parent;
