@@ -177,6 +177,21 @@ struct list {
 };
 #endif
 
+
+/*
+ * Gcc >= 3 provides the ability for the programme to give hints to the
+ * compiler about what branch of an if is most likely to be taken. This
+ * helps the compiler produce the most compact critical paths, which is
+ * generally better for the cache and to reduce the number of jumps.
+ */
+#if __GNUC__ < 3
+#define __builtin_expect(x,y) (x)
+#endif
+
+#define likely(x) (__builtin_expect((x) != 0, 1))
+#define unlikely(x) (__builtin_expect((x) != 0, 0))
+
+
 typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned int u32;
@@ -522,7 +537,7 @@ __eb_delete(struct eb_node *node)
  * last node. Otherwise, non-zero is returned.
  */
 #define eb_delete(node)							\
-	((typeof(node))eb_prev_node((struct eb_node *)(node)))
+	((typeof(node))__eb_delete((struct eb_node *)(node)))
 
 
 /********************************************************************/
@@ -603,9 +618,9 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 	x = new->val;
 	next = root;
 
-	next = root->node.leaf[(x >> 31) & 1];
+	next = (struct eb32_node *)root->node.leaf[(x >> 31) & 1];
 	if (unlikely(next == NULL)) {
-		root->node.leaf[(x >> 31) & 1] = new;
+		root->node.leaf[(x >> 31) & 1] = (struct eb_node *)new;
 		/* This can only happen on the root node. */
 		/* We'll have to insert our new leaf node here. */
 		new->node.leaf_p = (struct eb_node *)root;
@@ -673,8 +688,8 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 	 * Updating the <next> node above which we're inserting is a bit harder
 	 * because it can be both a link and a leaf. We have no way but to check.
 	 */
-	l = (root->node.leaf[1] == next);
-	root->node.leaf[l] = new;
+	l = (root->node.leaf[1] == (struct eb_node *)next);
+	root->node.leaf[l] = (struct eb_node *)new;
 
 	if (next->node.leaf_p == (struct eb_node *)root)
 		next->node.leaf_p = (struct eb_node *)new;
