@@ -152,9 +152,17 @@ static inline int fls(int x)
 	        "1:" : "=r" (r) : "rm" (x));
 	return r+1;
 }
+
+static inline int flsnz(int x)
+{
+	int r;
+	__asm__("bsrl %1,%0\n"
+	        : "=r" (r) : "rm" (x));
+	return r+1;
+}
 #else
 // returns 1 to 32 for 1<<0 to 1<<31. Undefined for 0.
-#define fls(___a) ({ \
+#define flsnz(___a) ({ \
 	register int ___x, ___bits = 0; \
 	___x = (___a); \
 	if (___x & 0xffff0000) { ___x &= 0xffff0000; ___bits += 16;} \
@@ -619,11 +627,11 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 	u32 x;
 
 	x = new->val;
-	next = root;
+	l = (new->val >> 31) & 1;
 
-	next = (struct eb32_node *)root->node.leaf[(x >> 31) & 1];
+	next = (struct eb32_node *)root->node.leaf[l];
 	if (unlikely(next == NULL)) {
-		root->node.leaf[(x >> 31) & 1] = (struct eb_node *)new;
+		root->node.leaf[l] = (struct eb_node *)new;
 		/* This can only happen on the root node. */
 		/* We'll have to insert our new leaf node here. */
 		new->node.leaf_p = (struct eb_node *)root;
@@ -632,12 +640,15 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 		return new;
 	}
 
+	/*
+	 * This loop is the critical path in large trees.
+	 */
 	while (1) {
 		COUNT_STATS;
 
 		if (unlikely(next->node.leaf_p == (struct eb_node *)root)) {
 			/* we're on a leaf node */
-			if (unlikely(next->val == x)) {
+			if (next->val == x) {
 				/* We are inserting a value we already have.
 				 * We just have to join the duplicates list.
 				 */
@@ -646,12 +657,17 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 				new->node.bit = 0; /* link part unused */
 				return new;
 			}
+			/* Set the leaf's parent to the new node */
+			next->node.leaf_p = (struct eb_node *)new;
 			break;
 		}
 
 		/* Stop going down when we don't have common bits anymore. */
-		if (unlikely(((x ^ next->val) >> next->node.bit) != 0))
+		if (((x ^ next->val) >> next->node.bit) != 0) {
+			/* Set the link's parent to the new node */
+			next->node.link_p = (struct eb_node *)new;
 			break;
+		}
 
 		/* walk down */
 		root = next;
@@ -659,9 +675,11 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 		next = (struct eb32_node *)next->node.leaf[l];
 	}
 
-	/* Ok, now we know that we must insert between <root> and <next>. For
-	 * this, we must insert the link part and chain it to the leaf part.
+	/* Ok, now we are inserting <new> between <root> and <next>. <next>'s
+	 * parent is already set to <new>, and the <root>'s branch is still in
+	 * <l>. Update the root's leaf till we have it.
 	 */
+	root->node.leaf[l] = (struct eb_node *)new;
 
 	/* We need the common higher bits between x and next->val.
 	 * What differences are there between x and the node here ?
@@ -672,9 +690,7 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 
 	new->node.link_p = (struct eb_node *)root;
 	new->node.leaf_p = (struct eb_node *)new;
-
-	new->node.bit = fls(x ^ next->val);   /* lower identical bit */
-	new->val = x;
+	new->node.bit = flsnz(x ^ next->val);   /* lower identical bit */
 
 	/* This optimization is a bit tricky. The goal is to put new->leaf as well
 	 * as the other leaf on the right branch of the new parent link, depending
@@ -686,18 +702,6 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 
 	/* now we build the leaf part and chain it directly below the link node */
 	LIST_INIT(&new->node.dup);
-
-	/* Now, change the links. Note that this could be done anywhere.
-	 * Updating the <next> node above which we're inserting is a bit harder
-	 * because it can be both a link and a leaf. We have no way but to check.
-	 */
-	l = (root->node.leaf[1] == (struct eb_node *)next);
-	root->node.leaf[l] = (struct eb_node *)new;
-
-	if (next->node.leaf_p == (struct eb_node *)root)
-		next->node.leaf_p = (struct eb_node *)new;
-	else
-		next->node.link_p = (struct eb_node *)new;
 
 	return new;
 }
