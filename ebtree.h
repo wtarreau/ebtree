@@ -140,6 +140,8 @@
 
  */
 
+#include <stdlib.h>
+
 #if defined(__i386__)
 static inline int fls(int x)
 {
@@ -177,6 +179,13 @@ struct list {
 };
 #endif
 
+
+#ifndef container_of
+#define container_of(ptr, type, member) ({      \
+	const typeof( ((type *)0)->member ) *__mptr = (ptr);  \
+	(type *)( (char *)__mptr - offsetof(type,member) );})
+#define offsetof(TYPE, MEMBER) ((size_t) &((TYPE *)0)->MEMBER)
+#endif
 
 /*
  * Gcc >= 3 provides the ability for the programme to give hints to the
@@ -533,12 +542,6 @@ __eb_delete(struct eb_node *node)
 	return 1; /* tree is not empty yet */
 }
 
-/* Removes a leaf node from the tree, and returns zero after deleting the
- * last node. Otherwise, non-zero is returned.
- */
-#define eb_delete(node)							\
-	((typeof(node))__eb_delete((struct eb_node *)(node)))
-
 
 /********************************************************************/
 /*         The following functions are data type-specific           */
@@ -701,6 +704,14 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 
 
 /********************************************************************/
+
+
+struct eb32_node *eb32_lookup(struct eb32_node *root, unsigned long x);
+struct eb32_node *eb32_insert(struct eb32_node *root, struct eb32_node *new);
+int eb_delete(struct eb_node *node);
+
+#define eb32_delete(node)							\
+	(eb_delete((struct eb_node *)(node)))
 
 
 
