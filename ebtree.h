@@ -710,8 +710,11 @@ struct eb32_node *eb32_lookup(struct eb32_node *root, unsigned long x);
 struct eb32_node *eb32_insert(struct eb32_node *root, struct eb32_node *new);
 int eb_delete(struct eb_node *node);
 
-#define eb32_delete(node)							\
+#define eb32_delete(node)						     \
 	(eb_delete((struct eb_node *)(node)))
+
+#define __eb32_delete(node)						     \
+	(__eb_delete((struct eb_node *)(node)))
 
 
 
