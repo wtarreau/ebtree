@@ -550,6 +550,92 @@ __eb_delete(struct eb_node *node)
 	return 1; /* tree is not empty yet */
 }
 
+/*
+ * This generic insert macro may be used as a building block for other integer
+ * types. Do not put any comments in this one to avoid any problem. Please
+ * refer to __eb32_insert() for comments.
+ */
+#define __eb_insert(root, new) do {                                           \
+	__label__ __out_insert;                                               \
+	typeof(root) __ro = root;                                             \
+	typeof(new)  __n  = new;                                              \
+	typeof(new)  __nxt;                                                   \
+	unsigned int __lf = (__n->val >> (__ro->node.bit - 1)) & 1;           \
+	__nxt = (typeof(__nxt))__ro->node.leaf[__lf];                         \
+	if (unlikely(__nxt == NULL)) {                                        \
+		__ro->node.leaf[__lf] = (struct eb_node *)__n;                \
+		__n->node.leaf_p = (struct eb_node *)__ro;                    \
+		LIST_INIT(&__n->node.dup);                                    \
+		__n->node.bit = 0;                                            \
+		goto __out_insert;                                            \
+	}                                                                     \
+	while (1) {                                                           \
+		if (unlikely(__nxt->node.leaf_p == (struct eb_node *)__ro)) { \
+			if (__nxt->val == __n->val) {                         \
+				LIST_ADDQ(&__nxt->node.dup, &__n->node.dup);  \
+				__n->node.leaf_p = NULL;                      \
+				__n->node.bit = 0;                            \
+				goto __out_insert;                            \
+			}                                                     \
+			__nxt->node.leaf_p = (struct eb_node *)__n;           \
+			break;                                                \
+		}                                                             \
+		if (((__n->val ^ __nxt->val) >> __nxt->node.bit) != 0) {      \
+			__nxt->node.link_p = (struct eb_node *)__n;           \
+			break;                                                \
+		}                                                             \
+		__ro = __nxt;                                                 \
+		__lf = (__n->val >> (__nxt->node.bit - 1)) & 1;               \
+		__nxt = (typeof(__nxt))__nxt->node.leaf[__lf];                \
+	}                                                                     \
+	__ro->node.leaf[__lf] = (struct eb_node *)__n;                        \
+	__n->node.link_p = (struct eb_node *)__ro;                            \
+	__n->node.leaf_p = (struct eb_node *)__n;                             \
+	__n->node.bit = flsnz(__n->val ^ __nxt->val);                         \
+	__lf = (__n->val > __nxt->val);                                       \
+	__n->node.leaf[__lf ^ 1] = (struct eb_node *)__nxt;                   \
+	__n->node.leaf[__lf] = (struct eb_node *)__n;                         \
+	LIST_INIT(&__n->node.dup);                                            \
+ __out_insert:                                                                \
+	;                                                                     \
+} while (0)
+
+
+/*
+ * This generic lookup macro may be used as a building block for other integer
+ * types. Do not put any comments in this one to avoid any problem. Please
+ * refer to __eb32_lookup() for comments.
+ */
+#define __eb_lookup(root, x) ({                                               \
+	__label__ __out_lookup;                                               \
+	typeof(root)    __ro = root;                                          \
+	typeof(x)       __x = x;                                              \
+	struct eb_node *__par = (struct eb_node *)__ro;                       \
+	__ro = (typeof(root))__par->leaf[(__x >> (__par->bit - 1)) & 1];      \
+	if (unlikely(!__ro))                                                  \
+		goto __out_lookup;                                            \
+	while (1) {                                                           \
+		if (unlikely(__ro->node.leaf_p == __par)) {                   \
+			if (__ro->val != __x)                                 \
+				__ro = NULL;                                  \
+			break;                                                \
+		}                                                             \
+		if (unlikely((__x ^ __ro->val) == 0))                         \
+			break;                                                \
+		if (unlikely((__x ^ __ro->val) >> __ro->node.bit)) {          \
+			__ro = NULL;                                          \
+			break;                                                \
+		}                                                             \
+		__par = (struct eb_node *)__ro;                               \
+		if ((__x >> (__par->bit - 1)) & 1)                            \
+			__ro = (typeof(root))__par->leaf[1];                  \
+		else                                                          \
+			__ro = (typeof(root))__par->leaf[0];                  \
+	}                                                                     \
+ __out_lookup:                                                                \
+	__ro;                                                                 \
+})
+
 
 /********************************************************************/
 /*         The following functions are data type-specific           */
@@ -563,24 +649,13 @@ __eb_delete(struct eb_node *node)
 static inline struct eb32_node *
 __eb32_lookup(struct eb32_node *root, unsigned long x)
 {
-	struct eb_node *parent;
+	struct eb_node *parent = (struct eb_node *)root;
+
+	root = (struct eb32_node *)parent->leaf[x >> 31];
+	if (unlikely(!root))
+		return NULL;
 
 	while (1) {
-		parent = (struct eb_node *)root;
-
-		// Don't ask why this slows down like hell ! Gcc completely
-		// changes all the loop sequencing !
-		// root = (struct eb32_node *)parent->leaf[((x >> (parent->bit - 1)) & 1)];
-
-		if ((x >> (parent->bit - 1)) & 1)
-			root = (struct eb32_node *)parent->leaf[1];
-		else
-			root = (struct eb32_node *)parent->leaf[0];
-
-		/* may only happen in tree root */
-		if (unlikely(!root))
-			return NULL;
-
 		if (unlikely(root->node.leaf_p == parent)) {
 			/* reached a leaf */
 			if (root->val == x)
@@ -611,6 +686,16 @@ __eb32_lookup(struct eb32_node *root, unsigned long x)
 			return NULL;
 #endif
 
+		parent = (struct eb_node *)root;
+
+		// Don't ask why this slows down like hell ! Gcc completely
+		// changes all the loop sequencing !
+		// root = (struct eb32_node *)parent->leaf[((x >> (parent->bit - 1)) & 1)];
+
+		if ((x >> (parent->bit - 1)) & 1)
+			root = (struct eb32_node *)parent->leaf[1];
+		else
+			root = (struct eb32_node *)parent->leaf[0];
 	}
 }
 
@@ -627,7 +712,7 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 	u32 x;
 
 	x = new->val;
-	l = (new->val >> 31) & 1;
+	l = x >> 31;
 
 	next = (struct eb32_node *)root->node.leaf[l];
 	if (unlikely(next == NULL)) {
@@ -706,55 +791,6 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 	return new;
 }
 
-/*
- * This one may be used as a building block for other integer types.
- * Do not put any comments in this one.
- */
-#define __eb_insert(root, new) do {                                           \
-	__label__ __out_insert;                                               \
-	typeof(root) __ro = root;                                             \
-	typeof(new)  __n  = new;                                              \
-	typeof(new)  __nxt;                                                   \
-	unsigned int __lf = (__n->val >> (__ro->node.bit - 1)) & 1;           \
-	__nxt = (typeof(__nxt))__ro->node.leaf[__lf];                         \
-	if (unlikely(__nxt == NULL)) {                                        \
-		__ro->node.leaf[__lf] = (struct eb_node *)__n;                \
-		__n->node.leaf_p = (struct eb_node *)__ro;                    \
-		LIST_INIT(&__n->node.dup);                                    \
-		__n->node.bit = 0;                                            \
-		goto __out_insert;                                            \
-	}                                                                     \
-	while (1) {                                                           \
-		if (unlikely(__nxt->node.leaf_p == (struct eb_node *)__ro)) { \
-			if (__nxt->val == __n->val) {                         \
-				LIST_ADDQ(&__nxt->node.dup, &__n->node.dup);  \
-				__n->node.leaf_p = NULL;                      \
-				__n->node.bit = 0;                            \
-				goto __out_insert;                            \
-			}                                                     \
-			__nxt->node.leaf_p = (struct eb_node *)__n;           \
-			break;                                                \
-		}                                                             \
-		if (((__n->val ^ __nxt->val) >> __nxt->node.bit) != 0) {      \
-			__nxt->node.link_p = (struct eb_node *)__n;           \
-			break;                                                \
-		}                                                             \
-		__ro = __nxt;                                                 \
-		__lf = (__n->val >> (__nxt->node.bit - 1)) & 1;               \
-		__nxt = (typeof(__nxt))__nxt->node.leaf[__lf];                \
-	}                                                                     \
-	__ro->node.leaf[__lf] = (struct eb_node *)__n;                        \
-	__n->node.link_p = (struct eb_node *)__ro;                            \
-	__n->node.leaf_p = (struct eb_node *)__n;                             \
-	__n->node.bit = flsnz(__n->val ^ __nxt->val);                         \
-	__lf = (__n->val > __nxt->val);                                       \
-	__n->node.leaf[__lf ^ 1] = (struct eb_node *)__nxt;                   \
-	__n->node.leaf[__lf] = (struct eb_node *)__n;                         \
-	LIST_INIT(&__n->node.dup);                                            \
- __out_insert:                                                                \
-	;                                                                     \
-} while (0)
-
 
 
 /********************************************************************/
@@ -764,10 +800,10 @@ struct eb32_node *eb32_lookup(struct eb32_node *root, unsigned long x);
 struct eb32_node *eb32_insert(struct eb32_node *root, struct eb32_node *new);
 int eb_delete(struct eb_node *node);
 
-#define eb32_delete(node)						     \
+#define eb32_delete(node)						      \
 	(eb_delete((struct eb_node *)(node)))
 
-#define __eb32_delete(node)						     \
+#define __eb32_delete(node)						      \
 	(__eb_delete((struct eb_node *)(node)))
 
 
