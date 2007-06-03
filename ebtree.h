@@ -706,6 +706,56 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 	return new;
 }
 
+/*
+ * This one may be used as a building block for other integer types.
+ * Do not put any comments in this one.
+ */
+#define __eb_insert(root, new) do {                                           \
+	__label__ __out_insert;                                               \
+	typeof(root) __ro = root;                                             \
+	typeof(new)  __n  = new;                                              \
+	typeof(new)  __nxt;                                                   \
+	unsigned int __lf = (__n->val >> (__ro->node.bit - 1)) & 1;           \
+	__nxt = (typeof(__nxt))__ro->node.leaf[__lf];                         \
+	if (unlikely(__nxt == NULL)) {                                        \
+		__ro->node.leaf[__lf] = (struct eb_node *)__n;                \
+		__n->node.leaf_p = (struct eb_node *)__ro;                    \
+		LIST_INIT(&__n->node.dup);                                    \
+		__n->node.bit = 0;                                            \
+		goto __out_insert;                                            \
+	}                                                                     \
+	while (1) {                                                           \
+		if (unlikely(__nxt->node.leaf_p == (struct eb_node *)__ro)) { \
+			if (__nxt->val == __n->val) {                         \
+				LIST_ADDQ(&__nxt->node.dup, &__n->node.dup);  \
+				__n->node.leaf_p = NULL;                      \
+				__n->node.bit = 0;                            \
+				goto __out_insert;                            \
+			}                                                     \
+			__nxt->node.leaf_p = (struct eb_node *)__n;           \
+			break;                                                \
+		}                                                             \
+		if (((__n->val ^ __nxt->val) >> __nxt->node.bit) != 0) {      \
+			__nxt->node.link_p = (struct eb_node *)__n;           \
+			break;                                                \
+		}                                                             \
+		__ro = __nxt;                                                 \
+		__lf = (__n->val >> (__nxt->node.bit - 1)) & 1;               \
+		__nxt = (typeof(__nxt))__nxt->node.leaf[__lf];                \
+	}                                                                     \
+	__ro->node.leaf[__lf] = (struct eb_node *)__n;                        \
+	__n->node.link_p = (struct eb_node *)__ro;                            \
+	__n->node.leaf_p = (struct eb_node *)__n;                             \
+	__n->node.bit = flsnz(__n->val ^ __nxt->val);                         \
+	__lf = (__n->val > __nxt->val);                                       \
+	__n->node.leaf[__lf ^ 1] = (struct eb_node *)__nxt;                   \
+	__n->node.leaf[__lf] = (struct eb_node *)__n;                         \
+	LIST_INIT(&__n->node.dup);                                            \
+ __out_insert:                                                                \
+	;                                                                     \
+} while (0)
+
+
 
 /********************************************************************/
 
