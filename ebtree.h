@@ -259,16 +259,6 @@ struct eb64_node {
 	}
 
 
-
-#undef STATS
-#ifdef STATS
-extern unsigned long total_jumps;
-#define COUNT_STATS  total_jumps++;
-#else
-#define COUNT_STATS
-#endif
-
-
 /* Walks down link node <root> starting with <start> leaf, and always walking
  * on side <side>. It either returns the first leaf on that side, or NULL if
  * no leaf is left. Note that <root> may either be NULL or a link node, but
@@ -729,8 +719,6 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 	 * This loop is the critical path in large trees.
 	 */
 	while (1) {
-		COUNT_STATS;
-
 		if (unlikely(next->node.leaf_p == (struct eb_node *)root)) {
 			/* we're on a leaf node */
 			if (next->val == x) {
