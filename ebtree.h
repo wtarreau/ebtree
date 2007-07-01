@@ -174,6 +174,18 @@ static inline int flsnz(int x)
 	})
 #endif
 
+static inline int flsnz64(unsigned long long x)
+{
+	unsigned int h;
+
+	h = x >> 32;
+	if (h)
+		return flsnz(h) + 32;
+	return flsnz(x);
+}
+
+#define flsnz_auto(x) ((sizeof(x) > 4) ? flsnz64(x) : flsnz(x))
+
 
 #ifndef LIST_INIT
 #define LIST_INIT(l) ((l)->n = (l)->p = (l))
@@ -590,7 +602,7 @@ __eb_delete(struct eb_node *node)
 	__ro->node.leaf[__lf] = (struct eb_node *)__n;                        \
 	__n->node.link_p = (struct eb_node *)__ro;                            \
 	__n->node.leaf_p = (struct eb_node *)__n;                             \
-	__n->node.bit = flsnz(__n->val ^ __nxt->val);                         \
+	__n->node.bit = flsnz_auto(__n->val ^ __nxt->val);                    \
 	__lf = (__n->val > __nxt->val);                                       \
 	__n->node.leaf[__lf ^ 1] = (struct eb_node *)__nxt;                   \
 	__n->node.leaf[__lf] = (struct eb_node *)__n;                         \
@@ -862,7 +874,7 @@ __eb64_insert(struct eb64_node *root, struct eb64_node *new) {
 
 	new->node.link_p = (struct eb_node *)root;
 	new->node.leaf_p = (struct eb_node *)new;
-	new->node.bit = flsnz(x ^ next->val);   /* lower identical bit */
+	new->node.bit = flsnz64(x ^ next->val);   /* lower identical bit */
 
 	/* This optimization is a bit tricky. The goal is to put new->leaf as well
 	 * as the other leaf on the right branch of the new parent link, depending
