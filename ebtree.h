@@ -1,17 +1,34 @@
 /*
- * ebtree.h : Elastic Binary Trees - macros and structures.
- * (C) 2002-2007 - Willy Tarreau - willy@ant-computing.com
+ * Elastic Binary Trees - macros and structures.
+ * (C) 2002-2007 - Willy Tarreau <w@1wt.eu>
  *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ *
+ * Short history :
+ *
+ * 2007/07/08: merge back cleanups from kernel version.
+ * 2007/07/01: merge into Linux Kernel (try 1).
  * 2007/05/27: version 2: compact everything into one single struct
  * 2007/05/18: adapted the structure to support embedded nodes
  * 2007/05/13: adapted to mempools v2.
- *
  */
 
 
 
 /*
-
   General idea:
   In a radix binary tree, we may have up to 2N-1 nodes for N values if all of
   them are leaves. If we find a way to differentiate intermediate nodes (called
@@ -54,10 +71,10 @@
    Here's what we find in an eb_node :
 
    struct eb_node {
+       struct list    dup;      // leaf duplicates
        struct eb_node *link_p;  // link node's parent
        struct eb_node *leaf_p;  // leaf node's parent
        struct eb_node *leaf[2]; // link's leaf nodes
-       struct list    dup;      // leaf duplicates
        int            bit;      // link's bit position. Maybe we should use a char ?
    };
 
@@ -137,22 +154,15 @@
    Also, when we delete a leaf attached to the root, we get no link back. It's
    not a problem because by definition, since a node can only provide links
    above it, it has no link in use.
-
  */
+
 
 #include <stdlib.h>
 
+/* Note: we never need to run fls on null values, so we can optimize the fls
+ * function by removing a conditional jump.
+ */
 #if defined(__i386__)
-static inline int fls(int x)
-{
-	int r;
-	__asm__("bsrl %1,%0\n\t"
-	        "jnz 1f\n\t"
-	        "movl $-1,%0\n"
-	        "1:" : "=r" (r) : "rm" (x));
-	return r+1;
-}
-
 static inline int flsnz(int x)
 {
 	int r;
@@ -174,7 +184,7 @@ static inline int flsnz(int x)
 	})
 #endif
 
-static inline int flsnz64(unsigned long long x)
+static inline int fls64(unsigned long long x)
 {
 	unsigned int h;
 
@@ -184,10 +194,10 @@ static inline int flsnz64(unsigned long long x)
 	return flsnz(x);
 }
 
-#define flsnz_auto(x) ((sizeof(x) > 4) ? flsnz64(x) : flsnz(x))
-
+#define fls_auto(x) ((sizeof(x) > 4) ? fls64(x) : flsnz(x))
 
 #ifndef LIST_INIT
+
 #define LIST_INIT(l) ((l)->n = (l)->p = (l))
 #define LIST_ADDQ(lh, el) ({ (el)->p = (lh)->p; (el)->p->n = (lh)->p = (el); (el)->n = (lh); (el); })
 #define LIST_DEL(el) ({ typeof(el) __ret = (el); (el)->n->p = (el)->p; (el)->p->n = (el)->n; (__ret); })
@@ -255,14 +265,14 @@ struct eb64_node {
  * - parent* = left = right = NULL
  * During its life, only left and right will change. Checking
  * that parent = NULL should be enough to retain from deleting it.
- * 
+ *
  */
 
 
 /********************************************************************/
 
-#define EB32_TREE_HEAD(name) 						\
-	struct eb32_node name = { 					\
+#define EB32_ROOT							\
+	(struct eb32_node) {						\
 		.node = { .bit = 32, 					\
 			  .link_p = NULL, .leaf_p = NULL,		\
 			  .leaf = { [0] = NULL, [1] = NULL },		\
@@ -270,14 +280,20 @@ struct eb64_node {
 		.val = 0,						\
 	}
 
-#define EB64_TREE_HEAD(name) 						\
-	struct eb64_node name = { 					\
+#define EB32_TREE_HEAD(name) 						\
+	struct eb32_node name = EB32_ROOT
+
+#define EB64_ROOT							\
+	(struct eb64_node) {						\
 		.node = { .bit = 64, 					\
 			  .link_p = NULL, .leaf_p = NULL,		\
 			  .leaf = { [0] = NULL, [1] = NULL },		\
 			  .dup = { .n = NULL, .p = NULL }},		\
 		.val = 0,						\
 	}
+
+#define EB64_TREE_HEAD(name) 						\
+	struct eb64_node name = EB64_ROOT
 
 
 /* Walks down link node <root> starting with <start> leaf, and always walking
@@ -486,7 +502,7 @@ __eb_delete(struct eb_node *node)
 
 		l = (parent->leaf[1] == node);
 		parent->leaf[l] = newlink;
-	
+
 		/* keep newlink intact as we can use it for the replacement */
 		goto replace_link;
 	}
@@ -602,7 +618,7 @@ __eb_delete(struct eb_node *node)
 	__ro->node.leaf[__lf] = (struct eb_node *)__n;                        \
 	__n->node.link_p = (struct eb_node *)__ro;                            \
 	__n->node.leaf_p = (struct eb_node *)__n;                             \
-	__n->node.bit = flsnz_auto(__n->val ^ __nxt->val);                    \
+	__n->node.bit = fls_auto(__n->val ^ __nxt->val);                      \
 	__lf = (__n->val > __nxt->val);                                       \
 	__n->node.leaf[__lf ^ 1] = (struct eb_node *)__nxt;                   \
 	__n->node.leaf[__lf] = (struct eb_node *)__n;                         \
@@ -806,6 +822,7 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
  * The node is returned.
  */
 
+#if BITS_PER_LONG == 64
 static inline struct eb64_node *
 __eb64_insert(struct eb64_node *root, struct eb64_node *new) {
 	struct eb64_node *next;
@@ -874,7 +891,7 @@ __eb64_insert(struct eb64_node *root, struct eb64_node *new) {
 
 	new->node.link_p = (struct eb_node *)root;
 	new->node.leaf_p = (struct eb_node *)new;
-	new->node.bit = flsnz64(x ^ next->val);   /* lower identical bit */
+	new->node.bit = fls64(x ^ next->val);   /* lower identical bit */
 
 	/* This optimization is a bit tricky. The goal is to put new->leaf as well
 	 * as the other leaf on the right branch of the new parent link, depending
@@ -890,6 +907,113 @@ __eb64_insert(struct eb64_node *root, struct eb64_node *new) {
 	return new;
 }
 
+#else /* BITS_PER_LONG != 64 */
+
+static inline struct eb64_node *
+__eb64_insert(struct eb64_node *root, struct eb64_node *new) {
+	struct eb64_node *next;
+	unsigned int l;
+	u64 x;
+	u32 lo, hi;
+
+	x = new->val;
+	l = x >> 63;
+
+	next = (struct eb64_node *)root->node.leaf[l];
+	if (unlikely(next == NULL)) {
+		root->node.leaf[l] = (struct eb_node *)new;
+		/* This can only happen on the root node. */
+		/* We'll have to insert our new leaf node here. */
+		new->node.leaf_p = (struct eb_node *)root;
+		LIST_INIT(&new->node.dup);
+		new->node.bit = 0; /* link part unused */
+		return new;
+	}
+
+	/*
+	 * This loop is the critical path in large trees.
+	 */
+	while (1) {
+		lo = x ^ next->val;
+		hi = (x ^ next->val) >> 32;
+
+		if (unlikely(next->node.leaf_p == (struct eb_node *)root)) {
+			/* we're on a leaf node */
+			if (!(hi | lo)) {
+				/* We are inserting a value we already have.
+				 * We just have to join the duplicates list.
+				 */
+				LIST_ADDQ(&next->node.dup, &new->node.dup);
+				new->node.leaf_p = NULL; /* we're a duplicate, no parent */
+				new->node.bit = 0; /* link part unused */
+				return new;
+			}
+			/* Set the leaf's parent to the new node */
+			next->node.leaf_p = (struct eb_node *)new;
+			break;
+		}
+
+		/* Stop going down when we don't have common bits anymore. */
+		if (((next->node.bit < 32) &&
+		     (hi || (lo >> next->node.bit))) ||
+		    ((next->node.bit >= 32) &&
+		     ((hi >> (next->node.bit - 32)) != 0))) {
+			/* Set the link's parent to the new node */
+			next->node.link_p = (struct eb_node *)new;
+			break;
+		}
+
+		/* walk down */
+		root = next;
+		if (next->node.bit >= 33)
+			l = ((u32)(x >> 32) >> (next->node.bit - 33)) & 1;
+		else
+			l = ((u32)x >> (next->node.bit - 1)) & 1;
+		/* l&1 below is just a hint for gcc */
+		next = (struct eb64_node *)next->node.leaf[l&1];
+	}
+
+	/* Ok, now we are inserting <new> between <root> and <next>. <next>'s
+	 * parent is already set to <new>, and the <root>'s branch is still in
+	 * <l>. Update the root's leaf till we have it.
+	 */
+	root->node.leaf[l] = (struct eb_node *)new;
+
+	/* We need the common higher bits between x and next->val.
+	 * What differences are there between x and the node here ?
+	 * NOTE that bit(new) is always < bit(root) because highest
+	 * bit of x and next->val are identical here (otherwise they
+	 * would sit on different branches).
+	 */
+
+	new->node.link_p = (struct eb_node *)root;
+	new->node.leaf_p = (struct eb_node *)new;
+
+	/* Trick: <hi> is still valid, but using it right here forces the
+	 * compiler to propagate the value across the function, which clobbers
+	 * some registers. It's cheaper to recompute them now on architectures
+	 * with low number of registers.
+	 */
+	hi = (x ^ next->val) >> 32;
+	new->node.bit = hi ? 32 + flsnz(hi)
+	                   : flsnz(x ^ next->val);   /* lower identical bit */
+
+	/* This optimization is a bit tricky. The goal is to put new->leaf as well
+	 * as the other leaf on the right branch of the new parent link, depending
+	 * on which one is bigger.
+	 */
+	l = (x > next->val);
+
+	new->node.leaf[l ^ 1] = (struct eb_node *)next;
+	new->node.leaf[l] = (struct eb_node *)new;
+
+	/* now we build the leaf part and chain it directly below the link node */
+	LIST_INIT(&new->node.dup);
+
+	return new;
+}
+
+#endif /* BITS_PER_LONG == 64 */
 
 
 /********************************************************************/
@@ -912,6 +1036,7 @@ int eb_delete(struct eb_node *node);
 #define __eb64_delete(node)						      \
 	(__eb_delete((struct eb_node *)(node)))
 
+#define eb_entry(ptr, type, member) container_of(ptr, type, member)
 
 
 
