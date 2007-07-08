@@ -303,7 +303,7 @@ struct eb64_node {
  * or a heading leaf node (not a dup). The leaf (or NULL) is returned.
  */
 static inline struct eb_node *
-__eb_walk_down(struct eb_node *root, unsigned int side, struct eb_node *start)
+eb_walk_down(struct eb_node *root, unsigned int side, struct eb_node *start)
 {
 	if (unlikely(!start))
 		return start;	/* only possible at root */
@@ -313,28 +313,6 @@ __eb_walk_down(struct eb_node *root, unsigned int side, struct eb_node *start)
 	};
 	return start;
 }
-
-#define eb_walk_down(root, side, start)				\
-({								\
-	__label__ __out;					\
-	struct eb_node *__wp = (struct eb_node *)(root);	\
-	struct eb_node *__wn = (struct eb_node *)(start);	\
-	if (unlikely(!__wn))					\
-		goto __out;	/* only possible at root */	\
-	while (__wn->leaf_p != __wp) {				\
-		__wp = __wn;					\
-		__wn = __wn->leaf[(side)];			\
-	};							\
-__out:								\
-	__wn;							\
-})
-
-#define eb_walk_down_left(node, start)			\
-	eb_walk_down(node, 0, start)
-
-#define eb_walk_down_right(node, start)			\
-	eb_walk_down(node, 1, start)
-
 
 /* Walks up starting from node <node> with parent <par>, which must be a valid
  * parent (ie: link_p or leaf_p, and <node> must not be a duplicate). It
@@ -355,17 +333,21 @@ eb_walk_up(struct eb_node *node, int side, struct eb_node *par)
 	return par;
 }
 
+#define eb_walk_down_left(node, start)			\
+	eb_walk_down((struct eb_node *)node, 0, (struct eb_node *)start)
+
+#define eb_walk_down_right(node, start)			\
+	eb_walk_down((struct eb_node *)node, 1, (struct eb_node *)start)
+
 #define eb_walk_up_left_with_parent(node, par)			\
 	eb_walk_up(node, 0, par)
 
 #define eb_walk_up_right_with_parent(node, par)			\
 	eb_walk_up(node, 1, par)
 
-
 /* Walks up left starting from leaf node <node> */
 #define eb_walk_up_left(node)					\
 	eb_walk_up_left_with_parent((node), (node)->leaf_p)
-
 
 /* Walks up right starting from leaf node <node> */
 #define eb_walk_up_right(node)					\
@@ -394,11 +376,11 @@ eb_walk_up(struct eb_node *node, int side, struct eb_node *par)
 
 /* returns next leaf node after an existing leaf node, or NULL if none. */
 #define eb_next(node)							\
-	((typeof(node))eb_next_node((struct eb_node *)(node)))
+	((typeof(node))__eb_next_node((struct eb_node *)(node)))
 
 /* returns previous leaf node before an existing leaf node, or NULL if none. */
 #define eb_prev(node)							\
-	((typeof(node))eb_prev_node((struct eb_node *)(node)))
+	((typeof(node))__eb_prev_node((struct eb_node *)(node)))
 
 /* Returns first leaf in the tree starting at <root>, or NULL if none */
 static inline struct eb_node *
@@ -420,6 +402,40 @@ __eb_last_node(struct eb_node *root)
 	side = ((struct eb_node *)(root))->leaf[1] != NULL;
 	return eb_walk_down_right((struct eb_node *)(root),
 		((struct eb_node *)(root))->leaf[side]);
+}
+
+/* returns previous leaf node before an existing leaf node, or NULL if none. */
+static inline struct eb_node *
+__eb_prev_node(struct eb_node *node)
+{
+	if (unlikely(node->dup.p != &node->dup)) {
+		/* let's return duplicates before going further */
+		node = LIST_ELEM(node->dup.p, struct eb_node *, dup);
+		if (!node->leaf_p)
+			return node;
+		/* we returned to the list's head, let's walk up now */
+	}
+	node = eb_walk_up_left_with_parent(node, node->leaf_p);
+	if (node)
+		node = eb_walk_down_right(node, node->leaf[0]);
+	return node;
+}
+
+/* returns next leaf node after an existing leaf node, or NULL if none. */
+static inline struct eb_node *
+__eb_next_node(struct eb_node *node)
+{
+	if (unlikely(node->dup.n != &node->dup)) {
+		/* let's return duplicates before going further */
+		node = LIST_ELEM(node->dup.n, struct eb_node *, dup);
+		if (!node->leaf_p)
+			return node;
+		/* we returned to the list's head, let's walk up now */
+	}
+	node = eb_walk_up_right_with_parent(node, node->leaf_p);
+	if (node)
+		node = eb_walk_down_left(node, node->leaf[1]);
+	return node;
 }
 
 /* Removes a leaf node from the tree, and returns zero after deleting the

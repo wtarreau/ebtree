@@ -66,33 +66,12 @@ eb_last_node(struct eb_node *root)
 struct eb_node *
 eb_prev_node(struct eb_node *node)
 {
-	if (node->dup.p != &node->dup) {
-		/* let's return duplicates before going further */
-		node = LIST_ELEM(node->dup.p, struct eb_node *, dup);
-		if (unlikely(!node->leaf_p))
-			return node;
-		/* we returned to the list's head, let's walk up now */
-	}
-	node = eb_walk_up_left_with_parent(node, node->leaf_p);
-	if (node)
-		node = eb_walk_down_right(node, node->leaf[0]);
-	return node;
+	return __eb_prev_node(node);
 }
 
 /* returns next leaf node after an existing leaf node, or NULL if none. */
 struct eb_node *
 eb_next_node(struct eb_node *node)
 {
-	if (node->dup.n != &node->dup) {
-		/* let's return duplicates before going further */
-		node = LIST_ELEM(node->dup.n, struct eb_node *, dup);
-		if (unlikely(!node->leaf_p))
-			return node;
-		/* we returned to the list's head, let's walk up now */
-	}
-	node = eb_walk_up_right_with_parent(node, node->leaf_p);
-	if (node)
-		node = eb_walk_down_left(node, node->leaf[1]);
-	return node;
+	return __eb_next_node(node);
 }
-
