@@ -238,9 +238,9 @@ typedef unsigned long long u64;
 
 /* 28 bytes per node on 32-bit machines. */
 struct eb_node {
-	struct list     dup;     /* leaf duplicates */
 	struct eb_node *leaf_p;  /* leaf node's parent */
 	struct eb_node *link_p;  /* link node's parent */
+	struct list     dup;     /* leaf duplicates */
 	struct eb_node *leaf[2]; /* link's leaf nodes */
 	unsigned int    bit;     /* link's bit position. */
 };
