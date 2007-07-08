@@ -34,3 +34,65 @@ struct eb32_node *eb32_lookup(struct eb32_node *root, unsigned long x) {
 struct eb64_node *eb64_insert(struct eb64_node *root, struct eb64_node *new) {
     return __eb64_insert(root, new);
 }
+
+/* Returns first leaf in the tree starting at <root>, or NULL if none */
+struct eb_node *
+eb_first_node(struct eb_node *root)
+{
+	return __eb_first_node(root);
+}
+
+#if 0
+// Alternative method, may clobber less registers.
+/* Returns first leaf in the tree starting at <root>, or NULL if none */
+struct eb_node *
+eb_first_node(struct eb_node *root)
+{
+	return eb_walk_down_left((struct eb_node *)(root),
+		((struct eb_node *)(root))->leaf[0] ?
+		    ((struct eb_node *)(root))->leaf[0] :
+		    ((struct eb_node *)(root))->leaf[1]);
+}
+#endif
+
+/* returns last leaf in the tree starting at <root>, or NULL if none */
+struct eb_node *
+eb_last_node(struct eb_node *root)
+{
+	return __eb_last_node(root);
+}
+
+/* returns previous leaf node before an existing leaf node, or NULL if none. */
+struct eb_node *
+eb_prev_node(struct eb_node *node)
+{
+	if (node->dup.p != &node->dup) {
+		/* let's return duplicates before going further */
+		node = LIST_ELEM(node->dup.p, struct eb_node *, dup);
+		if (unlikely(!node->leaf_p))
+			return node;
+		/* we returned to the list's head, let's walk up now */
+	}
+	node = eb_walk_up_left_with_parent(node, node->leaf_p);
+	if (node)
+		node = eb_walk_down_right(node, node->leaf[0]);
+	return node;
+}
+
+/* returns next leaf node after an existing leaf node, or NULL if none. */
+struct eb_node *
+eb_next_node(struct eb_node *node)
+{
+	if (node->dup.n != &node->dup) {
+		/* let's return duplicates before going further */
+		node = LIST_ELEM(node->dup.n, struct eb_node *, dup);
+		if (unlikely(!node->leaf_p))
+			return node;
+		/* we returned to the list's head, let's walk up now */
+	}
+	node = eb_walk_up_right_with_parent(node, node->leaf_p);
+	if (node)
+		node = eb_walk_down_left(node, node->leaf[1]);
+	return node;
+}
+

@@ -384,91 +384,43 @@ eb_walk_up(struct eb_node *node, int side, struct eb_node *par)
 #define eb_sibling_with_parent_test(node, par)			\
 	(((par)->leaf[1] == (node)) ? (par)->leaf[0] : (par)->leaf[1])
 
-
-/* Returns first leaf in the tree starting at <root>, or NULL if none */
-static inline struct eb_node *
-eb_first_node(struct eb_node *root)
-{
-	unsigned int branch;
-	struct eb_node *ret;
-	for (branch = 0; branch <= 1; branch++) {
-		ret = eb_walk_down_left((struct eb_node *)(root),
-					((struct eb_node *)(root))->leaf[branch]);
-		if (likely(ret))
-			break;
-	}
-	return ret;
-}
-
 /* returns first leaf in the tree starting at <root>, or NULL if none */
 #define eb_first(root)							\
-	((typeof(root))eb_first_node((struct eb_node *)(root)))
-
-
-/* returns last leaf in the tree starting at <root>, or NULL if none */
-static inline struct eb_node *
-eb_last_node(struct eb_node *root)
-{
-	unsigned int branch;
-	struct eb_node *ret;
-	for (branch = 1; branch <= 1; branch--) {
-		ret = eb_walk_down_right((struct eb_node *)(root),
-					((struct eb_node *)(root))->leaf[branch]);
-		if (likely(ret))
-			break;
-	}
-	return ret;
-}
+	((typeof(root))__eb_first_node((struct eb_node *)(root)))
 
 /* returns last leaf in the tree starting at <root>, or NULL if none */
 #define eb_last(root)							\
-	((typeof(root))eb_last_node((struct eb_node *)(root)))
-
-
+	((typeof(root))__eb_last_node((struct eb_node *)(root)))
 
 /* returns next leaf node after an existing leaf node, or NULL if none. */
-static inline struct eb_node *
-eb_next_node(struct eb_node *node)
-{
-	if (node->dup.n != &node->dup) {
-		/* let's return duplicates before going further */
-		node = LIST_ELEM(node->dup.n, struct eb_node *, dup);
-		if (unlikely(!node->leaf_p))
-			return node;
-		/* we returned to the list's head, let's walk up now */
-	}
-	node = eb_walk_up_right_with_parent(node, node->leaf_p);
-	if (node)
-		node = eb_walk_down_left(node, node->leaf[1]);
-	return node;
-}
-
 #define eb_next(node)							\
 	((typeof(node))eb_next_node((struct eb_node *)(node)))
-
-
-/* returns previous leaf node before an existing leaf node, or NULL if none. */
-static inline struct eb_node *
-eb_prev_node(struct eb_node *node)
-{
-	if (node->dup.p != &node->dup) {
-		/* let's return duplicates before going further */
-		node = LIST_ELEM(node->dup.p, struct eb_node *, dup);
-		if (unlikely(!node->leaf_p))
-			return node;
-		/* we returned to the list's head, let's walk up now */
-	}
-	node = eb_walk_up_left_with_parent(node, node->leaf_p);
-	if (node)
-		node = eb_walk_down_right(node, node->leaf[0]);
-	return node;
-}
-
 
 /* returns previous leaf node before an existing leaf node, or NULL if none. */
 #define eb_prev(node)							\
 	((typeof(node))eb_prev_node((struct eb_node *)(node)))
 
+/* Returns first leaf in the tree starting at <root>, or NULL if none */
+static inline struct eb_node *
+__eb_first_node(struct eb_node *root)
+{
+	int side;
+
+	side = ((struct eb_node *)(root))->leaf[0] == NULL;
+	return eb_walk_down_left((struct eb_node *)(root),
+		((struct eb_node *)(root))->leaf[side]);
+}
+
+/* returns last leaf in the tree starting at <root>, or NULL if none */
+static inline struct eb_node *
+__eb_last_node(struct eb_node *root)
+{
+	int side;
+
+	side = ((struct eb_node *)(root))->leaf[1] != NULL;
+	return eb_walk_down_right((struct eb_node *)(root),
+		((struct eb_node *)(root))->leaf[side]);
+}
 
 /* Removes a leaf node from the tree, and returns zero after deleting the
  * last node. Otherwise, non-zero is returned.
@@ -1023,6 +975,11 @@ struct eb32_node *eb32_lookup(struct eb32_node *root, unsigned long x);
 struct eb32_node *eb32_insert(struct eb32_node *root, struct eb32_node *new);
 struct eb64_node *eb64_insert(struct eb64_node *root, struct eb64_node *new);
 int eb_delete(struct eb_node *node);
+struct eb_node *eb_first_node(struct eb_node *root);
+struct eb_node *eb_last_node(struct eb_node *root);
+struct eb_node *eb_prev_node(struct eb_node *node);
+struct eb_node *eb_next_node(struct eb_node *node);
+
 
 #define eb32_delete(node)						      \
 	(eb_delete((struct eb_node *)(node)))
