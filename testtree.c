@@ -282,7 +282,7 @@ int main(int argc, char **argv) {
     }
     cycles2 = cycles;
 
-    printf("Walking through %d entries... ", total);
+    printf("Walking right through %d entries... ", total);
     node = tree_first(&wait_queue);
     cycles = 0;
 
@@ -293,11 +293,22 @@ int main(int argc, char **argv) {
     rdtscll(end);
     cycles = end - start;
 
-    tv_now(&t_walk);
     printf("%llu cycles/ent\n", cycles/total);
-
     cycles2 += cycles;
-    tv_now(&t_move);
+
+    printf("Walking left through %d entries... ", total);
+    node = tree_last(&wait_queue);
+    cycles = 0;
+
+    rdtscll(start);
+    while (node) {
+	node = tree_prev(node);
+    }
+    rdtscll(end);
+    cycles = end - start;
+
+    printf("%llu cycles/ent\n", cycles/total);
+    cycles2 += cycles;
 
     printf("Deleting %d entries... ", total);
     node = tree_first(&wait_queue);
