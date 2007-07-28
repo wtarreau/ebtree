@@ -398,26 +398,33 @@ static inline struct eb_node *
 __eb_last_node(struct eb_node *root)
 {
 	int side;
+	struct eb_node *node;
 
 	side = ((struct eb_node *)(root))->leaf[1] != NULL;
-	return eb_walk_down_right((struct eb_node *)(root),
+	node = eb_walk_down_right((struct eb_node *)(root),
 		((struct eb_node *)(root))->leaf[side]);
+	/* let's return a possible last duplicate first */
+	return LIST_ELEM(node->dup.p, struct eb_node *, dup);
 }
 
 /* returns previous leaf node before an existing leaf node, or NULL if none. */
 static inline struct eb_node *
 __eb_prev_node(struct eb_node *node)
 {
-	if (unlikely(node->dup.p != &node->dup)) {
+	if (unlikely(!node->leaf_p)) {
 		/* let's return duplicates before going further */
-		node = LIST_ELEM(node->dup.p, struct eb_node *, dup);
-		if (!node->leaf_p)
-			return node;
-		/* we returned to the list's head, let's walk up now */
+		return LIST_ELEM(node->dup.p, struct eb_node *, dup);
 	}
+
 	node = eb_walk_up_left_with_parent(node, node->leaf_p);
-	if (node)
-		node = eb_walk_down_right(node, node->leaf[0]);
+	if (unlikely(!node))
+		return node;
+
+	node = eb_walk_down_right(node, node->leaf[0]);
+	if (unlikely(node->dup.n != &node->dup)) {
+		/* let's return last duplicate first */
+		node = LIST_ELEM(node->dup.p, struct eb_node *, dup);
+	}
 	return node;
 }
 
@@ -433,9 +440,7 @@ __eb_next_node(struct eb_node *node)
 		/* we returned to the list's head, let's walk up now */
 	}
 	node = eb_walk_up_right_with_parent(node, node->leaf_p);
-	if (node)
-		node = eb_walk_down_left(node, node->leaf[1]);
-	return node;
+	return node ? eb_walk_down_left(node, node->leaf[1]) : node;
 }
 
 /* Removes a leaf node from the tree, and returns zero after deleting the
