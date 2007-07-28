@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
     unsigned long links_used = 0;
     unsigned long neighbours = 0;
     unsigned long long x;
-    struct task *task, *lasttask;
+    struct task *task, *lasttask, *firsttask;
     struct tree_node *node;
     struct timeval t_start, t_random, t_insert, t_lookup, t_walk, t_move, t_delete;
     static unsigned long long start, calibrate, end, cycles, cycles2, cycles3;
@@ -200,7 +200,7 @@ int main(int argc, char **argv) {
 	//printf("Timing %d random()+malloc... ", total);
 
 	rdtscll(start);
-	lasttask = NULL;
+	firsttask = lasttask = NULL;
 	for (i = 0; i < total; i++) {
 	    ////unsigned long long x = (i << 16) + ((random() & 63ULL) << 32) + (random() % 1000);
 	    //unsigned long l = (random() % 1000)*1000; // to emulate tv_usec based on milliseconds
@@ -237,12 +237,22 @@ int main(int argc, char **argv) {
 
 	    // simulates some sparse groups of values like with a scheduler
 	    x = (i / 1000) * 50000 + (i % 1000) * 4 - 1500;
-
+	    //x = i>>2;
 	    task = (struct task *)calloc(1,sizeof(*task));
 	    task->expire = x;//*x;//total-i-1;//*/(x>>10)&65535;//i&65535;//(x>>8)&65535;//rev32(i);//i&32767;//x;//i ^ (long)lasttask;
 	    task->wq = &wait_queue;
-	    task->data = (void *)lasttask;
+
+	    if (!firsttask)
+		firsttask = task;
+	    if (lasttask)
+		lasttask->data = (void *)task;
 	    lasttask = task;
+	    task->data = NULL;
+
+	    /* tasks will be queued backwards */
+	    memcpy(task->task_data, &i, sizeof(i));
+	    lasttask = task;
+	    //printf("task %p = %ld\n", task, i);
 	}
 	rdtscll(end);
 	tv_now(&t_random);
@@ -250,7 +260,7 @@ int main(int argc, char **argv) {
 
 	printf("Timing %d insert... ", total);
 	cycles = 0;
-	task = lasttask;
+	task = firsttask;
 	for (i = 0; i < total; i++) {
 	    rdtscll(start); rdtscll(calibrate); // account for the time spent calling rdtsc too !
 	    insert_task_queue(task);
@@ -286,8 +296,12 @@ int main(int argc, char **argv) {
     node = tree_first(&wait_queue);
     cycles = 0;
 
+    //printf("\n");
     rdtscll(start);
     while (node) {
+	//task = tree_entry(node);
+	//memcpy(&i, task->task_data, sizeof(i));
+	//printf("next: %p = %ld\n", task, i);
 	node = tree_next(node);
     }
     rdtscll(end);
@@ -300,8 +314,12 @@ int main(int argc, char **argv) {
     node = tree_last(&wait_queue);
     cycles = 0;
 
+    //printf("\n");
     rdtscll(start);
     while (node) {
+	//task = tree_entry(node);
+	//memcpy(&i, task->task_data, sizeof(i));
+	//printf("prev: %p = %ld\n", task, i);
 	node = tree_prev(node);
     }
     rdtscll(end);
