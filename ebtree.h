@@ -305,7 +305,7 @@ struct eb64_node {
 static inline struct eb_node *
 eb_walk_down(struct eb_node *root, unsigned int side, struct eb_node *start)
 {
-	if (unlikely(!start))
+	if (!start)
 		return start;	/* only possible at root */
 	while (start->leaf_p != root) {
 		root = start;
@@ -324,11 +324,9 @@ eb_walk_down(struct eb_node *root, unsigned int side, struct eb_node *start)
 static inline struct eb_node *
 eb_walk_up(struct eb_node *node, int side, struct eb_node *par)
 {
-	while (par->leaf[side] == node) {
+	while (par && par->leaf[side] == node) {
 		node = par;
 		par = par->link_p;
-		if (unlikely(!par))
-			break;
 	}
 	return par;
 }
@@ -421,6 +419,9 @@ __eb_prev_node(struct eb_node *node)
 		return node;
 
 	node = eb_walk_down_right(node, node->leaf[0]);
+	if (unlikely(!node))
+	    return node;
+
 	if (unlikely(node->dup.n != &node->dup)) {
 		/* let's return last duplicate first */
 		node = LIST_ELEM(node->dup.p, struct eb_node *, dup);
