@@ -236,6 +236,9 @@ typedef unsigned short u16;
 typedef unsigned int u32;
 typedef unsigned long long u64;
 
+#define LINK_SIDE_LEFT  0
+#define LINK_SIDE_RIGHT 1
+
 /* 28 bytes per node on 32-bit machines. */
 struct eb_node {
 	struct eb_node *leaf_p;  /* leaf node's parent */
