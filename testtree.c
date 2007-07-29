@@ -3,6 +3,12 @@
 #include <string.h>
 #include <sys/time.h>
 
+#ifdef DEBUG
+#define DPRINTF printf
+#else
+#define DPRINTF(a, ...)
+#endif
+
 #define rdtscll(val) \
      __asm__ __volatile__("rdtsc" : "=A" (val))
 
@@ -252,7 +258,7 @@ int main(int argc, char **argv) {
 	    /* tasks will be queued backwards */
 	    memcpy(task->task_data, &i, sizeof(i));
 	    lasttask = task;
-	    //printf("task %p = %ld\n", task, i);
+	    DPRINTF("task %p = %ld (data=%ld)\n", task, x, i);
 	}
 	rdtscll(end);
 	tv_now(&t_random);
@@ -296,12 +302,14 @@ int main(int argc, char **argv) {
     node = tree_first(&wait_queue);
     cycles = 0;
 
-    //printf("\n");
+    DPRINTF("\n");
     rdtscll(start);
     while (node) {
-	//task = tree_entry(node);
-	//memcpy(&i, task->task_data, sizeof(i));
-	//printf("next: %p = %ld\n", task, i);
+#ifdef DEBUG
+	task = tree_entry(node);
+	memcpy(&i, task->task_data, sizeof(i));
+	DPRINTF("next: %p = %ld (data=%ld)\n", task, task->expire, i);
+#endif
 	node = tree_next(node);
     }
     rdtscll(end);
@@ -314,12 +322,14 @@ int main(int argc, char **argv) {
     node = tree_last(&wait_queue);
     cycles = 0;
 
-    //printf("\n");
+    DPRINTF("\n");
     rdtscll(start);
     while (node) {
-	//task = tree_entry(node);
-	//memcpy(&i, task->task_data, sizeof(i));
-	//printf("prev: %p = %ld\n", task, i);
+#ifdef DEBUG
+	task = tree_entry(node);
+	memcpy(&i, task->task_data, sizeof(i));
+	DPRINTF("prev: %p = %ld (data=%ld)\n", task, task->expire, i);
+#endif
 	node = tree_prev(node);
     }
     rdtscll(end);
