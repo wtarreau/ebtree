@@ -241,11 +241,12 @@ typedef unsigned long long u64;
 
 /* 28 bytes per node on 32-bit machines. */
 struct eb_node {
+	unsigned short  bit;     /* link's bit position. */
+	unsigned short  side;    /* link's side below its parent */
 	struct eb_node *leaf_p;  /* leaf node's parent */
 	struct eb_node *link_p;  /* link node's parent */
-	struct list     dup;     /* leaf duplicates */
 	struct eb_node *leaf[2]; /* link's leaf nodes */
-	unsigned int    bit;     /* link's bit position. */
+	struct list     dup;     /* leaf duplicates */
 };
 
 /* Those structs carry nodes and data. They must start with the eb_node so that
@@ -334,6 +335,31 @@ eb_walk_up(struct eb_node *node, int side, struct eb_node *par)
 	return par;
 }
 
+/* Walks up starting from valid leaf node <node> which must not be a duplicate,
+ * It follows side <side> for as long as possible, and stops when it reaches a
+ * node which sees it on the other side, or before attempting to go beyond the
+ * root. The pointer to the closest common ancestor is returned, which might be
+ * NULL if none is found.
+ */
+static inline struct eb_node *
+eb_walk_up_from_leaf(struct eb_node *node, int side)
+{
+	struct eb_node *par;
+
+	par = node->leaf_p;
+	if (likely(par->leaf[side] == node)) {
+		do {
+			node = par;
+			par = par->link_p;
+			/* This test looks tricky, but it helps the compiler
+			 * produce good code by only emitting comparisons to
+			 * zero. As the function is inlined, the test is
+			 * optimized away by the compiler. -WT */
+		} while (unlikely(((!side && !node->side) || (side && node->side)) && par));
+	}
+	return par;
+}
+
 #define eb_walk_down_left(node, start)			\
 	eb_walk_down((struct eb_node *)node, 0, (struct eb_node *)start)
 
@@ -417,7 +443,8 @@ __eb_prev_node(struct eb_node *node)
 		return LIST_ELEM(node->dup.p, struct eb_node *, dup);
 	}
 
-	node = eb_walk_up_left_with_parent(node, node->leaf_p);
+	node = eb_walk_up_from_leaf(node, LINK_SIDE_LEFT);
+	//node = eb_walk_up_left_with_parent(node, node->leaf_p);
 	if (unlikely(!node))
 		return node;
 
@@ -443,7 +470,8 @@ __eb_next_node(struct eb_node *node)
 			return node;
 		/* we returned to the list's head, let's walk up now */
 	}
-	node = eb_walk_up_right_with_parent(node, node->leaf_p);
+	node = eb_walk_up_from_leaf(node, LINK_SIDE_RIGHT);
+	//node = eb_walk_up_right_with_parent(node, node->leaf_p);
 	return node ? eb_walk_down_left(node, node->leaf[1]) : node;
 }
 
@@ -712,7 +740,7 @@ __eb32_lookup(struct eb32_node *root, unsigned long x)
 static inline struct eb32_node *
 __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 	struct eb32_node *next;
-	unsigned int l;
+	unsigned int l, s;
 	u32 x;
 
 	x = new->val;
@@ -720,6 +748,7 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 
 	next = (struct eb32_node *)root->node.leaf[l];
 	if (unlikely(next == NULL)) {
+		new->node.side = l;
 		root->node.leaf[l] = (struct eb_node *)new;
 		/* This can only happen on the root node. */
 		/* We'll have to insert our new leaf node here. */
@@ -742,10 +771,12 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 				LIST_ADDQ(&next->node.dup, &new->node.dup);
 				new->node.leaf_p = NULL; /* we're a duplicate, no parent */
 				new->node.bit = 0; /* link part unused */
+				new->node.side = l;
 				return new;
 			}
 			/* Set the leaf's parent to the new node */
 			next->node.leaf_p = (struct eb_node *)new;
+			s = (x < next->val);
 			break;
 		}
 
@@ -753,6 +784,8 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 		if (((x ^ next->val) >> next->node.bit) != 0) {
 			/* Set the link's parent to the new node */
 			next->node.link_p = (struct eb_node *)new;
+			s = (x < next->val);
+			next->node.side = s;
 			break;
 		}
 
@@ -766,6 +799,7 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 	 * parent is already set to <new>, and the <root>'s branch is still in
 	 * <l>. Update the root's leaf till we have it.
 	 */
+	new->node.side = l;
 	root->node.leaf[l] = (struct eb_node *)new;
 
 	/* We need the common higher bits between x and next->val.
@@ -783,8 +817,8 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 	 * as the other leaf on the right branch of the new parent link, depending
 	 * on which one is bigger.
 	 */
-	l = (x > next->val);
-	new->node.leaf[l ^ 1] = (struct eb_node *)next;
+	l = s ^ 1;
+	new->node.leaf[s] = (struct eb_node *)next;
 	new->node.leaf[l] = (struct eb_node *)new;
 
 	/* now we build the leaf part and chain it directly below the link node */
