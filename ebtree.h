@@ -236,6 +236,11 @@ typedef unsigned short u16;
 typedef unsigned int u32;
 typedef unsigned long long u64;
 
+/* number of bits per node, and number of leaves per node */
+#define EB_NODE_BITS       1
+#define EB_NODE_LEAVES     (1 << EB_NODE_BITS)
+#define EB_NODE_LEAF_MASK  (EB_NODE_LEAVES - 1)
+
 #define LINK_SIDE_LEFT  0
 #define LINK_SIDE_RIGHT 1
 
@@ -254,7 +259,7 @@ typedef void eb_tagptr_t;
 
 /* 28 bytes per node on 32-bit machines. */
 struct eb_node {
-	eb_tagptr_t    *leaf[2]; /* link's leaf nodes */
+	eb_tagptr_t    *leaf[EB_NODE_LEAVES]; /* link's leaf nodes */
 	eb_tagptr_t    *link_p;  /* link node's parent */
 	eb_tagptr_t    *leaf_p;  /* leaf node's parent */
 	struct list     dup;     /* leaf duplicates */
@@ -883,44 +888,61 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 	unsigned int l;
 	eb_tagptr_t *t;
 	//eb_tagptr_t **tp;
-	u32 x;
+	u32 x;	//#define x (new->val)
 
-	x = new->val;
-	l = x >> 31;
-
-	t = root->node.leaf[l];
-	//tp = &root->node.leaf[l];
+	l = 0;
+	t = root->node.leaf[0];
+	//tp = &root->node.leaf[0];
 	if (unlikely(t == NULL)) {
-		root->node.leaf[l] = eb_addtag((struct eb_node *)new, EB_TAG_TYPE_LEAF);
-		/* This can only happen on the root node. */
-		/* We'll have to insert our new leaf node here. */
-		new->node.leaf_p = eb_addtag((struct eb_node *)root, l);
+		/* The tree is empty. We'll have to insert our new leaf node
+		 * right here without any new link node.
+		 */
+		root->node.leaf[0] = eb_addtag((struct eb_node *)new, EB_TAG_TYPE_LEAF);
 		LIST_INIT(&new->node.dup);
-		//new->node.bit = 0; /* link part unused */
+		new->node.leaf_p = eb_addtag((struct eb_node *)root, 0);
+		new->node.link_p = NULL; /* link part is not in use */
 		return new;
 	}
 
-	/*
-	 * This loop is the critical path in large trees.
+	/* OK, we'll go down the tree. <t> will always point to the next node,
+	 * and <l> will designate the branch it is attached to (left/right).
 	 */
+	x = new->val;
+
 	while (1) {
-		/* first, check if we have reached a leaf node */
-		if (unlikely(eb_gettag(t) != EB_TAG_TYPE_LINK)) {
+		/* The tree descent is fairly easy :
+		 *  - first, check if we have reached a leaf node
+		 *  - second, check if we have gone too far
+		 *  - third, reiterate
+		 * Everywhere, we use <new> for the new node we are inserting,
+		 * <root> for the node we attach it to, and <next> for the node
+		 * we are displacing below <new>.
+		 */
+		if (unlikely(eb_gettag(t) == EB_TAG_TYPE_LEAF)) {
 			next = (struct eb32_node *)eb_remtag(t, EB_TAG_TYPE_LEAF);
 			if ((x ^ next->val) == 0) {
-				/* We are inserting a value we already have.
-				 * We just have to join the duplicates list.
+				/* We already have this value, we just have to
+				 * add a duplicate.
 				 */
 				LIST_ADDQ(&next->node.dup, &new->node.dup);
 				new->node.leaf_p = NULL; /* we're a duplicate, no parent */
-				//new->node.bit = 0; /* link part unused */
+				new->node.link_p = NULL; /* link part is not in use */
 				return new;
 			}
 
-			new->node.bit = flsnz(x ^ next->val);   /* lower identical bit */
+			/* The tree did not contain this value, so we insert
+			 * <new> before the leaf <next>, and set ->bit to
+			 * designate the lowest bit position in <new> which
+			 * applies to ->leaf[].
+			 */
 			new->node.link_p  = next->node.leaf_p;
+
+			/* We need to check on which of the root's leaves the node will
+			 * be attached. For this we have to compare its value to next's.
+			 * Strictly speaking, this works with 2 leaves, but it would
+			 * require some bitmask checks with higher numbers.
+			 */
 			if (next->val > x) {
-				/* Set the leaf's parent to the new node */
 				new->node.leaf_p  = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_LEFT);
 				new->node.leaf[0] = eb_addtag((struct eb_node *)new, EB_TAG_TYPE_LEAF);
 				new->node.leaf[1] = eb_addtag((struct eb_node *)next, EB_TAG_TYPE_LEAF);
@@ -931,11 +953,10 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 				new->node.leaf[0] = eb_addtag((struct eb_node *)next, EB_TAG_TYPE_LEAF);
 				next->node.leaf_p = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_LEFT);
 			}
-
 			break;
 		}
 
-		/* OK we're going down a link */
+		/* OK we're walking down this link */
 		next = (struct eb32_node *)eb_remtag(t, EB_TAG_TYPE_LINK);
 
 		/* Stop going down when we don't have common bits anymore. */
@@ -944,8 +965,15 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 		 * "unlikely" gives better values. Using neither of them provides average performance
 		 * all over the values.
 		 */
-		if (/*un*/likely(((x ^ next->val) >> next->node.bit) != 0)) {
-			new->node.bit = flsnz(x ^ next->val);   /* lower identical bit */
+
+		//if (((x >> next->node.bit) ^ (next->val >> next->node.bit)) >= EB_NODE_LEAVES) {
+		//if (((x >> next->node.bit) ^ (next->val >> next->node.bit)) & ~EB_NODE_LEAF_MASK) {
+		//if (((x ^ next->val) >> next->node.bit) & ~EB_NODE_LEAF_MASK) {
+		if (((x ^ next->val) >> next->node.bit) >= EB_NODE_LEAVES) {
+			/* The tree did not contain the value, so we insert <new> before the link
+			 * <next>, and set ->bit to designate the lowest bit position in <new>
+			 * which applies to ->leaf[].
+			 */
 			new->node.link_p  = next->node.link_p;
 			if (next->val > x) {
 				new->node.leaf_p  = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_LEFT);
@@ -963,7 +991,7 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 
 		/* walk down */
 		root = next;
-		l = (x >> (next->node.bit - 1)) & 1;
+		l = (x >> next->node.bit) & EB_NODE_LEAF_MASK;
 		t = next->node.leaf[l];
 		//tp = &next->node.leaf[l];
 	}
@@ -972,7 +1000,9 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 	 * parent is already set to <new>, and the <root>'s branch is still in
 	 * <l>. Update the root's leaf till we have it.
 	 */
+	new->node.bit = flsnz(x ^ next->val) - EB_NODE_BITS; // note that if EB_NODE_BITS > 0, we should check that it's still >= 0
 	root->node.leaf[l] = eb_addtag((struct eb_node *)new, EB_TAG_TYPE_LINK);
+
 	//*tp = eb_addtag((struct eb_node *)new, EB_TAG_TYPE_LINK);
 
 	/* We need the common higher bits between x and next->val.
@@ -990,7 +1020,7 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 
 	return new;
 }
-
+#undef x
 
 /* Inserts node <new> into subtree starting at link node <root>.
  * Only new->leaf.val needs be set with the value.
