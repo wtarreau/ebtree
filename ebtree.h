@@ -551,18 +551,13 @@ __eb_prev_node(struct eb_node *node)
 		unsigned int s;
 		s = eb_gettag(t);
 		if (s != EB_TAG_SIDE_LEFT) {
-			node = eb_remtag(t, EB_TAG_SIDE_RIGHT);
-
-			t = node->leaf[LINK_SIDE_LEFT];
-			/* On root, t can be NULL. This will be caught before
-			 * entering the loop below, but we must at least check
-			 * against it before checking duplicates below.
+			/* Note that <t> cannot be NULL at this stage because
+			 * only the root has a NULL link_p, and it's caught before.
 			 */
-			if (!t)
-				return NULL;
-			while (eb_gettag(t) == EB_TAG_TYPE_LINK) {
+			t = eb_remtag(t, EB_TAG_SIDE_RIGHT)->leaf[LINK_SIDE_LEFT];
+			while (eb_gettag(t) == EB_TAG_TYPE_LINK)
 				t = eb_remtag(t, EB_TAG_TYPE_LINK)->leaf[LINK_SIDE_RIGHT];
-			}
+
 			node = eb_remtag(t, EB_TAG_TYPE_LEAF);
 
 			/* we're walking backwards, so we must return last duplicates first */
@@ -572,9 +567,11 @@ __eb_prev_node(struct eb_node *node)
 			return node;
 		}
 		node = eb_remtag(t, EB_TAG_SIDE_LEFT);
-		if (!node)
-			return node;
 		t = node->link_p;
+
+		/* we ensure that we never walk beyond root here */
+		if (unlikely(!t))
+			return NULL;
 	} while (1);
 }
 
@@ -593,30 +590,23 @@ __eb_next_node(struct eb_node *node)
 		/* we returned to the list's head, let's walk up now */
 	}
 
-	////node = eb_walk_up_right_with_parent(node, node->leaf_p);
-	//node = eb_walk_up_from_leaf(node, LINK_SIDE_RIGHT);
-	//return node ? eb_walk_down_left(node->leaf[1]) : node;
-
 	do {
-		unsigned int s;
-		s = eb_gettag(t);
-		if (s == EB_TAG_SIDE_LEFT) {
-			node = eb_remtag(t, EB_TAG_SIDE_LEFT);
-			if (!node)
-				return node;
-
-			t = node->leaf[LINK_SIDE_RIGHT];
-			/* At root, t can be NULL here, but with LINK=1, we
-			 * will not enter the loop and we will return NULL so
-			 * we are protected.
+		if (eb_gettag(t) == EB_TAG_SIDE_LEFT) {
+			/* Note that <t> cannot be NULL at this stage because
+			 * only the root has a NULL link_p, and it's caught before.
 			 */
-			while (eb_gettag(t) == EB_TAG_TYPE_LINK) {
+			t = eb_remtag(t, EB_TAG_SIDE_LEFT)->leaf[LINK_SIDE_RIGHT];
+
+			/* The root is detected here with t == NULL, but since
+			 * EB_TAG_TYPE_LINK=1, we will not enter the loop and
+			 * we will return NULL so we are protected.
+			 */
+			while (eb_gettag(t) == EB_TAG_TYPE_LINK)
 				t = eb_remtag(t, EB_TAG_TYPE_LINK)->leaf[LINK_SIDE_LEFT];
-			}
+
 			return eb_remtag(t, EB_TAG_TYPE_LEAF);
 		}
-		node = eb_remtag(t, EB_TAG_SIDE_RIGHT);
-		t = node->link_p;
+		t = eb_remtag(t, EB_TAG_SIDE_RIGHT)->link_p;
 	} while (1);
 }
 
