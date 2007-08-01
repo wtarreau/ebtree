@@ -259,9 +259,9 @@ typedef void eb_tagptr_t;
 
 /* 28 bytes per node on 32-bit machines. */
 struct eb_node {
-	eb_tagptr_t    *leaf[EB_NODE_LEAVES]; /* link's leaf nodes */
-	eb_tagptr_t    *link_p;  /* link node's parent */
 	eb_tagptr_t    *leaf_p;  /* leaf node's parent */
+	eb_tagptr_t    *link_p;  /* link node's parent */
+	eb_tagptr_t    *leaf[EB_NODE_LEAVES]; /* link's leaf nodes */
 	struct list     dup;     /* leaf duplicates */
 	unsigned int    bit;     /* link's bit position. */
 };
@@ -902,9 +902,10 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 		 * <root> for the node we attach it to, and <next> for the node
 		 * we are displacing below <new>.
 		 */
-		if (unlikely(eb_gettag(t) == EB_TAG_TYPE_LEAF)) {
+		if (eb_gettag(t) == EB_TAG_TYPE_LEAF) {
 			next = (struct eb32_node *)eb_remtag(t, EB_TAG_TYPE_LEAF);
 			if ((x ^ next->val) == 0) {
+				//if (x == next->val) {
 				/* We already have this value, we just have to
 				 * add a duplicate.
 				 */
@@ -927,14 +928,14 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 			 * require some bitmask checks with higher numbers.
 			 */
 			if (next->val > x) {
-				new->node.leaf_p  = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_LEFT);
 				new->node.leaf[0] = eb_addtag((struct eb_node *)new, EB_TAG_TYPE_LEAF);
 				new->node.leaf[1] = eb_addtag((struct eb_node *)next, EB_TAG_TYPE_LEAF);
+				new->node.leaf_p  = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_LEFT);
 				next->node.leaf_p = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_RIGHT);
 			} else {
-				new->node.leaf_p  = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_RIGHT);
-				new->node.leaf[1] = eb_addtag((struct eb_node *)new, EB_TAG_TYPE_LEAF);
 				new->node.leaf[0] = eb_addtag((struct eb_node *)next, EB_TAG_TYPE_LEAF);
+				new->node.leaf[1] = eb_addtag((struct eb_node *)new, EB_TAG_TYPE_LEAF);
+				new->node.leaf_p  = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_RIGHT);
 				next->node.leaf_p = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_LEFT);
 			}
 			break;
@@ -960,14 +961,14 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 			 */
 			new->node.link_p  = next->node.link_p;
 			if (next->val > x) {
-				new->node.leaf_p  = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_LEFT);
 				new->node.leaf[0] = eb_addtag((struct eb_node *)new, EB_TAG_TYPE_LEAF);
 				new->node.leaf[1] = eb_addtag((struct eb_node *)next, EB_TAG_TYPE_LINK);
+				new->node.leaf_p  = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_LEFT);
 				next->node.link_p = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_RIGHT);
 			} else {
-				new->node.leaf_p  = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_RIGHT);
-				new->node.leaf[1] = eb_addtag((struct eb_node *)new, EB_TAG_TYPE_LEAF);
 				new->node.leaf[0] = eb_addtag((struct eb_node *)next, EB_TAG_TYPE_LINK);
+				new->node.leaf[1] = eb_addtag((struct eb_node *)new, EB_TAG_TYPE_LEAF);
+				new->node.leaf_p  = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_RIGHT);
 				next->node.link_p = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_LEFT);
 			}
 			break;
@@ -984,10 +985,10 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 	 * parent is already set to <new>, and the <root>'s branch is still in
 	 * <l>. Update the root's leaf till we have it.
 	 */
-	new->node.bit = flsnz(x ^ next->val) - EB_NODE_BITS; // note that if EB_NODE_BITS > 0, we should check that it's still >= 0
+	new->node.bit = flsnz(x ^ next->val) - EB_NODE_BITS; // note that if EB_NODE_BITS > 1, we should check that it's still >= 0
+	//new->node.link_p = eb_addtag((struct eb_node *)root, l);
+	LIST_INIT(&new->node.dup);
 	root->node.leaf[l] = eb_addtag((struct eb_node *)new, EB_TAG_TYPE_LINK);
-
-	//*tp = eb_addtag((struct eb_node *)new, EB_TAG_TYPE_LINK);
 
 	/* We need the common higher bits between x and next->val.
 	 * What differences are there between x and the node here ?
@@ -995,12 +996,13 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 	 * bit of x and next->val are identical here (otherwise they
 	 * would sit on different branches).
 	 */
-
+		
 	//new->node.link_p = eb_addtag((struct eb_node *)root, l);
 	//new->node.bit = flsnz(x ^ next->val);   /* lower identical bit */
 
 	/* now we build the leaf part and chain it directly below the link node */
-	LIST_INIT(&new->node.dup);
+			//LIST_INIT(&new->node.dup);
+	//new->node.link_p = eb_addtag((struct eb_node *)root, l);
 
 	return new;
 }
