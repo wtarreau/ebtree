@@ -539,18 +539,14 @@ __eb_last_node(struct eb_node *root)
 static inline struct eb_node *
 __eb_prev_node(struct eb_node *node)
 {
-	eb_tagptr_t *t;
-	t = node->leaf_p;
+	eb_tagptr_t *t = node->leaf_p;
 
-	if (unlikely(!node->leaf_p)) {
-		/* let's return duplicates before going further */
+	/* let's return duplicates before going further */
+	if (unlikely(!t))
 		return LIST_ELEM(node->dup.p, struct eb_node *, dup);
-	}
 
-	do {
-		unsigned int s;
-		s = eb_gettag(t);
-		if (s != EB_TAG_SIDE_LEFT) {
+	while (1) {
+		if (eb_gettag(t) != EB_TAG_SIDE_LEFT) {
 			/* Note that <t> cannot be NULL at this stage because
 			 * only the root has a NULL link_p, and it's caught before.
 			 */
@@ -561,9 +557,8 @@ __eb_prev_node(struct eb_node *node)
 			node = eb_remtag(t, EB_TAG_TYPE_LEAF);
 
 			/* we're walking backwards, so we must return last duplicates first */
-			if (unlikely(node->dup.n != &node->dup)) {
+			if (unlikely(node->dup.n != &node->dup))
 				node = LIST_ELEM(node->dup.p, struct eb_node *, dup);
-			}
 			return node;
 		}
 		node = eb_remtag(t, EB_TAG_SIDE_LEFT);
@@ -572,15 +567,14 @@ __eb_prev_node(struct eb_node *node)
 		/* we ensure that we never walk beyond root here */
 		if (unlikely(!t))
 			return NULL;
-	} while (1);
+	}
 }
 
 /* returns next leaf node after an existing leaf node, or NULL if none. */
 static inline struct eb_node *
 __eb_next_node(struct eb_node *node)
 {
-	eb_tagptr_t *t;
-	t = node->leaf_p;
+	eb_tagptr_t *t = node->leaf_p;
 
 	if (unlikely(node->dup.n != &node->dup)) {
 		/* let's return duplicates before going further */
@@ -590,7 +584,7 @@ __eb_next_node(struct eb_node *node)
 		/* we returned to the list's head, let's walk up now */
 	}
 
-	do {
+	while (1) {
 		if (eb_gettag(t) == EB_TAG_SIDE_LEFT) {
 			/* Note that <t> cannot be NULL at this stage because
 			 * only the root has a NULL link_p, and it's caught before.
@@ -607,7 +601,7 @@ __eb_next_node(struct eb_node *node)
 			return eb_remtag(t, EB_TAG_TYPE_LEAF);
 		}
 		t = eb_remtag(t, EB_TAG_SIDE_RIGHT)->link_p;
-	} while (1);
+	}
 }
 
 /* Removes a leaf node from the tree, and returns zero after deleting the
