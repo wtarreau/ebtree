@@ -9,8 +9,12 @@
 #define DPRINTF(a, ...)
 #endif
 
+#ifdef __i386__
 #define rdtscll(val) \
      __asm__ __volatile__("rdtsc" : "=A" (val))
+#else
+#define rdtscll(val)
+#endif
 
 static inline struct timeval *tv_now(struct timeval *tv) {
 	gettimeofday(tv, NULL);
@@ -244,6 +248,7 @@ int main(int argc, char **argv) {
 	    // simulates some sparse groups of values like with a scheduler
 	    x = (i / 1000) * 50000 + (i % 1000) * 4 - 1500;
 	    //x = i>>2;
+	    //x = i;
 	    task = (struct task *)calloc(1,sizeof(*task));
 	    task->expire = x;//*x;//total-i-1;//*/(x>>10)&65535;//i&65535;//(x>>8)&65535;//rev32(i);//i&32767;//x;//i ^ (long)lasttask;
 	    task->wq = &wait_queue;
