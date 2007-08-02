@@ -369,6 +369,18 @@ eb_remtag(eb_tagptr_t *ptr, int tag)
 
 
 
+/* Extracts the link type from pointer <start>. It may return either
+ * EB_TAG_TYPE_LEAF or EB_TAG_TYPE_NODE. NULL returns EB_TAG_TYPE_LEAF.
+ */
+#define eb_link_type(start)				\
+	eb_gettag((start))
+
+/* Extracts the link side from pointer <start>. It may return either
+ * EB_TAG_SIDE_LEFT or EB_TAG_SIDE_RIGHT. NULL returns EB_TAG_SIDE_LEFT.
+ */
+#define eb_link_side(start)				\
+	eb_gettag((start))
+
 /* Converts a leaf link to its equivalent leaf node pointer. NULL is returned
  * for a NULL input, because EB_TAG_TYPE_LEAF = 0.
  */
@@ -396,26 +408,26 @@ eb_remtag(eb_tagptr_t *ptr, int tag)
 /* Converts a left parent link to its equivalent parent node pointer. NULL is
  * returned for a NULL input, because EB_TAG_SIDE_LEFT = 0.
  */
-#define eb_parent_from_left(start)				\
+#define eb_parent_from_left(start)			\
 	eb_remtag((start), EB_TAG_SIDE_LEFT)
 
 /* Converts a right parent link to its equivalent parent node pointer. It must
  * not be called with NULL because EB_TAG_SIDE_RIGHT is not 0, so the result
  * would be changed.
  */
-#define eb_parent_from_right(start)				\
+#define eb_parent_from_right(start)			\
 	eb_remtag((start), EB_TAG_SIDE_RIGHT)
 
 /* Converts a node pointer to its equivalent parent left link. NULL is returned
  * for a NULL input, because EB_TAG_TYPE_LEFT = 0.
  */
-#define eb_parent_to_left(start)				\
+#define eb_parent_to_left(start)			\
 	eb_addtag((start), EB_TAG_SIDE_LEFT)
 
 /* Converts a node pointer to its equivalent parent right link. It must not be
  * called with NULL because EB_TAG_SIDE_RIGHT != 0, so the value will be lost.
  */
-#define eb_parent_to_right(start)				\
+#define eb_parent_to_right(start)			\
 	eb_addtag((start), EB_TAG_SIDE_RIGHT)
 
 
@@ -624,7 +636,9 @@ __eb_prev_node_unique(struct eb_node *node)
 	eb_tagptr_t *t = node->leaf_p;
 
 	while (1) {
-		/* we ensure that we never walk beyond root here */
+		/* we ensure that we never walk beyond root here and that we're
+		 * not on a duplicate.
+		 */
 		if (unlikely(!t))
 			return NULL;
 
@@ -960,47 +974,38 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 	struct eb32_node *next;
 	unsigned int l;
 	eb_tagptr_t *t;
-	//eb_tagptr_t **tp;
-	u32 x;	//#define x (new->val)
+	u32 x;
 
-	l = 0;
-	t = root->node.leaf[0];
-	//tp = &root->node.leaf[0];
+	l = EB_LEAF_LEFT;
+	t = root->node.leaf[EB_LEAF_LEFT];
 	if (unlikely(t == NULL)) {
-		/* The tree is empty. We'll have to insert our new leaf node
-		 * right here without any new link node.
-		 */
-		root->node.leaf[0] = eb_leaf_to_link((struct eb_node *)new);
+		/* Tree is empty, insert leaf only. */
+		root->node.leaf[EB_LEAF_LEFT] = eb_leaf_to_link((struct eb_node *)new);
 		LIST_INIT(&new->node.dup);
 		new->node.leaf_p = eb_parent_to_left((struct eb_node *)root);
-		new->node.link_p = NULL; /* link part is not in use */
+		new->node.link_p = NULL;
 		return new;
 	}
-
-	/* OK, we'll go down the tree. <t> will always point to the next node,
+	/* The tree descent is fairly easy :
+	 *  - first, check if we have reached a leaf node
+	 *  - second, check if we have gone too far
+	 *  - third, reiterate
+	 * Everywhere, we use <new> for the new node we are inserting, <root>
+	 * for the node we attach it to, and <next> for the node we are
+	 * displacing below <new>. <t> will always point to the future node,
 	 * and <l> will designate the branch it is attached to (left/right).
 	 */
 	x = new->val;
 
 	while (1) {
-		/* The tree descent is fairly easy :
-		 *  - first, check if we have reached a leaf node
-		 *  - second, check if we have gone too far
-		 *  - third, reiterate
-		 * Everywhere, we use <new> for the new node we are inserting,
-		 * <root> for the node we attach it to, and <next> for the node
-		 * we are displacing below <new>.
-		 */
-		if (eb_gettag(t) == EB_TAG_TYPE_LEAF) {
+		if (eb_link_type(t) == EB_TAG_TYPE_LEAF) {
 			next = (struct eb32_node *)eb_link_to_leaf(t);
 			if ((x ^ next->val) == 0) {
 				//if (x == next->val) {
-				/* We already have this value, we just have to
-				 * add a duplicate.
-				 */
+				/* add a duplicate. */
 				LIST_ADDQ(&next->node.dup, &new->node.dup);
-				new->node.leaf_p = NULL; /* we're a duplicate, no parent */
-				new->node.link_p = NULL; /* link part is not in use */
+				new->node.leaf_p = NULL;
+				new->node.link_p = NULL;
 				return new;
 			}
 
@@ -1014,7 +1019,7 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 			/* We need to check on which of the root's leaves the node will
 			 * be attached. For this we have to compare its value to next's.
 			 * Strictly speaking, this works with 2 leaves, but it would
-			 * require some bitmask checks with higher numbers.
+			 * require some bitmask checks with higher numbers of leaves.
 			 */
 			if (next->val > x) {
 				new->node.leaf[0] = eb_leaf_to_link((struct eb_node *)new);
@@ -1067,17 +1072,12 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 		root = next;
 		l = (x >> next->node.bit) & EB_NODE_LEAF_MASK;
 		t = next->node.leaf[l];
-		//tp = &next->node.leaf[l];
 	}
 
 	/* Ok, now we are inserting <new> between <root> and <next>. <next>'s
 	 * parent is already set to <new>, and the <root>'s branch is still in
 	 * <l>. Update the root's leaf till we have it.
 	 */
-	new->node.bit = flsnz(x ^ next->val) - EB_NODE_BITS; // note that if EB_NODE_BITS > 1, we should check that it's still >= 0
-	//new->node.link_p = eb_addtag((struct eb_node *)root, l);
-	LIST_INIT(&new->node.dup);
-	root->node.leaf[l] = eb_node_to_link((struct eb_node *)new);
 
 	/* We need the common higher bits between x and next->val.
 	 * What differences are there between x and the node here ?
@@ -1085,17 +1085,13 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 	 * bit of x and next->val are identical here (otherwise they
 	 * would sit on different branches).
 	 */
+	new->node.bit = flsnz(x ^ next->val) - EB_NODE_BITS; // note that if EB_NODE_BITS > 1, we should check that it's still >= 0
+
+	LIST_INIT(&new->node.dup);
+	root->node.leaf[l] = eb_node_to_link((struct eb_node *)new);
 		
-	//new->node.link_p = eb_addtag((struct eb_node *)root, l);
-	//new->node.bit = flsnz(x ^ next->val);   /* lower identical bit */
-
-	/* now we build the leaf part and chain it directly below the link node */
-			//LIST_INIT(&new->node.dup);
-	//new->node.link_p = eb_addtag((struct eb_node *)root, l);
-
 	return new;
 }
-#undef x
 
 /* Inserts node <new> into subtree starting at link node <root>.
  * Only new->leaf.val needs be set with the value.
