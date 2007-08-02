@@ -241,8 +241,8 @@ typedef unsigned long long u64;
 #define EB_NODE_LEAVES     (1 << EB_NODE_BITS)
 #define EB_NODE_LEAF_MASK  (EB_NODE_LEAVES - 1)
 
-#define LINK_SIDE_LEFT  0
-#define LINK_SIDE_RIGHT 1
+#define EB_LEAF_LEFT  0
+#define EB_LEAF_RIGHT 1
 
 /* This is the same as an eb_node pointer, except that the lower bit embeds
  * a tag. This tag has two meanings :
@@ -251,8 +251,9 @@ typedef unsigned long long u64;
  */
 typedef void eb_tagptr_t;
 
+/* WARNING! it's important not to change those definitions */
 #define EB_TAG_TYPE_LEAF  0
-#define EB_TAG_TYPE_LINK  1
+#define EB_TAG_TYPE_NODE  1
 #define EB_TAG_SIDE_LEFT  0
 #define EB_TAG_SIDE_RIGHT 1
 
@@ -368,120 +369,166 @@ eb_remtag(eb_tagptr_t *ptr, int tag)
 
 
 
+/* Converts a leaf link to its equivalent leaf node pointer. NULL is returned
+ * for a NULL input, because EB_TAG_TYPE_LEAF = 0.
+ */
+#define eb_link_to_leaf(start)				\
+	eb_remtag((start), EB_TAG_TYPE_LEAF)
 
-/* Walks down link node <root> starting with <start> leaf, and always walking
- * on side <side>. It either returns the first leaf on that side, or NULL if
- * no leaf is left. Note that <root> may either be NULL or a link node, but
- * it must not be a leaf-only node. <start> may either be NULL, a link node,
- * or a heading leaf node (not a dup). The leaf (or NULL) is returned.
+/* Converts a leaf link to its equivalent node pointer. It must not be called
+ * with NULL because EB_TAG_TYPE_NODE is not 0, so the result would be changed.
+ */
+#define eb_link_to_node(start)				\
+	eb_remtag((start), EB_TAG_TYPE_NODE)
+
+/* Converts a leaf node pointer to its equivalent link. NULL is returned for a
+ * NULL input, because EB_TAG_TYPE_LEAF = 0.
+ */
+#define eb_leaf_to_link(start)				\
+	eb_addtag((start), EB_TAG_TYPE_LEAF)
+
+/* Converts a node pointer to its equivalent link. It must not be called with
+ * NULL because EB_TAG_TYPE_NODE != 0, so the value will be lost.
+ */
+#define eb_node_to_link(start)				\
+	eb_addtag((start), EB_TAG_TYPE_NODE)
+
+/* Converts a left parent link to its equivalent parent node pointer. NULL is
+ * returned for a NULL input, because EB_TAG_SIDE_LEFT = 0.
+ */
+#define eb_parent_from_left(start)				\
+	eb_remtag((start), EB_TAG_SIDE_LEFT)
+
+/* Converts a right parent link to its equivalent parent node pointer. It must
+ * not be called with NULL because EB_TAG_SIDE_RIGHT is not 0, so the result
+ * would be changed.
+ */
+#define eb_parent_from_right(start)				\
+	eb_remtag((start), EB_TAG_SIDE_RIGHT)
+
+/* Converts a node pointer to its equivalent parent left link. NULL is returned
+ * for a NULL input, because EB_TAG_TYPE_LEFT = 0.
+ */
+#define eb_parent_to_left(start)				\
+	eb_addtag((start), EB_TAG_SIDE_LEFT)
+
+/* Converts a node pointer to its equivalent parent right link. It must not be
+ * called with NULL because EB_TAG_SIDE_RIGHT != 0, so the value will be lost.
+ */
+#define eb_parent_to_right(start)				\
+	eb_addtag((start), EB_TAG_SIDE_RIGHT)
+
+
+/* Walks down starting at link <start>, and always walking on side <side>. It
+ * either returns the link to the first leaf on that side, or NULL if no leaf
+ * is left. <start> may either be NULL, a link pointer, but not a dup. The
+ * link pointer to the leaf (or NULL) is returned.
  */
 static inline struct eb_node *
-eb_walk_down(unsigned int side, eb_tagptr_t *start)
+eb_walk_down(eb_tagptr_t *start, unsigned int side)
 {
-	if (unlikely(!start))
-		return start;
-
-	while (eb_gettag(start) == EB_TAG_TYPE_LINK) {
-		start = eb_remtag(start, EB_TAG_TYPE_LINK)->leaf[side];
-	}
-	return eb_remtag(start, EB_TAG_TYPE_LEAF);
-}
-
-/* Walks up starting from node <node> with parent <par>, which must be a valid
- * parent (ie: link_p or leaf_p, and <node> must not be a duplicate). It
- * follows side <side> for as long as possible, and stops when it reaches a
- * node which sees it on the other side, or before attempting to go beyond the
- * root. The pointer to the closest common ancestor is returned, which might be
- * NULL if none is found.
- */
-static inline struct eb_node *
-eb_walk_up(struct eb_node *node, int side, struct eb_node *par)
-{
-	while (par && par->leaf[side] == node) {
-		node = par;
-		par = par->link_p;
-	}
-	return par;
-}
-
-/* Walks up starting from valid leaf node <node> which must not be a duplicate,
- * It follows side <side> for as long as possible, and stops when it reaches a
- * node which sees it on the other side, or before attempting to go beyond the
- * root. The pointer to the closest common ancestor is returned, which might be
- * NULL if none is found.
- */
-static inline struct eb_node *
-eb_walk_up_from_leaf(struct eb_node *node, int side)
-{
-	unsigned int s;
-	eb_tagptr_t *t;
-
-	t = node->leaf_p;
-
-	if (side == EB_TAG_SIDE_LEFT) {
-		do {
-			s = eb_gettag(t);
-			if (s != EB_TAG_SIDE_LEFT)
-				return eb_remtag(t, EB_TAG_SIDE_RIGHT);
-			node = eb_remtag(t, EB_TAG_SIDE_LEFT);
-			if (!node)
-				return node;
-			t = node->link_p;
-		} while (1);
-	} else {
-		do {
-			s = eb_gettag(t);
-			if (s == EB_TAG_SIDE_LEFT)
-				return eb_remtag(t, EB_TAG_SIDE_LEFT);
-			node = eb_remtag(t, EB_TAG_SIDE_RIGHT);
-			if (!node)
-				return node;
-			t = node->link_p;
-		} while (1);
-	}
-}
-
-static inline struct eb_node *
-old_eb_walk_up_from_leaf(struct eb_node *node, int side)
-{
-	unsigned int s;
-	eb_tagptr_t *t;
-
-	t = node->leaf_p;
-
-	do {
-		s = eb_gettag(t);
-		/* this is optimized away by GCC by using only comparisons to zero */
-		if ((side && !s) || (!side && s))
-			break;
-		node = eb_remtag(t, s);
-		if (!node)
-			break;
-		t = node->link_p;
-	} while (1);
-
-	return eb_remtag(t, s);
+	/* A NULL pointer on an empty tree root will be returned as-is */
+	while (/*likely*/(eb_gettag(start) == EB_TAG_TYPE_NODE))
+		start = eb_link_to_node(start)->leaf[side];
+	/* NULL is left untouched */
+	return start;
 }
 
 #define eb_walk_down_left(start)			\
-	eb_walk_down(0, start)
+	eb_walk_down((start), EB_LEAF_LEFT)
 
 #define eb_walk_down_right(start)			\
-	eb_walk_down(1, start)
+	eb_walk_down((start), EB_LEAF_RIGHT)
 
-#define eb_walk_up_left_with_parent(node, par)			\
-	eb_walk_up(node, 0, par)
+///* Walks up starting from node <node> with parent <par>, which must be a valid
+// * parent (ie: link_p or leaf_p, and <node> must not be a duplicate). It
+// * follows side <side> for as long as possible, and stops when it reaches a
+// * node which sees it on the other side, or before attempting to go beyond the
+// * root. The pointer to the closest common ancestor is returned, which might be
+// * NULL if none is found.
+// */
+//static inline struct eb_node *
+//eb_walk_up(struct eb_node *node, int side, struct eb_node *par)
+//{
+//	while (par && par->leaf[side] == node) {
+//		node = par;
+//		par = par->link_p;
+//	}
+//	return par;
+//}
+//
+///* Walks up starting from valid leaf node <node> which must not be a duplicate,
+// * It follows side <side> for as long as possible, and stops when it reaches a
+// * node which sees it on the other side, or before attempting to go beyond the
+// * root. The pointer to the closest common ancestor is returned, which might be
+// * NULL if none is found.
+// */
+//static inline struct eb_node *
+//eb_walk_up_from_leaf(struct eb_node *node, int side)
+//{
+//	unsigned int s;
+//	eb_tagptr_t *t;
+//
+//	t = node->leaf_p;
+//
+//	if (side == EB_TAG_SIDE_LEFT) {
+//		do {
+//			s = eb_gettag(t);
+//			if (s != EB_TAG_SIDE_LEFT)
+//				return eb_remtag(t, EB_TAG_SIDE_RIGHT);
+//			node = eb_remtag(t, EB_TAG_SIDE_LEFT);
+//			if (!node)
+//				return node;
+//			t = node->link_p;
+//		} while (1);
+//	} else {
+//		do {
+//			s = eb_gettag(t);
+//			if (s == EB_TAG_SIDE_LEFT)
+//				return eb_remtag(t, EB_TAG_SIDE_LEFT);
+//			node = eb_remtag(t, EB_TAG_SIDE_RIGHT);
+//			if (!node)
+//				return node;
+//			t = node->link_p;
+//		} while (1);
+//	}
+//}
+//
+//static inline struct eb_node *
+//old_eb_walk_up_from_leaf(struct eb_node *node, int side)
+//{
+//	unsigned int s;
+//	eb_tagptr_t *t;
+//
+//	t = node->leaf_p;
+//
+//	do {
+//		s = eb_gettag(t);
+//		/* this is optimized away by GCC by using only comparisons to zero */
+//		if ((side && !s) || (!side && s))
+//			break;
+//		node = eb_remtag(t, s);
+//		if (!node)
+//			break;
+//		t = node->link_p;
+//	} while (1);
+//
+//	return eb_remtag(t, s);
+//}
 
-#define eb_walk_up_right_with_parent(node, par)			\
-	eb_walk_up(node, 1, par)
-
-/* Walks up left starting from leaf node <node> */
-#define eb_walk_up_left(node)					\
-	eb_walk_up_left_with_parent((node), (node)->leaf_p)
-
-/* Walks up right starting from leaf node <node> */
-#define eb_walk_up_right(node)					\
-	eb_walk_up_right_with_parent((node), (node)->leaf_p)
+//#define eb_walk_up_left_with_parent(node, par)			\
+//	eb_walk_up(node, 0, par)
+//
+//#define eb_walk_up_right_with_parent(node, par)			\
+//	eb_walk_up(node, 1, par)
+//
+///* Walks up left starting from leaf node <node> */
+//#define eb_walk_up_left(node)					\
+//	eb_walk_up_left_with_parent((node), (node)->leaf_p)
+//
+///* Walks up right starting from leaf node <node> */
+//#define eb_walk_up_right(node)					\
+//	eb_walk_up_right_with_parent((node), (node)->leaf_p)
 
 
 /* Returns the pointer to the other node sharing the same parent. This
@@ -512,36 +559,37 @@ old_eb_walk_up_from_leaf(struct eb_node *node, int side)
 #define eb_prev(node)							\
 	((typeof(node))__eb_prev_node((struct eb_node *)(node)))
 
+
 /* Returns first leaf in the tree starting at <root>, or NULL if none */
 static inline struct eb_node *
 __eb_first_node(struct eb_node *root)
 {
-	int side;
-
-	side = root->leaf[0] == NULL;
-	return eb_walk_down_left(root->leaf[side]);
+	return eb_link_to_leaf(eb_walk_down_left(root->leaf[0]));
 }
 
-/* returns last leaf in the tree starting at <root>, or NULL if none */
+/* Returns last leaf in the tree starting at <root>, or NULL if none. If the
+ * last leaf has some duplicates, return the last of them first.
+ */
 static inline struct eb_node *
 __eb_last_node(struct eb_node *root)
 {
-	int side;
 	struct eb_node *node;
 
-	side = root->leaf[1] != NULL;
-	node = eb_walk_down_right(root->leaf[side]);
-	/* let's return a possible last duplicate first */
-	return LIST_ELEM(node->dup.p, struct eb_node *, dup);
+	node = eb_link_to_leaf(eb_walk_down_right(root->leaf[0]));
+	if (likely(node != NULL))
+		node = LIST_ELEM(node->dup.p, struct eb_node *, dup);
+	return node;
 }
 
-/* returns previous leaf node before an existing leaf node, or NULL if none. */
+/* Returns previous leaf node before an existing leaf node, or NULL if none.
+ * If the previous node has duplicates, they will be returned in reverse order
+ * before the first node.
+ */
 static inline struct eb_node *
 __eb_prev_node(struct eb_node *node)
 {
 	eb_tagptr_t *t = node->leaf_p;
 
-	/* let's return duplicates before going further */
 	if (unlikely(!t))
 		return LIST_ELEM(node->dup.p, struct eb_node *, dup);
 
@@ -550,19 +598,14 @@ __eb_prev_node(struct eb_node *node)
 			/* Note that <t> cannot be NULL at this stage because
 			 * only the root has a NULL link_p, and it's caught before.
 			 */
-			t = eb_remtag(t, EB_TAG_SIDE_RIGHT)->leaf[LINK_SIDE_LEFT];
-			while (eb_gettag(t) == EB_TAG_TYPE_LINK)
-				t = eb_remtag(t, EB_TAG_TYPE_LINK)->leaf[LINK_SIDE_RIGHT];
+			t = eb_parent_from_right(t)->leaf[EB_LEAF_LEFT];
+			node = eb_link_to_leaf(eb_walk_down_right(t));
 
-			node = eb_remtag(t, EB_TAG_TYPE_LEAF);
-
-			/* we're walking backwards, so we must return last duplicates first */
 			if (unlikely(node->dup.n != &node->dup))
 				node = LIST_ELEM(node->dup.p, struct eb_node *, dup);
 			return node;
 		}
-		node = eb_remtag(t, EB_TAG_SIDE_LEFT);
-		t = node->link_p;
+		t = eb_parent_from_left(t)->link_p;
 
 		/* we ensure that we never walk beyond root here */
 		if (unlikely(!t))
@@ -570,14 +613,42 @@ __eb_prev_node(struct eb_node *node)
 	}
 }
 
-/* returns next leaf node after an existing leaf node, or NULL if none. */
+/* Returns previous leaf node before an existing leaf node, but never returns
+ * duplicates. The initial node must be a real one and not a duplicate either,
+ * otherwise NULL is returned. NULL is also returned after the first node has
+ * been reached.
+ */
+static inline struct eb_node *
+__eb_prev_node_unique(struct eb_node *node)
+{
+	eb_tagptr_t *t = node->leaf_p;
+
+	while (1) {
+		/* we ensure that we never walk beyond root here */
+		if (unlikely(!t))
+			return NULL;
+
+		if (eb_gettag(t) != EB_TAG_SIDE_LEFT) {
+			/* Note that <t> cannot be NULL at this stage because
+			 * only the root has a NULL link_p, and it's caught before.
+			 */
+			t = eb_parent_from_right(t)->leaf[EB_LEAF_LEFT];
+			return eb_link_to_leaf(eb_walk_down_right(t));
+		}
+		t = eb_parent_from_left(t)->link_p;
+	}
+}
+
+/* Returns next leaf node after an existing leaf node, or NULL if none. If the
+ * current node has duplicates, they will be returned in the same order after
+ * the first node, and before jumping to the next tree node.
+ */
 static inline struct eb_node *
 __eb_next_node(struct eb_node *node)
 {
 	eb_tagptr_t *t = node->leaf_p;
 
 	if (unlikely(node->dup.n != &node->dup)) {
-		/* let's return duplicates before going further */
 		node = LIST_ELEM(node->dup.n, struct eb_node *, dup);
 		if (!node->leaf_p)
 			return node;
@@ -589,18 +660,36 @@ __eb_next_node(struct eb_node *node)
 			/* Note that <t> cannot be NULL at this stage because
 			 * only the root has a NULL link_p, and it's caught before.
 			 */
-			t = eb_remtag(t, EB_TAG_SIDE_LEFT)->leaf[LINK_SIDE_RIGHT];
-
-			/* The root is detected here with t == NULL, but since
-			 * EB_TAG_TYPE_LINK=1, we will not enter the loop and
-			 * we will return NULL so we are protected.
-			 */
-			while (eb_gettag(t) == EB_TAG_TYPE_LINK)
-				t = eb_remtag(t, EB_TAG_TYPE_LINK)->leaf[LINK_SIDE_LEFT];
-
-			return eb_remtag(t, EB_TAG_TYPE_LEAF);
+			t = eb_parent_from_left(t)->leaf[EB_LEAF_RIGHT];
+			return eb_link_to_leaf(eb_walk_down_left(t));
 		}
-		t = eb_remtag(t, EB_TAG_SIDE_RIGHT)->link_p;
+		t = eb_parent_from_right(t)->link_p;
+	}
+}
+
+
+/* Returns next leaf node after an existing leaf node, but never returns
+ * duplicates. The initial node must be a real one and not a duplicate either,
+ * otherwise NULL is returned. NULL is also returned after the last node has
+ * been reached.
+ */
+static inline struct eb_node *
+__eb_next_node_unique(struct eb_node *node)
+{
+	eb_tagptr_t *t = node->leaf_p;
+	
+	if (unlikely(!t))
+		return NULL;
+
+	while (1) {
+		if (eb_gettag(t) == EB_TAG_SIDE_LEFT) {
+			/* Note that <t> cannot be NULL at this stage because
+			 * only the root has a NULL link_p, and it's caught before.
+			 */
+			t = eb_parent_from_left(t)->leaf[EB_LEAF_RIGHT];
+			return eb_link_to_leaf(eb_walk_down_left(t));
+		}
+		t = eb_parent_from_right(t)->link_p;
 	}
 }
 
@@ -711,91 +800,91 @@ __eb_delete(struct eb_node *node)
 	return 1; /* tree is not empty yet */
 }
 
-/*
- * This generic insert macro may be used as a building block for other integer
- * types. Do not put any comments in this one to avoid any problem. Please
- * refer to __eb32_insert() for comments.
- */
-#define __eb_insert(root, new) do {                                           \
-	__label__ __out_insert;                                               \
-	typeof(root) __ro = root;                                             \
-	typeof(new)  __n  = new;                                              \
-	typeof(new)  __nxt;                                                   \
-	unsigned int __lf = (__n->val >> (__ro->node.bit - 1)) & 1;           \
-	__nxt = (typeof(__nxt))__ro->node.leaf[__lf];                         \
-	if (unlikely(__nxt == NULL)) {                                        \
-		__ro->node.leaf[__lf] = (struct eb_node *)__n;                \
-		__n->node.leaf_p = (struct eb_node *)__ro;                    \
-		LIST_INIT(&__n->node.dup);                                    \
-		__n->node.bit = 0;                                            \
-		goto __out_insert;                                            \
-	}                                                                     \
-	while (1) {                                                           \
-		if (unlikely(__nxt->node.leaf_p == (struct eb_node *)__ro)) { \
-			if (__nxt->val == __n->val) {                         \
-				LIST_ADDQ(&__nxt->node.dup, &__n->node.dup);  \
-				__n->node.leaf_p = NULL;                      \
-				__n->node.bit = 0;                            \
-				goto __out_insert;                            \
-			}                                                     \
-			__nxt->node.leaf_p = (struct eb_node *)__n;           \
-			break;                                                \
-		}                                                             \
-		if (((__n->val ^ __nxt->val) >> __nxt->node.bit) != 0) {      \
-			__nxt->node.link_p = (struct eb_node *)__n;           \
-			break;                                                \
-		}                                                             \
-		__ro = __nxt;                                                 \
-		__lf = (__n->val >> (__nxt->node.bit - 1)) & 1;               \
-		__nxt = (typeof(__nxt))__nxt->node.leaf[__lf];                \
-	}                                                                     \
-	__ro->node.leaf[__lf] = (struct eb_node *)__n;                        \
-	__n->node.link_p = (struct eb_node *)__ro;                            \
-	__n->node.leaf_p = (struct eb_node *)__n;                             \
-	__n->node.bit = fls_auto(__n->val ^ __nxt->val);                      \
-	__lf = (__n->val > __nxt->val);                                       \
-	__n->node.leaf[__lf ^ 1] = (struct eb_node *)__nxt;                   \
-	__n->node.leaf[__lf] = (struct eb_node *)__n;                         \
-	LIST_INIT(&__n->node.dup);                                            \
- __out_insert:                                                                \
-	;                                                                     \
-} while (0)
+///*
+// * This generic insert macro may be used as a building block for other integer
+// * types. Do not put any comments in this one to avoid any problem. Please
+// * refer to __eb32_insert() for comments.
+// */
+//#define __eb_insert(root, new) do {                                           \
+//	__label__ __out_insert;                                               \
+//	typeof(root) __ro = root;                                             \
+//	typeof(new)  __n  = new;                                              \
+//	typeof(new)  __nxt;                                                   \
+//	unsigned int __lf = (__n->val >> (__ro->node.bit - 1)) & 1;           \
+//	__nxt = (typeof(__nxt))__ro->node.leaf[__lf];                         \
+//	if (unlikely(__nxt == NULL)) {                                        \
+//		__ro->node.leaf[__lf] = (struct eb_node *)__n;                \
+//		__n->node.leaf_p = (struct eb_node *)__ro;                    \
+//		LIST_INIT(&__n->node.dup);                                    \
+//		__n->node.bit = 0;                                            \
+//		goto __out_insert;                                            \
+//	}                                                                     \
+//	while (1) {                                                           \
+//		if (unlikely(__nxt->node.leaf_p == (struct eb_node *)__ro)) { \
+//			if (__nxt->val == __n->val) {                         \
+//				LIST_ADDQ(&__nxt->node.dup, &__n->node.dup);  \
+//				__n->node.leaf_p = NULL;                      \
+//				__n->node.bit = 0;                            \
+//				goto __out_insert;                            \
+//			}                                                     \
+//			__nxt->node.leaf_p = (struct eb_node *)__n;           \
+//			break;                                                \
+//		}                                                             \
+//		if (((__n->val ^ __nxt->val) >> __nxt->node.bit) != 0) {      \
+//			__nxt->node.link_p = (struct eb_node *)__n;           \
+//			break;                                                \
+//		}                                                             \
+//		__ro = __nxt;                                                 \
+//		__lf = (__n->val >> (__nxt->node.bit - 1)) & 1;               \
+//		__nxt = (typeof(__nxt))__nxt->node.leaf[__lf];                \
+//	}                                                                     \
+//	__ro->node.leaf[__lf] = (struct eb_node *)__n;                        \
+//	__n->node.link_p = (struct eb_node *)__ro;                            \
+//	__n->node.leaf_p = (struct eb_node *)__n;                             \
+//	__n->node.bit = fls_auto(__n->val ^ __nxt->val);                      \
+//	__lf = (__n->val > __nxt->val);                                       \
+//	__n->node.leaf[__lf ^ 1] = (struct eb_node *)__nxt;                   \
+//	__n->node.leaf[__lf] = (struct eb_node *)__n;                         \
+//	LIST_INIT(&__n->node.dup);                                            \
+// __out_insert:                                                                \
+//	;                                                                     \
+//} while (0)
 
 
-/*
- * This generic lookup macro may be used as a building block for other integer
- * types. Do not put any comments in this one to avoid any problem. Please
- * refer to __eb32_lookup() for comments.
- */
-#define __eb_lookup(root, x) ({                                               \
-	__label__ __out_lookup;                                               \
-	typeof(root)    __ro = root;                                          \
-	typeof(x)       __x = x;                                              \
-	struct eb_node *__par = (struct eb_node *)__ro;                       \
-	__ro = (typeof(root))__par->leaf[(__x >> (__par->bit - 1)) & 1];      \
-	if (unlikely(!__ro))                                                  \
-		goto __out_lookup;                                            \
-	while (1) {                                                           \
-		if (unlikely(__ro->node.leaf_p == __par)) {                   \
-			if (__ro->val != __x)                                 \
-				__ro = NULL;                                  \
-			break;                                                \
-		}                                                             \
-		if (unlikely((__x ^ __ro->val) == 0))                         \
-			break;                                                \
-		if (unlikely((__x ^ __ro->val) >> __ro->node.bit)) {          \
-			__ro = NULL;                                          \
-			break;                                                \
-		}                                                             \
-		__par = (struct eb_node *)__ro;                               \
-		if ((__x >> (__par->bit - 1)) & 1)                            \
-			__ro = (typeof(root))__par->leaf[1];                  \
-		else                                                          \
-			__ro = (typeof(root))__par->leaf[0];                  \
-	}                                                                     \
- __out_lookup:                                                                \
-	__ro;                                                                 \
-})
+///*
+// * This generic lookup macro may be used as a building block for other integer
+// * types. Do not put any comments in this one to avoid any problem. Please
+// * refer to __eb32_lookup() for comments.
+// */
+//#define __eb_lookup(root, x) ({                                               \
+//	__label__ __out_lookup;                                               \
+//	typeof(root)    __ro = root;                                          \
+//	typeof(x)       __x = x;                                              \
+//	struct eb_node *__par = (struct eb_node *)__ro;                       \
+//	__ro = (typeof(root))__par->leaf[(__x >> (__par->bit - 1)) & 1];      \
+//	if (unlikely(!__ro))                                                  \
+//		goto __out_lookup;                                            \
+//	while (1) {                                                           \
+//		if (unlikely(__ro->node.leaf_p == __par)) {                   \
+//			if (__ro->val != __x)                                 \
+//				__ro = NULL;                                  \
+//			break;                                                \
+//		}                                                             \
+//		if (unlikely((__x ^ __ro->val) == 0))                         \
+//			break;                                                \
+//		if (unlikely((__x ^ __ro->val) >> __ro->node.bit)) {          \
+//			__ro = NULL;                                          \
+//			break;                                                \
+//		}                                                             \
+//		__par = (struct eb_node *)__ro;                               \
+//		if ((__x >> (__par->bit - 1)) & 1)                            \
+//			__ro = (typeof(root))__par->leaf[1];                  \
+//		else                                                          \
+//			__ro = (typeof(root))__par->leaf[0];                  \
+//	}                                                                     \
+// __out_lookup:                                                                \
+//	__ro;                                                                 \
+//})
 
 
 /********************************************************************/
@@ -881,9 +970,9 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 		/* The tree is empty. We'll have to insert our new leaf node
 		 * right here without any new link node.
 		 */
-		root->node.leaf[0] = eb_addtag((struct eb_node *)new, EB_TAG_TYPE_LEAF);
+		root->node.leaf[0] = eb_leaf_to_link((struct eb_node *)new);
 		LIST_INIT(&new->node.dup);
-		new->node.leaf_p = eb_addtag((struct eb_node *)root, 0);
+		new->node.leaf_p = eb_parent_to_left((struct eb_node *)root);
 		new->node.link_p = NULL; /* link part is not in use */
 		return new;
 	}
@@ -903,7 +992,7 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 		 * we are displacing below <new>.
 		 */
 		if (eb_gettag(t) == EB_TAG_TYPE_LEAF) {
-			next = (struct eb32_node *)eb_remtag(t, EB_TAG_TYPE_LEAF);
+			next = (struct eb32_node *)eb_link_to_leaf(t);
 			if ((x ^ next->val) == 0) {
 				//if (x == next->val) {
 				/* We already have this value, we just have to
@@ -928,21 +1017,21 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 			 * require some bitmask checks with higher numbers.
 			 */
 			if (next->val > x) {
-				new->node.leaf[0] = eb_addtag((struct eb_node *)new, EB_TAG_TYPE_LEAF);
-				new->node.leaf[1] = eb_addtag((struct eb_node *)next, EB_TAG_TYPE_LEAF);
-				new->node.leaf_p  = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_LEFT);
-				next->node.leaf_p = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_RIGHT);
+				new->node.leaf[0] = eb_leaf_to_link((struct eb_node *)new);
+				new->node.leaf[1] = eb_leaf_to_link((struct eb_node *)next);
+				new->node.leaf_p  = eb_parent_to_left((struct eb_node *)new);
+				next->node.leaf_p = eb_parent_to_right((struct eb_node *)new);
 			} else {
-				new->node.leaf[0] = eb_addtag((struct eb_node *)next, EB_TAG_TYPE_LEAF);
-				new->node.leaf[1] = eb_addtag((struct eb_node *)new, EB_TAG_TYPE_LEAF);
-				new->node.leaf_p  = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_RIGHT);
-				next->node.leaf_p = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_LEFT);
+				new->node.leaf[0] = eb_leaf_to_link((struct eb_node *)next);
+				new->node.leaf[1] = eb_leaf_to_link((struct eb_node *)new);
+				new->node.leaf_p  = eb_parent_to_right((struct eb_node *)new);
+				next->node.leaf_p = eb_parent_to_left((struct eb_node *)new);
 			}
 			break;
 		}
 
 		/* OK we're walking down this link */
-		next = (struct eb32_node *)eb_remtag(t, EB_TAG_TYPE_LINK);
+		next = (struct eb32_node *)eb_link_to_node(t);
 
 		/* Stop going down when we don't have common bits anymore. */
 		/* The test below could be optimized depending on the expected size of the tree.
@@ -961,15 +1050,15 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 			 */
 			new->node.link_p  = next->node.link_p;
 			if (next->val > x) {
-				new->node.leaf[0] = eb_addtag((struct eb_node *)new, EB_TAG_TYPE_LEAF);
-				new->node.leaf[1] = eb_addtag((struct eb_node *)next, EB_TAG_TYPE_LINK);
-				new->node.leaf_p  = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_LEFT);
-				next->node.link_p = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_RIGHT);
+				new->node.leaf[0] = eb_leaf_to_link((struct eb_node *)new);
+				new->node.leaf[1] = eb_node_to_link((struct eb_node *)next);
+				new->node.leaf_p  = eb_parent_to_left((struct eb_node *)new);
+				next->node.link_p = eb_parent_to_right((struct eb_node *)new);
 			} else {
-				new->node.leaf[0] = eb_addtag((struct eb_node *)next, EB_TAG_TYPE_LINK);
-				new->node.leaf[1] = eb_addtag((struct eb_node *)new, EB_TAG_TYPE_LEAF);
-				new->node.leaf_p  = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_RIGHT);
-				next->node.link_p = eb_addtag((struct eb_node *)new, EB_TAG_SIDE_LEFT);
+				new->node.leaf[0] = eb_node_to_link((struct eb_node *)next);
+				new->node.leaf[1] = eb_leaf_to_link((struct eb_node *)new);
+				new->node.leaf_p  = eb_parent_to_right((struct eb_node *)new);
+				next->node.link_p = eb_parent_to_left((struct eb_node *)new);
 			}
 			break;
 		}
@@ -988,7 +1077,7 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 	new->node.bit = flsnz(x ^ next->val) - EB_NODE_BITS; // note that if EB_NODE_BITS > 1, we should check that it's still >= 0
 	//new->node.link_p = eb_addtag((struct eb_node *)root, l);
 	LIST_INIT(&new->node.dup);
-	root->node.leaf[l] = eb_addtag((struct eb_node *)new, EB_TAG_TYPE_LINK);
+	root->node.leaf[l] = eb_node_to_link((struct eb_node *)new);
 
 	/* We need the common higher bits between x and next->val.
 	 * What differences are there between x and the node here ?
