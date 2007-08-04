@@ -104,7 +104,7 @@
        Total cost for all N nodes : sum[i=1..N](log2(i)*N/i) = N*sum[i=1..N](log2(i)/i)
        Average cost across N nodes = total / N = sum[i=1..N](log2(i)/i) = 2
 
-   Useful properties :
+   Useful properties (outdated) :
      - links are only provided above the leaf, never below. This implies that
        the nodes directly attached to the root do not use their link. It also
        enhances the probability that the link directly above a leaf are from
@@ -132,6 +132,14 @@
 
      - bit is necessarily > 0.
 
+   New properties (2007/08/04) :
+     - pointers to lower nodes are stored in "children" pointers (currently 2,
+       but may be extended to 4).
+     - pointers to higher nodes are stored in "parent" pointers, one being used
+       by the leaf part of the eb_cell, the other one by the node part.
+     - root <=> (child[right]==NULL)
+     - (root || dup) <=> (parent[L]==parent[N]) && (parent[*]==NULL)
+     
    Basic definitions (subject to change) :
      - for duplicate leaf nodes, leaf_p = NULL.
      - use bit == 0 to indicate a leaf node which is not used as a link
@@ -664,7 +672,8 @@ __eb_next_node(struct eb_node *node)
 
 	if (unlikely(node->dup.n != &node->dup)) {
 		node = LIST_ELEM(node->dup.n, struct eb_node *, dup);
-		if (!node->leaf_p)
+		t = node->leaf_p;
+		if (!t)
 			return node;
 		/* we returned to the list's head, let's walk up now */
 	}
