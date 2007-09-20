@@ -133,11 +133,11 @@
      - bit is necessarily > 0.
 
    New properties (2007/08/04) :
-     - pointers to lower nodes are stored in "children" pointers (currently 2,
+     - pointers to lower nodes are stored in "branch" pointers (currently 2,
        but may be extended to 4).
      - pointers to higher nodes are stored in "parent" pointers, one being used
-       by the leaf part of the eb_cell, the other one by the node part.
-     - root <=> (child[right]==NULL)
+       by the leaf part of the eb_node, the other one by the node part.
+     - root <=> (branch[right]==NULL)
      - (root || dup) <=> (parent[L]==parent[N]) && (parent[*]==NULL)
      
    Basic definitions (subject to change) :
@@ -244,34 +244,40 @@ typedef unsigned short u16;
 typedef unsigned int u32;
 typedef unsigned long long u64;
 
-/* number of bits per node, and number of leaves per node */
-#define EB_NODE_BITS       1
-#define EB_NODE_LEAVES     (1 << EB_NODE_BITS)
-#define EB_NODE_LEAF_MASK  (EB_NODE_LEAVES - 1)
+/* Each eb_node contains two views, one node and one leaf. Both may be
+ * referenced in a pointer.
+ */
+#define EB_LEAF     0
+#define EB_NODE     1
 
-#define EB_LEAF_LEFT  0
-#define EB_LEAF_RIGHT 1
+/* Number of bits per node, and number of leaves per node */
+#define EB_NODE_BITS          1
+#define EB_NODE_BRANCHES      (1 << EB_NODE_BITS)
+#define EB_NODE_BRANCH_MASK   (EB_NODE_BRANCHES - 1)
+
+#define EB_LEFT     0
+#define EB_RGHT     1
 
 /* This is the same as an eb_node pointer, except that the lower bit embeds
  * a tag. This tag has two meanings :
  *  - 0=left, 1=right for leaf_p/link_p
- *  - 0=link, 1=leaf  for leaf[]
+ *  - 0=link, 1=leaf  for branch[]
  */
 typedef void eb_tagptr_t;
 
 /* WARNING! it's important not to change those definitions */
-#define EB_TAG_TYPE_LEAF  0
-#define EB_TAG_TYPE_NODE  1
-#define EB_TAG_SIDE_LEFT  0
-#define EB_TAG_SIDE_RIGHT 1
+#define EB_TAG_TYPE_LEAF  EB_LEAF
+#define EB_TAG_TYPE_NODE  EB_NODE
+#define EB_TAG_SIDE_LEFT  EB_LEFT
+#define EB_TAG_SIDE_RIGHT EB_RGHT
 
 
 /* 28 bytes per node on 32-bit machines. */
 struct eb_node {
 	eb_tagptr_t    *leaf_p;  /* leaf node's parent */
 	eb_tagptr_t    *link_p;  /* link node's parent */
-	eb_tagptr_t    *leaf[EB_NODE_LEAVES]; /* link's leaf nodes */
-	struct list     dup;     /* leaf duplicates */
+	eb_tagptr_t    *branch[EB_NODE_BRANCHES]; /* node's branches */
+	struct list     dups;     /* leaf duplicates */
 	unsigned int    bit;     /* link's bit position. */
 };
 
@@ -305,8 +311,8 @@ struct eb64_node {
 	(struct eb32_node) {						\
 		.node = { .bit = 32, 					\
 			  .link_p = NULL, .leaf_p = NULL,		\
-			  .leaf = { [0] = NULL, [1] = NULL },		\
-			  .dup = { .n = NULL, .p = NULL }},		\
+			  .branch = { [0] = NULL, [1] = NULL },		\
+			  .dups   = {  .n = NULL,  .p = NULL }},	\
 		.val = 0,						\
 	}
 
@@ -317,8 +323,8 @@ struct eb64_node {
 	(struct eb64_node) {						\
 		.node = { .bit = 64, 					\
 			  .link_p = NULL, .leaf_p = NULL,		\
-			  .leaf = { [0] = NULL, [1] = NULL },		\
-			  .dup = { .n = NULL, .p = NULL }},		\
+			  .branch = { [0] = NULL, [1] = NULL },		\
+			  .dups   = {  .n = NULL,  .p = NULL }},	\
 		.val = 0,						\
 	}
 
@@ -401,17 +407,29 @@ eb_remtag(eb_tagptr_t *ptr, int tag)
 #define eb_link_to_node(start)				\
 	eb_remtag((start), EB_TAG_TYPE_NODE)
 
+/* Converts a leaf or node pointer to its equivalent branch pointer. NULL is
+ * not conserved. To be used with EB_LEAF and EB_NODE.
+ */
+#define eb_branch(start, type)				\
+	eb_addtag((start), (type))
+
 /* Converts a leaf node pointer to its equivalent link. NULL is returned for a
  * NULL input, because EB_TAG_TYPE_LEAF = 0.
  */
-#define eb_leaf_to_link(start)				\
+#define eb_leaf_to_branch(start)				\
 	eb_addtag((start), EB_TAG_TYPE_LEAF)
 
 /* Converts a node pointer to its equivalent link. It must not be called with
  * NULL because EB_TAG_TYPE_NODE != 0, so the value will be lost.
  */
-#define eb_node_to_link(start)				\
+#define eb_node_to_branch(start)				\
 	eb_addtag((start), EB_TAG_TYPE_NODE)
+
+/* Converts a left or right sided parent node pointer to its equivalent parent
+ * pointer. NULL is not conserved. To be used with EB_LEFT, EB_RGHT.
+ */
+#define eb_parent(start, side)				\
+	eb_addtag((start), (side))
 
 /* Converts a left parent link to its equivalent parent node pointer. NULL is
  * returned for a NULL input, because EB_TAG_SIDE_LEFT = 0.
@@ -429,13 +447,13 @@ eb_remtag(eb_tagptr_t *ptr, int tag)
 /* Converts a node pointer to its equivalent parent left link. NULL is returned
  * for a NULL input, because EB_TAG_TYPE_LEFT = 0.
  */
-#define eb_parent_to_left(start)			\
+#define eb_left_to_parent(start)			\
 	eb_addtag((start), EB_TAG_SIDE_LEFT)
 
 /* Converts a node pointer to its equivalent parent right link. It must not be
  * called with NULL because EB_TAG_SIDE_RIGHT != 0, so the value will be lost.
  */
-#define eb_parent_to_right(start)			\
+#define eb_rght_to_parent(start)			\
 	eb_addtag((start), EB_TAG_SIDE_RIGHT)
 
 
@@ -449,16 +467,16 @@ eb_walk_down(eb_tagptr_t *start, unsigned int side)
 {
 	/* A NULL pointer on an empty tree root will be returned as-is */
 	while (/*likely*/(eb_gettag(start) == EB_TAG_TYPE_NODE))
-		start = eb_link_to_node(start)->leaf[side];
+		start = eb_link_to_node(start)->branch[side];
 	/* NULL is left untouched */
 	return start;
 }
 
 #define eb_walk_down_left(start)			\
-	eb_walk_down((start), EB_LEAF_LEFT)
+	eb_walk_down((start), EB_LEFT)
 
 #define eb_walk_down_right(start)			\
-	eb_walk_down((start), EB_LEAF_RIGHT)
+	eb_walk_down((start), EB_RGHT)
 
 ///* Walks up starting from node <node> with parent <par>, which must be a valid
 // * parent (ie: link_p or leaf_p, and <node> must not be a duplicate). It
@@ -470,7 +488,7 @@ eb_walk_down(eb_tagptr_t *start, unsigned int side)
 //static inline struct eb_node *
 //eb_walk_up(struct eb_node *node, int side, struct eb_node *par)
 //{
-//	while (par && par->leaf[side] == node) {
+//	while (par && par->branch[side] == node) {
 //		node = par;
 //		par = par->link_p;
 //	}
@@ -556,12 +574,12 @@ eb_walk_down(eb_tagptr_t *start, unsigned int side)
  */
 #define eb_sibling_with_parent(node, par)			\
 	((struct eb_node *)					\
-	 (((unsigned long)(par)->leaf[0]) ^			\
-	  ((unsigned long)(par)->leaf[1]) ^			\
+	 (((unsigned long)(par)->branch[0]) ^			\
+	  ((unsigned long)(par)->branch[1]) ^			\
 	  ((unsigned long)(node))))
 
 #define eb_sibling_with_parent_test(node, par)			\
-	(((par)->leaf[1] == (node)) ? (par)->leaf[0] : (par)->leaf[1])
+	(((par)->branch[1] == (node)) ? (par)->branch[0] : (par)->branch[1])
 
 /* returns first leaf in the tree starting at <root>, or NULL if none */
 #define eb_first(root)							\
@@ -584,7 +602,7 @@ eb_walk_down(eb_tagptr_t *start, unsigned int side)
 static inline struct eb_node *
 __eb_first_node(struct eb_node *root)
 {
-	return eb_link_to_leaf(eb_walk_down_left(root->leaf[0]));
+	return eb_link_to_leaf(eb_walk_down_left(root->branch[0]));
 }
 
 /* Returns last leaf in the tree starting at <root>, or NULL if none. If the
@@ -595,9 +613,9 @@ __eb_last_node(struct eb_node *root)
 {
 	struct eb_node *node;
 
-	node = eb_link_to_leaf(eb_walk_down_right(root->leaf[0]));
+	node = eb_link_to_leaf(eb_walk_down_right(root->branch[0]));
 	if (likely(node != NULL))
-		node = LIST_ELEM(node->dup.p, struct eb_node *, dup);
+		node = LIST_ELEM(node->dups.p, struct eb_node *, dups);
 	return node;
 }
 
@@ -611,18 +629,18 @@ __eb_prev_node(struct eb_node *node)
 	eb_tagptr_t *t = node->leaf_p;
 
 	if (unlikely(!t))
-		return LIST_ELEM(node->dup.p, struct eb_node *, dup);
+		return LIST_ELEM(node->dups.p, struct eb_node *, dups);
 
 	while (1) {
 		if (eb_gettag(t) != EB_TAG_SIDE_LEFT) {
 			/* Note that <t> cannot be NULL at this stage because
 			 * only the root has a NULL link_p, and it's caught before.
 			 */
-			t = eb_parent_from_right(t)->leaf[EB_LEAF_LEFT];
+			t = eb_parent_from_right(t)->branch[EB_LEFT];
 			node = eb_link_to_leaf(eb_walk_down_right(t));
 
-			if (unlikely(node->dup.n != &node->dup))
-				node = LIST_ELEM(node->dup.p, struct eb_node *, dup);
+			if (unlikely(node->dups.n != &node->dups))
+				node = LIST_ELEM(node->dups.p, struct eb_node *, dups);
 			return node;
 		}
 		t = eb_parent_from_left(t)->link_p;
@@ -654,7 +672,7 @@ __eb_prev_node_unique(struct eb_node *node)
 			/* Note that <t> cannot be NULL at this stage because
 			 * only the root has a NULL link_p, and it's caught before.
 			 */
-			t = eb_parent_from_right(t)->leaf[EB_LEAF_LEFT];
+			t = eb_parent_from_right(t)->branch[EB_LEFT];
 			return eb_link_to_leaf(eb_walk_down_right(t));
 		}
 		t = eb_parent_from_left(t)->link_p;
@@ -670,8 +688,8 @@ __eb_next_node(struct eb_node *node)
 {
 	eb_tagptr_t *t = node->leaf_p;
 
-	if (unlikely(node->dup.n != &node->dup)) {
-		node = LIST_ELEM(node->dup.n, struct eb_node *, dup);
+	if (unlikely(node->dups.n != &node->dups)) {
+		node = LIST_ELEM(node->dups.n, struct eb_node *, dups);
 		t = node->leaf_p;
 		if (!t)
 			return node;
@@ -683,7 +701,7 @@ __eb_next_node(struct eb_node *node)
 			/* Note that <t> cannot be NULL at this stage because
 			 * only the root has a NULL link_p, and it's caught before.
 			 */
-			t = eb_parent_from_left(t)->leaf[EB_LEAF_RIGHT];
+			t = eb_parent_from_left(t)->branch[EB_RGHT];
 			return eb_link_to_leaf(eb_walk_down_left(t));
 		}
 		t = eb_parent_from_right(t)->link_p;
@@ -709,7 +727,7 @@ __eb_next_node_unique(struct eb_node *node)
 			/* Note that <t> cannot be NULL at this stage because
 			 * only the root has a NULL link_p, and it's caught before.
 			 */
-			t = eb_parent_from_left(t)->leaf[EB_LEAF_RIGHT];
+			t = eb_parent_from_left(t)->branch[EB_RGHT];
 			return eb_link_to_leaf(eb_walk_down_left(t));
 		}
 		t = eb_parent_from_right(t)->link_p;
@@ -732,7 +750,7 @@ __eb_delete(struct eb_node *node)
 	 * to anything. Also, we know the tree is not empty afterwards.
 	 */
 	if (!parent) {
-		LIST_DEL(&node->dup);
+		LIST_DEL(&node->dups);
 		return 1;
 	}
 
@@ -741,13 +759,13 @@ __eb_delete(struct eb_node *node)
 	 * their link part used somewhere else, and we know that the duplicate
 	 * cannot have his in use, we can switch over to using his.
 	 */
-	if (node->dup.n != &node->dup) {
-		newlink = LIST_ELEM(node->dup.n, struct eb_node *, dup);
-		LIST_DEL(&node->dup);
+	if (node->dups.n != &node->dups) {
+		newlink = LIST_ELEM(node->dups.n, struct eb_node *, dups);
+		LIST_DEL(&node->dups);
 		newlink->leaf_p = parent;
 
-		l = (parent->leaf[1] == node);
-		parent->leaf[l] = newlink;
+		l = (parent->branch[1] == node);
+		parent->branch[l] = newlink;
 
 		/* keep newlink intact as we can use it for the replacement */
 		goto replace_link;
@@ -759,9 +777,9 @@ __eb_delete(struct eb_node *node)
 	 */
 	gparent = parent->link_p;
 	if (unlikely(gparent == NULL)) {
-		l = (parent->leaf[1] == node);
-		parent->leaf[l] = NULL;
-		return !!parent->leaf[l ^ 1];
+		l = (parent->branch[1] == node);
+		parent->branch[l] = NULL;
+		return !!parent->branch[l ^ 1];
 	}
 
 	/* To release the parent, we have to identify our sibling, and reparent
@@ -774,8 +792,8 @@ __eb_delete(struct eb_node *node)
 	else
 		newlink->link_p = gparent;
 
-	l = (gparent->leaf[1] == parent);
-	gparent->leaf[l] = newlink;
+	l = (gparent->branch[1] == parent);
+	gparent->branch[l] = newlink;
 
 	/* Mark the parent unused. Note that we do not check if the parent is
 	 * our own link, but that's not a problem because if it is, it will be
@@ -800,23 +818,23 @@ __eb_delete(struct eb_node *node)
 	 */
 
 	newlink->link_p = node->link_p;
-	newlink->leaf[0] = node->leaf[0];
-	newlink->leaf[1] = node->leaf[1];
+	newlink->branch[0] = node->branch[0];
+	newlink->branch[1] = node->branch[1];
 	newlink->bit = node->bit;
 
 	/* We must now update the new link's parent */
 	gparent = node->link_p;
-	if (gparent->leaf[0] == node)
-		gparent->leaf[0] = newlink;
+	if (gparent->branch[0] == node)
+		gparent->branch[0] = newlink;
 	else
-		gparent->leaf[1] = newlink;
+		gparent->branch[1] = newlink;
 
 	/* ... and the link's leaves */
 	for (l = 0; l <= 1; l++) {
-		if (eb_untag(eb_untag(newlink->leaf[l])->leaf_p) == node)
-			eb_untag(newlink->leaf[l])->leaf_p = eb_totag(newlink);
+		if (eb_untag(eb_untag(newlink->branch[l])->leaf_p) == node)
+			eb_untag(newlink->branch[l])->leaf_p = eb_totag(newlink);
 		else
-			eb_untag(newlink->leaf[l])->link_p = eb_totag(newlink);
+			eb_untag(newlink->branch[l])->link_p = eb_totag(newlink);
 	}
 
 	/* Now the node has been completely unlinked */
@@ -834,18 +852,18 @@ __eb_delete(struct eb_node *node)
 //	typeof(new)  __n  = new;                                              \
 //	typeof(new)  __nxt;                                                   \
 //	unsigned int __lf = (__n->val >> (__ro->node.bit - 1)) & 1;           \
-//	__nxt = (typeof(__nxt))__ro->node.leaf[__lf];                         \
+//	__nxt = (typeof(__nxt))__ro->node.branch[__lf];                         \
 //	if (unlikely(__nxt == NULL)) {                                        \
-//		__ro->node.leaf[__lf] = (struct eb_node *)__n;                \
+//		__ro->node.branch[__lf] = (struct eb_node *)__n;                \
 //		__n->node.leaf_p = (struct eb_node *)__ro;                    \
-//		LIST_INIT(&__n->node.dup);                                    \
+//		LIST_INIT(&__n->node.dups);                                    \
 //		__n->node.bit = 0;                                            \
 //		goto __out_insert;                                            \
 //	}                                                                     \
 //	while (1) {                                                           \
 //		if (unlikely(__nxt->node.leaf_p == (struct eb_node *)__ro)) { \
 //			if (__nxt->val == __n->val) {                         \
-//				LIST_ADDQ(&__nxt->node.dup, &__n->node.dup);  \
+//				LIST_ADDQ(&__nxt->node.dups, &__n->node.dups);  \
 //				__n->node.leaf_p = NULL;                      \
 //				__n->node.bit = 0;                            \
 //				goto __out_insert;                            \
@@ -859,16 +877,16 @@ __eb_delete(struct eb_node *node)
 //		}                                                             \
 //		__ro = __nxt;                                                 \
 //		__lf = (__n->val >> (__nxt->node.bit - 1)) & 1;               \
-//		__nxt = (typeof(__nxt))__nxt->node.leaf[__lf];                \
+//		__nxt = (typeof(__nxt))__nxt->node.branch[__lf];                \
 //	}                                                                     \
-//	__ro->node.leaf[__lf] = (struct eb_node *)__n;                        \
+//	__ro->node.branch[__lf] = (struct eb_node *)__n;                        \
 //	__n->node.link_p = (struct eb_node *)__ro;                            \
 //	__n->node.leaf_p = (struct eb_node *)__n;                             \
 //	__n->node.bit = fls_auto(__n->val ^ __nxt->val);                      \
 //	__lf = (__n->val > __nxt->val);                                       \
-//	__n->node.leaf[__lf ^ 1] = (struct eb_node *)__nxt;                   \
-//	__n->node.leaf[__lf] = (struct eb_node *)__n;                         \
-//	LIST_INIT(&__n->node.dup);                                            \
+//	__n->node.branch[__lf ^ 1] = (struct eb_node *)__nxt;                   \
+//	__n->node.branch[__lf] = (struct eb_node *)__n;                         \
+//	LIST_INIT(&__n->node.dups);                                            \
 // __out_insert:                                                                \
 //	;                                                                     \
 //} while (0)
@@ -884,7 +902,7 @@ __eb_delete(struct eb_node *node)
 //	typeof(root)    __ro = root;                                          \
 //	typeof(x)       __x = x;                                              \
 //	struct eb_node *__par = (struct eb_node *)__ro;                       \
-//	__ro = (typeof(root))__par->leaf[(__x >> (__par->bit - 1)) & 1];      \
+//	__ro = (typeof(root))__par->branch[(__x >> (__par->bit - 1)) & 1];      \
 //	if (unlikely(!__ro))                                                  \
 //		goto __out_lookup;                                            \
 //	while (1) {                                                           \
@@ -901,9 +919,9 @@ __eb_delete(struct eb_node *node)
 //		}                                                             \
 //		__par = (struct eb_node *)__ro;                               \
 //		if ((__x >> (__par->bit - 1)) & 1)                            \
-//			__ro = (typeof(root))__par->leaf[1];                  \
+//			__ro = (typeof(root))__par->branch[1];                  \
 //		else                                                          \
-//			__ro = (typeof(root))__par->leaf[0];                  \
+//			__ro = (typeof(root))__par->branch[0];                  \
 //	}                                                                     \
 // __out_lookup:                                                                \
 //	__ro;                                                                 \
@@ -924,7 +942,7 @@ __eb32_lookup(struct eb32_node *root, unsigned long x)
 {
 	struct eb_node *parent = (struct eb_node *)root;
 
-	root = (struct eb32_node *)parent->leaf[x >> 31];
+	root = (struct eb32_node *)parent->branch[x >> 31];
 	if (unlikely(!root))
 		return NULL;
 
@@ -963,67 +981,67 @@ __eb32_lookup(struct eb32_node *root, unsigned long x)
 
 		// Don't ask why this slows down like hell ! Gcc completely
 		// changes all the loop sequencing !
-		// root = (struct eb32_node *)parent->leaf[((x >> (parent->bit - 1)) & 1)];
+		// root = (struct eb32_node *)parent->branch[((x >> (parent->bit - 1)) & 1)];
 
 		if ((x >> (parent->bit - 1)) & 1)
-			root = (struct eb32_node *)parent->leaf[1];
+			root = (struct eb32_node *)parent->branch[1];
 		else
-			root = (struct eb32_node *)parent->leaf[0];
+			root = (struct eb32_node *)parent->branch[0];
 	}
 }
 
 
-/* Inserts node <new> into subtree starting at link node <root>.
- * Only new->leaf.val needs be set with the value.
+/* Inserts node <node> into subtree starting at link node <root>.
+ * Only node->leaf.val needs be set with the value.
  * The node is returned.
  */
 
 static inline struct eb32_node *
-__eb32_insert(struct eb32_node *root, struct eb32_node *new) {
+__eb32_insert(struct eb32_node *root, struct eb32_node *node) {
 	struct eb32_node *next;
 	unsigned int l;
 	eb_tagptr_t *t;
 	u32 x;
 
-	l = EB_LEAF_LEFT;
-	t = root->node.leaf[EB_LEAF_LEFT];
+	l = EB_LEFT;
+	t = root->node.branch[EB_LEFT];
 	if (unlikely(t == NULL)) {
 		/* Tree is empty, insert leaf only. */
-		root->node.leaf[EB_LEAF_LEFT] = eb_leaf_to_link((struct eb_node *)new);
-		LIST_INIT(&new->node.dup);
-		new->node.leaf_p = eb_parent_to_left((struct eb_node *)root);
-		new->node.link_p = NULL;
-		return new;
+		root->node.branch[EB_LEFT] = eb_leaf_to_branch(&node->node);
+		LIST_INIT(&node->node.dups);
+		node->node.leaf_p = eb_left_to_parent(&root->node);
+		node->node.link_p = NULL;
+		return node;
 	}
 	/* The tree descent is fairly easy :
 	 *  - first, check if we have reached a leaf node
 	 *  - second, check if we have gone too far
 	 *  - third, reiterate
-	 * Everywhere, we use <new> for the new node we are inserting, <root>
+	 * Everywhere, we use <node> for the node node we are inserting, <root>
 	 * for the node we attach it to, and <next> for the node we are
-	 * displacing below <new>. <t> will always point to the future node,
+	 * displacing below <node>. <t> will always point to the future node,
 	 * and <l> will designate the branch it is attached to (left/right).
 	 */
-	x = new->val;
+	x = node->val;
 
 	while (1) {
 		if (eb_link_type(t) == EB_TAG_TYPE_LEAF) {
-			next = (struct eb32_node *)eb_link_to_leaf(t);
+			next = LIST_ELEM(eb_link_to_leaf(t), struct eb32_node *, node);
 			if ((x ^ next->val) == 0) {
 				//if (x == next->val) {
 				/* add a duplicate. */
-				LIST_ADDQ(&next->node.dup, &new->node.dup);
-				new->node.leaf_p = NULL;
-				new->node.link_p = NULL;
-				return new;
+				LIST_ADDQ(&next->node.dups, &node->node.dups);
+				node->node.leaf_p = NULL;
+				node->node.link_p = NULL;
+				return node;
 			}
 
 			/* The tree did not contain this value, so we insert
-			 * <new> before the leaf <next>, and set ->bit to
-			 * designate the lowest bit position in <new> which
-			 * applies to ->leaf[].
+			 * <node> before the leaf <next>, and set ->bit to
+			 * designate the lowest bit position in <node> which
+			 * applies to ->branch[].
 			 */
-			new->node.link_p  = next->node.leaf_p;
+			node->node.link_p = next->node.leaf_p;
 
 			/* We need to check on which of the root's leaves the node will
 			 * be attached. For this we have to compare its value to next's.
@@ -1031,21 +1049,33 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 			 * require some bitmask checks with higher numbers of leaves.
 			 */
 			if (next->val > x) {
-				new->node.leaf[0] = eb_leaf_to_link((struct eb_node *)new);
-				new->node.leaf[1] = eb_leaf_to_link((struct eb_node *)next);
-				new->node.leaf_p  = eb_parent_to_left((struct eb_node *)new);
-				next->node.leaf_p = eb_parent_to_right((struct eb_node *)new);
+				node->node.branch[EB_LEFT] = eb_branch(&node->node, EB_LEAF);
+				node->node.branch[EB_RGHT] = eb_branch(&next->node, EB_LEAF);
+				node->node.leaf_p = eb_parent(&node->node, EB_LEFT);
+				next->node.leaf_p = eb_parent(&node->node, EB_RGHT);
 			} else {
-				new->node.leaf[0] = eb_leaf_to_link((struct eb_node *)next);
-				new->node.leaf[1] = eb_leaf_to_link((struct eb_node *)new);
-				new->node.leaf_p  = eb_parent_to_right((struct eb_node *)new);
-				next->node.leaf_p = eb_parent_to_left((struct eb_node *)new);
+				node->node.branch[EB_LEFT] = eb_branch(&next->node, EB_LEAF);
+				node->node.branch[EB_RGHT] = eb_branch(&node->node, EB_LEAF);
+				node->node.leaf_p = eb_parent(&node->node, EB_RGHT);
+				next->node.leaf_p = eb_parent(&node->node, EB_LEFT);
 			}
+
+			//if (next->val > x) {
+			//	node->node.branch[EB_LEFT] = eb_leaf_to_branch(&node->node);
+			//	node->node.branch[EB_RGHT] = eb_leaf_to_branch(&next->node);
+			//	node->node.leaf_p = eb_left_to_parent(&node->node);
+			//	next->node.leaf_p = eb_rght_to_parent(&node->node);
+			//} else {
+			//	node->node.branch[EB_LEFT] = eb_leaf_to_branch(&next->node);
+			//	node->node.branch[EB_RGHT] = eb_leaf_to_branch(&node->node);
+			//	node->node.leaf_p = eb_rght_to_parent(&node->node);
+			//	next->node.leaf_p = eb_left_to_parent(&node->node);
+			//}
 			break;
 		}
 
 		/* OK we're walking down this link */
-		next = (struct eb32_node *)eb_link_to_node(t);
+		next = LIST_ELEM(eb_link_to_node(t), struct eb32_node *, node);
 
 		/* Stop going down when we don't have common bits anymore. */
 		/* The test below could be optimized depending on the expected size of the tree.
@@ -1054,52 +1084,52 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *new) {
 		 * all over the values.
 		 */
 
-		//if (((x >> next->node.bit) ^ (next->val >> next->node.bit)) >= EB_NODE_LEAVES) {
-		//if (((x >> next->node.bit) ^ (next->val >> next->node.bit)) & ~EB_NODE_LEAF_MASK) {
-		//if (((x ^ next->val) >> next->node.bit) & ~EB_NODE_LEAF_MASK) {
-		if (((x ^ next->val) >> next->node.bit) >= EB_NODE_LEAVES) {
-			/* The tree did not contain the value, so we insert <new> before the link
-			 * <next>, and set ->bit to designate the lowest bit position in <new>
-			 * which applies to ->leaf[].
+		//if (((x >> next->node.bit) ^ (next->val >> next->node.bit)) >= EB_NODE_BRANCHES) {
+		//if (((x >> next->node.bit) ^ (next->val >> next->node.bit)) & ~EB_NODE_BRANCH_MASK) {
+		//if (((x ^ next->val) >> next->node.bit) & ~EB_NODE_BRANCH_MASK) {
+		if (((x ^ next->val) >> next->node.bit) >= EB_NODE_BRANCHES) {
+			/* The tree did not contain the value, so we insert <node> before the link
+			 * <next>, and set ->bit to designate the lowest bit position in <node>
+			 * which applies to ->branch[].
 			 */
-			new->node.link_p  = next->node.link_p;
+			node->node.link_p = next->node.link_p;
 			if (next->val > x) {
-				new->node.leaf[0] = eb_leaf_to_link((struct eb_node *)new);
-				new->node.leaf[1] = eb_node_to_link((struct eb_node *)next);
-				new->node.leaf_p  = eb_parent_to_left((struct eb_node *)new);
-				next->node.link_p = eb_parent_to_right((struct eb_node *)new);
+				node->node.branch[EB_LEFT] = eb_leaf_to_branch(&node->node);
+				node->node.branch[EB_RGHT] = eb_node_to_branch(&next->node);
+				node->node.leaf_p = eb_left_to_parent(&node->node);
+				next->node.link_p = eb_rght_to_parent(&node->node);
 			} else {
-				new->node.leaf[0] = eb_node_to_link((struct eb_node *)next);
-				new->node.leaf[1] = eb_leaf_to_link((struct eb_node *)new);
-				new->node.leaf_p  = eb_parent_to_right((struct eb_node *)new);
-				next->node.link_p = eb_parent_to_left((struct eb_node *)new);
+				node->node.branch[EB_LEFT] = eb_node_to_branch(&next->node);
+				node->node.branch[EB_RGHT] = eb_leaf_to_branch(&node->node);
+				node->node.leaf_p = eb_rght_to_parent(&node->node);
+				next->node.link_p = eb_left_to_parent(&node->node);
 			}
 			break;
 		}
 
 		/* walk down */
 		root = next;
-		l = (x >> next->node.bit) & EB_NODE_LEAF_MASK;
-		t = next->node.leaf[l];
+		l = (x >> next->node.bit) & EB_NODE_BRANCH_MASK;
+		t = next->node.branch[l];
 	}
 
-	/* Ok, now we are inserting <new> between <root> and <next>. <next>'s
-	 * parent is already set to <new>, and the <root>'s branch is still in
+	/* Ok, now we are inserting <node> between <root> and <next>. <next>'s
+	 * parent is already set to <node>, and the <root>'s branch is still in
 	 * <l>. Update the root's leaf till we have it.
 	 */
 
 	/* We need the common higher bits between x and next->val.
 	 * What differences are there between x and the node here ?
-	 * NOTE that bit(new) is always < bit(root) because highest
+	 * NOTE that bit(node) is always < bit(root) because highest
 	 * bit of x and next->val are identical here (otherwise they
 	 * would sit on different branches).
 	 */
-	new->node.bit = flsnz(x ^ next->val) - EB_NODE_BITS; // note that if EB_NODE_BITS > 1, we should check that it's still >= 0
+	node->node.bit = flsnz(x ^ next->val) - EB_NODE_BITS; // note that if EB_NODE_BITS > 1, we should check that it's still >= 0
 
-	LIST_INIT(&new->node.dup);
-	root->node.leaf[l] = eb_node_to_link((struct eb_node *)new);
+	LIST_INIT(&node->node.dups);
+	root->node.branch[l] = eb_node_to_branch(&node->node);
 		
-	return new;
+	return node;
 }
 
 /* Inserts node <new> into subtree starting at link node <root>.
@@ -1117,13 +1147,13 @@ __eb64_insert(struct eb64_node *root, struct eb64_node *new) {
 	x = new->val;
 	l = x >> 63;
 
-	next = (struct eb64_node *)root->node.leaf[l];
+	next = (struct eb64_node *)root->node.branch[l];
 	if (unlikely(next == NULL)) {
-		root->node.leaf[l] = (struct eb_node *)new;
+		root->node.branch[l] = (struct eb_node *)new;
 		/* This can only happen on the root node. */
 		/* We'll have to insert our new leaf node here. */
-		new->node.leaf_p = (struct eb_node *)root;
-		LIST_INIT(&new->node.dup);
+		new->node.leaf_p = &root->node;
+		LIST_INIT(&new->node.dups);
 		new->node.bit = 0; /* link part unused */
 		return new;
 	}
@@ -1132,13 +1162,13 @@ __eb64_insert(struct eb64_node *root, struct eb64_node *new) {
 	 * This loop is the critical path in large trees.
 	 */
 	while (1) {
-		if (unlikely(next->node.leaf_p == (struct eb_node *)root)) {
+		if (unlikely(next->node.leaf_p == &root->node)) {
 			/* we're on a leaf node */
 			if (next->val == x) {
 				/* We are inserting a value we already have.
 				 * We just have to join the duplicates list.
 				 */
-				LIST_ADDQ(&next->node.dup, &new->node.dup);
+				LIST_ADDQ(&next->node.dups, &new->node.dups);
 				new->node.leaf_p = NULL; /* we're a duplicate, no parent */
 				new->node.bit = 0; /* link part unused */
 				return new;
@@ -1158,14 +1188,14 @@ __eb64_insert(struct eb64_node *root, struct eb64_node *new) {
 		/* walk down */
 		root = next;
 		l = (x >> (next->node.bit - 1)) & 1;
-		next = (struct eb64_node *)next->node.leaf[l];
+		next = (struct eb64_node *)next->node.branch[l];
 	}
 
 	/* Ok, now we are inserting <new> between <root> and <next>. <next>'s
 	 * parent is already set to <new>, and the <root>'s branch is still in
 	 * <l>. Update the root's leaf till we have it.
 	 */
-	root->node.leaf[l] = (struct eb_node *)new;
+	root->node.branch[l] = (struct eb_node *)new;
 
 	/* We need the common higher bits between x and next->val.
 	 * What differences are there between x and the node here ?
@@ -1174,20 +1204,20 @@ __eb64_insert(struct eb64_node *root, struct eb64_node *new) {
 	 * would sit on different branches).
 	 */
 
-	new->node.link_p = (struct eb_node *)root;
+	new->node.link_p = &root->node;
 	new->node.leaf_p = (struct eb_node *)new;
 	new->node.bit = fls64(x ^ next->val);   /* lower identical bit */
 
-	/* This optimization is a bit tricky. The goal is to put new->leaf as well
+	/* This optimization is a bit tricky. The goal is to put new->branch as well
 	 * as the other leaf on the right branch of the new parent link, depending
 	 * on which one is bigger.
 	 */
 	l = (x > next->val);
-	new->node.leaf[l ^ 1] = (struct eb_node *)next;
-	new->node.leaf[l] = (struct eb_node *)new;
+	new->node.branch[l ^ 1] = &next->node;
+	new->node.branch[l] = (struct eb_node *)new;
 
 	/* now we build the leaf part and chain it directly below the link node */
-	LIST_INIT(&new->node.dup);
+	LIST_INIT(&new->node.dups);
 
 	return new;
 }
@@ -1204,13 +1234,13 @@ __eb64_insert(struct eb64_node *root, struct eb64_node *new) {
 	x = new->val;
 	l = x >> 63;
 
-	next = (struct eb64_node *)root->node.leaf[l];
+	next = (struct eb64_node *)root->node.branch[l];
 	if (unlikely(next == NULL)) {
-		root->node.leaf[l] = (struct eb_node *)new;
+		root->node.branch[l] = (struct eb_node *)new;
 		/* This can only happen on the root node. */
 		/* We'll have to insert our new leaf node here. */
-		new->node.leaf_p = (struct eb_node *)root;
-		LIST_INIT(&new->node.dup);
+		new->node.leaf_p = &root->node;
+		LIST_INIT(&new->node.dups);
 		new->node.bit = 0; /* link part unused */
 		return new;
 	}
@@ -1222,13 +1252,13 @@ __eb64_insert(struct eb64_node *root, struct eb64_node *new) {
 		lo = x ^ next->val;
 		hi = (x ^ next->val) >> 32;
 
-		if (unlikely(next->node.leaf_p == (struct eb_node *)root)) {
+		if (unlikely(next->node.leaf_p == &root->node)) {
 			/* we're on a leaf node */
 			if (!(hi | lo)) {
 				/* We are inserting a value we already have.
 				 * We just have to join the duplicates list.
 				 */
-				LIST_ADDQ(&next->node.dup, &new->node.dup);
+				LIST_ADDQ(&next->node.dups, &new->node.dups);
 				new->node.leaf_p = NULL; /* we're a duplicate, no parent */
 				new->node.bit = 0; /* link part unused */
 				return new;
@@ -1255,14 +1285,14 @@ __eb64_insert(struct eb64_node *root, struct eb64_node *new) {
 		else
 			l = ((u32)x >> (next->node.bit - 1)) & 1;
 		/* l&1 below is just a hint for gcc */
-		next = (struct eb64_node *)next->node.leaf[l&1];
+		next = (struct eb64_node *)next->node.branch[l&1];
 	}
 
 	/* Ok, now we are inserting <new> between <root> and <next>. <next>'s
 	 * parent is already set to <new>, and the <root>'s branch is still in
 	 * <l>. Update the root's leaf till we have it.
 	 */
-	root->node.leaf[l] = (struct eb_node *)new;
+	root->node.branch[l] = (struct eb_node *)new;
 
 	/* We need the common higher bits between x and next->val.
 	 * What differences are there between x and the node here ?
@@ -1271,7 +1301,7 @@ __eb64_insert(struct eb64_node *root, struct eb64_node *new) {
 	 * would sit on different branches).
 	 */
 
-	new->node.link_p = (struct eb_node *)root;
+	new->node.link_p = &root->node;
 	new->node.leaf_p = (struct eb_node *)new;
 
 	/* Trick: <hi> is still valid, but using it right here forces the
@@ -1283,17 +1313,17 @@ __eb64_insert(struct eb64_node *root, struct eb64_node *new) {
 	new->node.bit = hi ? 32 + flsnz(hi)
 	                   : flsnz(x ^ next->val);   /* lower identical bit */
 
-	/* This optimization is a bit tricky. The goal is to put new->leaf as well
+	/* This optimization is a bit tricky. The goal is to put new->branch as well
 	 * as the other leaf on the right branch of the new parent link, depending
 	 * on which one is bigger.
 	 */
 	l = (x > next->val);
 
-	new->node.leaf[l ^ 1] = (struct eb_node *)next;
-	new->node.leaf[l] = (struct eb_node *)new;
+	new->node.branch[l ^ 1] = &next->node;
+	new->node.branch[l] = (struct eb_node *)new;
 
 	/* now we build the leaf part and chain it directly below the link node */
-	LIST_INIT(&new->node.dup);
+	LIST_INIT(&new->node.dups);
 
 	return new;
 }
