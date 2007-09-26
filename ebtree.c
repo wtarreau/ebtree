@@ -23,7 +23,7 @@ int eb_delete(struct eb_node *node) {
     return __eb_delete(node);
 }
 
-struct eb32_node *eb32_insert(struct eb32_node *root, struct eb32_node *new) {
+struct eb32_node *eb32_insert(struct eb_root *root, struct eb32_node *new) {
     return __eb32_insert(root, new);
 }
 

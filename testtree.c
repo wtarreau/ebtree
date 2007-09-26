@@ -95,13 +95,13 @@ static inline void rb_insert_task_queue(struct task *newtask)
 
 struct task {
     struct eb32_node eb_node;
-    struct eb32_node *wq;
+    struct eb_root *wq;
     void *data;
     char task_data[200];
 };
 #define expire eb_node.val
 
-EB32_TREE_HEAD(wait_queue);
+struct eb_root wait_queue = EB_ROOT;
 
 #define tree_node  eb32_node
 #define insert_task_queue(task) eb32_insert((task)->wq, &task->eb_node)

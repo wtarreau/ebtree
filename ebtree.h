@@ -331,6 +331,11 @@ struct eb64_node {
 
 /********************************************************************/
 
+#define EB_ROOT						\
+	(struct eb_root) {				\
+		.b = {[0] = NULL, [1] = NULL },		\
+	}
+
 #define EB32_ROOT							\
 	(struct eb32_node) {						\
 		.node = { .bit = 32, 					\
@@ -939,24 +944,24 @@ __eb32_lookup(struct eb32_node *root, unsigned long x)
 }
 
 
-/* Inserts eb32_node <cell> into subtree starting at node <root>.
+/* Inserts eb32_node <cell> into subtree starting at node root <root>.
  * Only node->leaf.val needs be set with the value.
  * The node is returned.
  */
 
 static inline struct eb32_node *
-__eb32_insert(struct eb32_node *root, struct eb32_node *cell) {
+__eb32_insert(struct eb_root *root, struct eb32_node *cell) {
 	struct eb32_node *next;
 	unsigned int l;
 	eb_tagptr_t *t;
 	u32 x;
 
 	l = EB_LEFT;
-	t = root->node.branches.b[EB_LEFT];
+	t = root->b[EB_LEFT];
 	if (unlikely(t == NULL)) {
 		/* Tree is empty, insert the leaf part below the left branch */
-		root->node.branches.b[EB_LEFT] = eb_branch_from_leaf(&cell->node);
-		cell->node.leaf_p = eb_parent(&root->node, EB_LEFT);
+		root->b[EB_LEFT] = eb_branch_from_leaf(&cell->node);
+		cell->node.leaf_p = eb_parent(root, EB_LEFT);
 		cell->node.node_p = NULL; /* node part unused */
 		return cell;
 	}
@@ -1062,9 +1067,9 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *cell) {
 		}
 
 		/* walk down */
-		root = next;
+		root = &next->node.branches;
 		l = (x >> next->node.bit) & EB_NODE_BRANCH_MASK;
-		t = next->node.branches.b[l];
+		t = root->b[l];
 	}
 
 	/* Ok, now we are inserting <cell> between <root> and <next>. <next>'s
@@ -1080,7 +1085,7 @@ __eb32_insert(struct eb32_node *root, struct eb32_node *cell) {
 	 * would sit on different branches).
 	 */
 	cell->node.bit = flsnz(x ^ next->val) - EB_NODE_BITS; // note that if EB_NODE_BITS > 1, we should check that it's still >= 0
-	root->node.branches.b[l] = eb_branch(&cell->node, EB_NODE);
+	root->b[l] = eb_branch(&cell->node, EB_NODE);
 
 	return cell;
 }
@@ -1284,7 +1289,7 @@ __eb64_insert(struct eb64_node *root, struct eb64_node *new) {
 
 
 struct eb32_node *eb32_lookup(struct eb32_node *root, unsigned long x);
-struct eb32_node *eb32_insert(struct eb32_node *root, struct eb32_node *new);
+struct eb32_node *eb32_insert(struct eb_root *root, struct eb32_node *new);
 struct eb64_node *eb64_insert(struct eb64_node *root, struct eb64_node *new);
 int eb_delete(struct eb_node *node);
 struct eb_node *eb_first_node(struct eb_node *root);
