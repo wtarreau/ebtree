@@ -630,18 +630,17 @@ __eb_prev_node(struct eb_node *node)
 
 	while (1) {
 		if (eb_gettag(t) != EB_TAG_SIDE_LEFT) {
-			/* Note that <t> cannot be NULL at this stage because
-			 * only the root has a NULL node_p, and it's caught before.
-			 */
+			/* Note that <t> cannot be NULL at this stage */
 			t = eb_parent_from_right(t)->branch[EB_LEFT];
 			node = eb_leaf_from_branch(eb_walk_down_right(t));
 			return node;
 		}
-		t = eb_parent_from_left(t)->node_p;
-
-		/* we ensure that we never walk beyond root here */
-		if (unlikely(!t))
+		/* Walking up from left branch. We must ensure that we never
+		 * walk beyond root.
+		 */
+		if (unlikely(!eb_parent_from_left(t)->branch[EB_RGHT]))
 			return NULL;
+		t = eb_parent_from_left(t)->node_p;
 	}
 }
 
@@ -656,19 +655,17 @@ __eb_prev_node_unique(struct eb_node *node)
 	eb_tagptr_t *t = node->leaf_p;
 
 	while (1) {
-		/* we ensure that we never walk beyond root here and that we're
-		 * not on a duplicate.
-		 */
-		if (unlikely(!t))
-			return NULL;
-
 		if (eb_gettag(t) != EB_TAG_SIDE_LEFT) {
-			/* Note that <t> cannot be NULL at this stage because
-			 * only the root has a NULL node_p, and it's caught before.
-			 */
+			/* Note that <t> cannot be NULL at this stage */
 			t = eb_parent_from_right(t)->branch[EB_LEFT];
-			return eb_leaf_from_branch(eb_walk_down_right(t));
+			node = eb_leaf_from_branch(eb_walk_down_right(t));
+			return node;
 		}
+		/* Walking up from left branch. We must ensure that we never
+		 * walk beyond root.
+		 */
+		if (unlikely(!eb_parent_from_left(t)->branch[EB_RGHT]))
+			return NULL;
 		t = eb_parent_from_left(t)->node_p;
 	}
 }
@@ -681,12 +678,11 @@ __eb_next_node(struct eb_node *node)
 
 	while (1) {
 		if (eb_gettag(t) == EB_TAG_SIDE_LEFT) {
-			/* Note that <t> cannot be NULL at this stage because
-			 * only the root has a NULL node_p, and it's caught before.
-			 */
+			/* Note that <t> cannot be NULL at this stage */
 			t = eb_parent_from_left(t)->branch[EB_RGHT];
 			return eb_leaf_from_branch(eb_walk_down_left(t));
 		}
+		/* Walking up from right branch, so we cannot be below root */
 		t = eb_parent_from_right(t)->node_p;
 	}
 }
@@ -705,17 +701,13 @@ __eb_next_node_unique(struct eb_node *node)
 {
 	eb_tagptr_t *t = node->leaf_p;
 	
-	if (unlikely(!t))
-		return NULL;
-
 	while (1) {
 		if (eb_gettag(t) == EB_TAG_SIDE_LEFT) {
-			/* Note that <t> cannot be NULL at this stage because
-			 * only the root has a NULL node_p, and it's caught before.
-			 */
+			/* Note that <t> cannot be NULL at this stage */
 			t = eb_parent_from_left(t)->branch[EB_RGHT];
 			return eb_leaf_from_branch(eb_walk_down_left(t));
 		}
+		/* Walking up from right branch, so we cannot be below root */
 		t = eb_parent_from_right(t)->node_p;
 	}
 }
