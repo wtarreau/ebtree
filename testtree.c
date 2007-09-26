@@ -177,6 +177,7 @@ int main(int argc, char **argv) {
     struct tree_node *node;
     struct timeval t_start, t_random, t_insert, t_lookup, t_walk, t_move, t_delete;
     static unsigned long long start, calibrate, end, cycles, cycles2, cycles3;
+    static unsigned long long start1, stop1, count;
 
 
     /* disable output buffering */
@@ -347,8 +348,10 @@ int main(int argc, char **argv) {
     node = tree_first(&wait_queue);
     lasttask = tree_entry(node);
     cycles = 0;
+    count = 0;
 
     rdtscll(start);
+    start1 = start;
     while (node) {
 	struct tree_node *next;
 
@@ -367,11 +370,14 @@ int main(int argc, char **argv) {
 	rdtscll(end); cycles += (end - calibrate) - (calibrate - start);
 	node = next;
 	lasttask = task;
+	count++;
     }
     rdtscll(end);
+    stop1 = end;
 
     tv_now(&t_delete);
-    printf("%llu cycles/ent\n", cycles/total);
+    printf("%llu cycles/ent, %llu ent, %llu cycles tot, %llu cycles/ent(avg)\n",
+	   cycles/total, count, stop1-start1, (stop1-start1)/count);
     printf("Total for %d entries : %llu cycles/ent = %llu kilocycles\n", total, (cycles+cycles2)/total, (cycles+cycles2)/1000);
 
     node = tree_first(&wait_queue);

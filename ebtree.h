@@ -292,14 +292,21 @@ typedef void eb_tagptr_t;
 #define EB_TAG_SIDE_LEFT  EB_LEFT
 #define EB_TAG_SIDE_RIGHT EB_RGHT
 
-
+/* The eb_root connects the node which contains it to two nodes below it, one
+ * of which may be the same node. At the top of the tree, we use an eb_root
+ * too, which always has its right branch NULL.
+ */
 struct eb_root {
 	eb_tagptr_t    *b[EB_NODE_BRANCHES]; /* left and right branches */
 };
 
-/* 28 bytes per node on 32-bit machines. */
+/* The eb_node contains the two parts, one for the leaf, which always exists,
+ * and one for the node, which remains unused in the very first node inserted
+ * into the tree.
+ * This structure is 20 bytes per node on 32-bit machines.
+ */
 struct eb_node {
-	struct eb_root branches; /* branches */
+	struct eb_root branches; /* branches, must be at the beginning */
 	eb_tagptr_t    *node_p;  /* link node's parent */
 	eb_tagptr_t    *leaf_p;  /* leaf node's parent */
 	unsigned int    bit;     /* link's bit position. */
@@ -309,33 +316,31 @@ struct eb_node {
  * any eb*_node can be cast into an eb_node.
  */
 struct eb32_node {
-	struct eb_node node;
+	struct eb_node node; /* the tree node, must be at the beginning */
 	u32 val;
 };
 
 struct eb64_node {
-	struct eb_node node;
+	struct eb_node node; /* the tree node, must be at the beginning */
 	u64 val;
 };
 
-/*
- * The root is a node initialized with :
- * - bit = 32, so that we split on bit 31 below it
- * - val = 0
- * - node_p = leaf_p = branch[*] = NULL
- * During its life, only left and right will change. Checking
- * that node_p = NULL should be enough to refrain from deleting it.
- *
+/* The root of a tree is an eb_root initialized with both pointers NULL.
+ * During its life, only the left pointer will change. The right one will
+ * always remain NULL, which is the way we detect it.
  */
-
-
-/********************************************************************/
 
 #define EB_ROOT						\
 	(struct eb_root) {				\
 		.b = {[0] = NULL, [1] = NULL },		\
 	}
 
+#define EB_TREE_HEAD(name) 				\
+	struct eb_root name = EB_ROOT
+
+
+#ifndef DEPRECATED
+/********************************************************************/
 #define EB32_ROOT							\
 	(struct eb32_node) {						\
 		.node = { .bit = 32, 					\
@@ -357,6 +362,9 @@ struct eb64_node {
 
 #define EB64_TREE_HEAD(name) 						\
 	struct eb64_node name = EB64_ROOT
+/********************************************************************/
+#endif /* DEPRECATED */
+
 
 /* pointer conversion functions */
 
@@ -455,8 +463,14 @@ eb_remtag(eb_tagptr_t *ptr, int tag)
 /* Converts a left or right sided parent node pointer to its equivalent parent
  * pointer. NULL is not conserved. To be used with EB_LEFT, EB_RGHT.
  */
-#define eb_parent(start, side)				\
+#define eb_tag_parent(start, side)				\
 	eb_addtag((start), (side))
+
+/* Converts a tagged parent with a known left or right side to a pointer to
+ * the parent alone. NULL is conserved. To be used with EB_LEFT, EB_RGHT.
+ */
+#define eb_parent_from_tag(start, side)				\
+	eb_remtag((start), (side))
 
 /* Converts a left parent link to its equivalent parent node pointer. NULL is
  * returned for a NULL input, because EB_TAG_SIDE_LEFT = 0.
@@ -720,7 +734,7 @@ __eb_delete(struct eb_node *node)
 
 	/* we need the parent, our side, and the grand parent */
 	side = eb_parent_side(node->leaf_p);
-	parent = eb_parent(node->leaf_p, side);
+	parent = eb_parent_from_tag(node->leaf_p, side);
 
 	/* We likely have to release the parent link, unless it's the root,
 	 * in which case we only set our branch to NULL. Note that we can
@@ -739,17 +753,17 @@ __eb_delete(struct eb_node *node)
 	 */
 
 	l = eb_parent_side(parent->node_p);
-	gparent = eb_parent(parent->node_p, l);
+	gparent = eb_parent_from_tag(parent->node_p, l);
 
 	gparent->branches.b[l] = parent->branches.b[!side];
 	sibtype = eb_branch_type(gparent->branches.b[l]);
 
 	if (sibtype == EB_LEAF) {
 		newlink = eb_remtag(gparent->branches.b[l], EB_LEAF);
-		newlink->leaf_p = eb_parent(gparent, l);
+		newlink->leaf_p = eb_tag_parent(gparent, l);
 	} else {
 		newlink = eb_remtag(gparent->branches.b[l], EB_NODE);
-		newlink->node_p = eb_parent(gparent, l);
+		newlink->node_p = eb_tag_parent(gparent, l);
 	}
 	/* Mark the parent unused. Note that we do not check if the parent is
 	 * our own node, but that's not a problem because if it is, it will be
@@ -779,17 +793,17 @@ __eb_delete(struct eb_node *node)
 
 	/* We must now update the new node's parent... */
 	l = eb_parent_side(parent->node_p);
-	gparent = eb_parent(parent->node_p, l);
+	gparent = eb_parent_from_tag(parent->node_p, l);
 	gparent->branches.b[l] = eb_branch(parent, EB_NODE);
 
 	/* ... and its branches */
 	for (l = 0; l <= 1; l++) {
 		if (eb_branch_type(parent->branches.b[l]) == EB_NODE) {
 			newlink = eb_node_from_branch(parent->branches.b[l]);
-			newlink->node_p = eb_parent(parent, l);
+			newlink->node_p = eb_tag_parent(parent, l);
 		} else {
 			newlink = eb_leaf_from_branch(parent->branches.b[l]);
-			newlink->leaf_p = eb_parent(parent, l);
+			newlink->leaf_p = eb_tag_parent(parent, l);
 		}
 	}
 
@@ -961,7 +975,7 @@ __eb32_insert(struct eb_root *root, struct eb32_node *cell) {
 	if (unlikely(t == NULL)) {
 		/* Tree is empty, insert the leaf part below the left branch */
 		root->b[EB_LEFT] = eb_branch_from_leaf(&cell->node);
-		cell->node.leaf_p = eb_parent(root, EB_LEFT);
+		cell->node.leaf_p = eb_tag_parent(root, EB_LEFT);
 		cell->node.node_p = NULL; /* node part unused */
 		return cell;
 	}
@@ -989,8 +1003,8 @@ __eb32_insert(struct eb_root *root, struct eb32_node *cell) {
 				cell->node.node_p = next->node.leaf_p;
 				cell->node.branches.b[EB_LEFT] = eb_branch(&next->node, EB_LEAF);
 				cell->node.branches.b[EB_RGHT] = eb_branch(&cell->node, EB_LEAF);
-				cell->node.leaf_p = eb_parent(&cell->node, EB_RGHT);
-				next->node.leaf_p = eb_parent(&cell->node, EB_LEFT);
+				cell->node.leaf_p = eb_tag_parent(&cell->node, EB_RGHT);
+				next->node.leaf_p = eb_tag_parent(&cell->node, EB_LEFT);
 				return cell;
 			}
 
@@ -1009,13 +1023,13 @@ __eb32_insert(struct eb_root *root, struct eb32_node *cell) {
 			if (x < next->val) {
 				cell->node.branches.b[EB_LEFT] = eb_branch(&cell->node, EB_LEAF);
 				cell->node.branches.b[EB_RGHT] = eb_branch(&next->node, EB_LEAF);
-				cell->node.leaf_p = eb_parent(&cell->node, EB_LEFT);
-				next->node.leaf_p = eb_parent(&cell->node, EB_RGHT);
+				cell->node.leaf_p = eb_tag_parent(&cell->node, EB_LEFT);
+				next->node.leaf_p = eb_tag_parent(&cell->node, EB_RGHT);
 			} else {
 				cell->node.branches.b[EB_LEFT] = eb_branch(&next->node, EB_LEAF);
 				cell->node.branches.b[EB_RGHT] = eb_branch(&cell->node, EB_LEAF);
-				next->node.leaf_p = eb_parent(&cell->node, EB_LEFT);
-				cell->node.leaf_p = eb_parent(&cell->node, EB_RGHT);
+				next->node.leaf_p = eb_tag_parent(&cell->node, EB_LEFT);
+				cell->node.leaf_p = eb_tag_parent(&cell->node, EB_RGHT);
 			}
 			break;
 		}
@@ -1055,13 +1069,13 @@ __eb32_insert(struct eb_root *root, struct eb32_node *cell) {
 			if (x < next->val) {
 				cell->node.branches.b[EB_LEFT] = eb_branch(&cell->node, EB_LEAF);
 				cell->node.branches.b[EB_RGHT] = eb_branch(&next->node, EB_NODE);
-				cell->node.leaf_p = eb_parent(&cell->node, EB_LEFT);
-				next->node.node_p = eb_parent(&cell->node, EB_RGHT);
+				cell->node.leaf_p = eb_tag_parent(&cell->node, EB_LEFT);
+				next->node.node_p = eb_tag_parent(&cell->node, EB_RGHT);
 			} else {
 				cell->node.branches.b[EB_LEFT] = eb_branch(&next->node, EB_NODE);
 				cell->node.branches.b[EB_RGHT] = eb_branch(&cell->node, EB_LEAF);
-				next->node.node_p = eb_parent(&cell->node, EB_LEFT);
-				cell->node.leaf_p = eb_parent(&cell->node, EB_RGHT);
+				next->node.node_p = eb_tag_parent(&cell->node, EB_LEFT);
+				cell->node.leaf_p = eb_tag_parent(&cell->node, EB_RGHT);
 			}
 			break;
 		}
