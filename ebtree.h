@@ -734,25 +734,24 @@ __eb_delete(struct eb_node *node)
 	side = eb_parent_side(node->leaf_p);
 	parent = eb_parent(node->leaf_p, side);
 
-	l = eb_parent_side(parent->node_p);
-	gparent = eb_parent(parent->node_p, l);
-
 	/* We likely have to release the parent link, unless it's the root,
 	 * in which case we only set our branch to NULL. Note that we can
 	 * only be attached to the root by its left branch.
-	 *
-	 * To release our parent, we have to identify our sibling, and reparent
+	 */
+
+	if (parent->branch[EB_RGHT] == NULL) {
+		/* we're just below the root, it's trivial. */
+		parent->branch[EB_LEFT] = NULL;
+		return 0;
+	}
+ 
+	/* To release our parent, we have to identify our sibling, and reparent
 	 * it directly to/from the grand parent. Note that the sibling can
 	 * either be a link or a leaf.
 	 */
 
-	if (side == EB_LEFT) {
-		if (unlikely(gparent == NULL)) {
-			/* we're just below the root, it's trivial. */
-			parent->branch[EB_LEFT] = NULL;
-			return 0;
-		}
-	}
+	l = eb_parent_side(parent->node_p);
+	gparent = eb_parent(parent->node_p, l);
 
 	gparent->branch[l] = parent->branch[!side];
 	sibtype = eb_branch_type(gparent->branch[l]);
@@ -778,7 +777,7 @@ __eb_delete(struct eb_node *node)
 	 */
 
 	/* If our link part is unused, we can safely exit now */
-	if (unlikely(!node->node_p))
+	if (!node->node_p)
 		return 1; /* tree is not empty yet */
 
 	/* From now on, <node> and <parent> are necessarily different, and the
