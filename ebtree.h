@@ -468,15 +468,13 @@ __eb_next(struct eb_node *node)
 {
 	eb_troot_t *t = node->leaf_p;
 
-	while (1) {
-		if (eb_gettag(t) == EB_TAG_SIDE_LEFT) {
-			/* Note that <t> cannot be NULL at this stage */
-			t = (eb_untag(t, EB_LEFT))->b[EB_RGHT];
-			return eb_walk_down(t, EB_LEFT);
-		}
+	while (eb_gettag(t) != EB_TAG_SIDE_LEFT)
 		/* Walking up from right branch, so we cannot be below root */
 		t = (eb_root_to_node(eb_untag(t, EB_RGHT)))->node_p;
-	}
+
+	/* Note that <t> cannot be NULL at this stage */
+	t = (eb_untag(t, EB_LEFT))->b[EB_RGHT];
+	return eb_walk_down(t, EB_LEFT);
 }
 
 
