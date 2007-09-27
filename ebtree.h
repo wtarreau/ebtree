@@ -234,16 +234,8 @@ static inline int fls64(unsigned long long x)
 
 #define fls_auto(x) ((sizeof(x) > 4) ? fls64(x) : flsnz(x))
 
-#ifndef LIST_ELEM
-#define LIST_ELEM(lh, pt, el) ((pt)(((void *)(lh)) - ((void *)&((pt)NULL)->el)))
-#endif
-
-
 #ifndef container_of
-#define container_of(ptr, type, member) ({      \
-	const typeof( ((type *)0)->member ) *__mptr = (ptr);  \
-	(type *)( (char *)__mptr - offsetof(type,member) );})
-#define offsetof(TYPE, MEMBER) ((size_t) &((TYPE *)0)->MEMBER)
+#define container_of(ptr, type, name) ((type *)(((void *)(ptr)) - ((long)&((type *)0)->name)))
 #endif
 
 /*
@@ -485,6 +477,13 @@ eb_remtag(eb_tagptr_t *ptr, int tag)
 #define eb_parent_from_right(start)			\
 	eb_remtag((start), EB_TAG_SIDE_RIGHT)
 
+/* Returns a pointer to the eb_node holding <root> */
+
+static inline struct eb_node *
+eb_root_to_node(struct eb_root *root)
+{
+	return container_of(root, struct eb_node, branches);
+}
 
 /* Walks down starting at link <start>, and always walking on side <side>. It
  * either returns the link to the first leaf on that side, or NULL if no leaf
@@ -998,8 +997,7 @@ __eb32_insert(struct eb_root *root, struct eb32_node *cell) {
 			eb_tagptr_t *cell_left, *cell_rght;
 			eb_tagptr_t *cell_leaf, *next_leaf;
 
-			/* FIXME: we may remove LIST_ELEM here */
-			next = LIST_ELEM(eb_leaf_from_branch(t), struct eb32_node *, node);
+			next = container_of(eb_leaf_from_branch(t), struct eb32_node, node);
 
 			cell_left = eb_tag_parent(&cell->node, EB_LEFT);
 			cell_rght = eb_tag_parent(&cell->node, EB_RGHT);
@@ -1047,7 +1045,7 @@ __eb32_insert(struct eb_root *root, struct eb32_node *cell) {
 		}
 
 		/* OK we're walking down this link */
-		next = LIST_ELEM(eb_node_from_branch(t), struct eb32_node *, node);
+		next = container_of(eb_node_from_branch(t), struct eb32_node, node);
 
 		/* First, we must check whether we have reached a duplicate
 		 * tree. This is indicated by next->bit < 0. If so, we insert
@@ -1065,11 +1063,6 @@ __eb32_insert(struct eb_root *root, struct eb32_node *cell) {
 		 * "unlikely" gives better values. Using neither of them provides average performance
 		 * all over the values.
 		 */
-
-		//if ((x ^ next->val) & (~EB_NODE_BRANCH_MASK << next->node.bit)) {
-		//if (((x >> next->node.bit) ^ (next->val >> next->node.bit)) >= EB_NODE_BRANCHES) {
-		//if (((x >> next->node.bit) ^ (next->val >> next->node.bit)) & ~EB_NODE_BRANCH_MASK) {
-		//if (((x ^ next->val) >> next->node.bit) & ~EB_NODE_BRANCH_MASK) {
 
 		if (((x ^ next->val) >> next->node.bit) >= EB_NODE_BRANCHES) {
 			/* The tree did not contain the value, so we insert <cell> before the node
