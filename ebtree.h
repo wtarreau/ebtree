@@ -455,12 +455,13 @@ __eb_next(struct eb_node *node)
 static inline int
 __eb_delete(struct eb_node *node)
 {
-	unsigned int l, side, sibtype;
-	struct eb_node *newlink, *parent, *gparent;
+	unsigned int pside, gpside, sibtype;
+	struct eb_node *parent;
+	struct eb_root *gparent;
 
 	/* we need the parent, our side, and the grand parent */
-	side = eb_parent_side(node->leaf_p);
-	parent = eb_root_to_node(eb_untag(node->leaf_p, side));
+	pside = eb_parent_side(node->leaf_p);
+	parent = eb_root_to_node(eb_untag(node->leaf_p, pside));
 
 	/* We likely have to release the parent link, unless it's the root,
 	 * in which case we only set our branch to NULL. Note that we can
@@ -472,24 +473,24 @@ __eb_delete(struct eb_node *node)
 		parent->branches.b[EB_LEFT] = NULL;
 		return 0;
 	}
- 
+
 	/* To release our parent, we have to identify our sibling, and reparent
 	 * it directly to/from the grand parent. Note that the sibling can
 	 * either be a link or a leaf.
 	 */
 
-	l = eb_parent_side(parent->node_p);
-	gparent = eb_root_to_node(eb_untag(parent->node_p, l));
+	gpside = eb_parent_side(parent->node_p);
+	gparent = eb_untag(parent->node_p, gpside);
 
-	gparent->branches.b[l] = parent->branches.b[!side];
-	sibtype = eb_branch_type(gparent->branches.b[l]);
+	gparent->b[gpside] = parent->branches.b[!pside];
+	sibtype = eb_branch_type(gparent->b[gpside]);
 
 	if (sibtype == EB_LEAF) {
-		newlink = eb_root_to_node(eb_untag(gparent->branches.b[l], EB_LEAF));
-		newlink->leaf_p = eb_dotag(&gparent->branches, l);
+		eb_root_to_node(eb_untag(gparent->b[gpside], EB_LEAF))->leaf_p =
+			eb_dotag(gparent, gpside);
 	} else {
-		newlink = eb_root_to_node(eb_untag(gparent->branches.b[l], EB_NODE));
-		newlink->node_p = eb_dotag(&gparent->branches, l);
+		eb_root_to_node(eb_untag(gparent->b[gpside], EB_NODE))->node_p =
+			eb_dotag(gparent, gpside);
 	}
 	/* Mark the parent unused. Note that we do not check if the parent is
 	 * our own node, but that's not a problem because if it is, it will be
@@ -518,18 +519,18 @@ __eb_delete(struct eb_node *node)
 	parent->bit = node->bit;
 
 	/* We must now update the new node's parent... */
-	l = eb_parent_side(parent->node_p);
-	gparent = eb_root_to_node(eb_untag(parent->node_p, l));
-	gparent->branches.b[l] = eb_dotag(&parent->branches, EB_NODE);
+	gpside = eb_parent_side(parent->node_p);
+	gparent = eb_untag(parent->node_p, gpside);
+	gparent->b[gpside] = eb_dotag(&parent->branches, EB_NODE);
 
 	/* ... and its branches */
-	for (l = 0; l <= 1; l++) {
-		if (eb_branch_type(parent->branches.b[l]) == EB_NODE) {
-			newlink = eb_root_to_node(eb_untag(parent->branches.b[l], EB_NODE));
-			newlink->node_p = eb_dotag(&parent->branches, l);
+	for (pside = 0; pside <= 1; pside++) {
+		if (eb_branch_type(parent->branches.b[pside]) == EB_NODE) {
+			eb_root_to_node(eb_untag(parent->branches.b[pside], EB_NODE))->node_p =
+				eb_dotag(&parent->branches, pside);
 		} else {
-			newlink = eb_root_to_node(eb_untag(parent->branches.b[l], EB_LEAF));
-			newlink->leaf_p = eb_dotag(&parent->branches, l);
+			eb_root_to_node(eb_untag(parent->branches.b[pside], EB_LEAF))->leaf_p =
+				eb_dotag(&parent->branches, pside);
 		}
 	}
 
