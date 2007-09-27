@@ -19,20 +19,9 @@
 
 #include "ebtree.h"
 
-int eb_delete(struct eb_node *node) {
+int eb_delete(struct eb_node *node)
+{
     return __eb_delete(node);
-}
-
-struct eb32_node *eb32_insert(struct eb_root *root, struct eb32_node *new) {
-    return __eb32_insert(root, new);
-}
-
-struct eb32_node *eb32_lookup(struct eb32_node *root, unsigned long x) {
-    return __eb32_lookup(root, x);
-}
-
-struct eb64_node *eb64_insert(struct eb64_node *root, struct eb64_node *new) {
-    return __eb64_insert(root, new);
 }
 
 /* Returns the first leaf in the tree starting at <root>, or NULL if none */
@@ -58,3 +47,22 @@ struct eb_node *eb_next(struct eb_node *node)
 {
 	return __eb_next(node);
 }
+
+struct eb32_node *eb32_insert(struct eb_root *root, struct eb32_node *new)
+{
+    return __eb32_insert(root, new);
+}
+
+struct eb32_node *eb32i_insert(struct eb_root *root, struct eb32_node *new)
+{
+    return __eb32i_insert(root, new);
+}
+
+struct eb32_node *eb32_lookup(struct eb32_node *root, unsigned long x) {
+    return __eb32_lookup(root, x);
+}
+
+struct eb64_node *eb64_insert(struct eb64_node *root, struct eb64_node *new) {
+    return __eb64_insert(root, new);
+}
+

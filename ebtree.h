@@ -833,6 +833,165 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
 }
 
 
+/* Inserts eb32_node <new> into subtree starting at node root <root>, using
+ * signed values. Only new->val needs be set with the value. The eb32_node
+ * is returned.
+ */
+static inline struct eb32_node *
+__eb32i_insert(struct eb_root *root, struct eb32_node *new) {
+	struct eb32_node *old;
+	unsigned int side;
+	eb_troot_t *troot;
+	int newval; /* caching the value saves approximately one cycle */
+
+	side = EB_LEFT;
+	troot = root->b[EB_LEFT];
+	if (unlikely(troot == NULL)) {
+		/* Tree is empty, insert the leaf part below the left branch */
+		root->b[EB_LEFT] = eb_dotag(&new->node.branches, EB_LEAF);
+		new->node.leaf_p = eb_dotag(root, EB_LEFT);
+		new->node.node_p = NULL; /* node part unused */
+		return new;
+	}
+
+	/* The tree descent is fairly easy :
+	 *  - first, check if we have reached a leaf node
+	 *  - second, check if we have gone too far
+	 *  - third, reiterate
+	 * Everywhere, we use <new> for the node node we are inserting, <root>
+	 * for the node we attach it to, and <old> for the node we are
+	 * displacing below <new>. <troot> will always point to the future node
+	 * (tagged with its type). <side> carries the side the node <new> is
+	 * attached to below its parent, which is also where previous node
+	 * was attached. <newval> carries a high bit shift of the value being
+	 * inserted in order to have negative values stored before positive
+	 * ones.
+	 */
+	newval = new->val + 0x80000000;
+
+	while (1) {
+		if (unlikely(eb_gettag(troot) == EB_LEAF)) {
+			eb_troot_t *new_left, *new_rght;
+			eb_troot_t *new_leaf, *old_leaf;
+
+			old = container_of(eb_untag(troot, EB_LEAF),
+					    struct eb32_node, node.branches);
+
+			new_left = eb_dotag(&new->node.branches, EB_LEFT);
+			new_rght = eb_dotag(&new->node.branches, EB_RGHT);
+			new_leaf = eb_dotag(&new->node.branches, EB_LEAF);
+			old_leaf = eb_dotag(&old->node.branches, EB_LEAF);
+
+			new->node.node_p = old->node.leaf_p;
+
+			/* The tree did contain this value exactly once. We
+			 * insert the new node just above the previous one,
+			 * with the new leaf on the right.
+			 */
+			if ((new->val ^ old->val) == 0) {  // (new->val == old->val)
+				old->node.leaf_p = new_left;
+				new->node.leaf_p = new_rght;
+				new->node.branches.b[EB_LEFT] = old_leaf;
+				new->node.branches.b[EB_RGHT] = new_leaf;
+				new->node.bit = -1;
+				root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
+				return new;
+			}
+
+			/* The tree did not contain this value, so we insert
+			 * <new> before the leaf <old>, and set ->bit to
+			 * designate the lowest bit position in <new> which
+			 * applies to ->branches.b[].
+			 *
+			 * We need to check on which of the root's leaves the
+			 * node will be attached. For this we have to compare
+			 * its value to old's. Strictly speaking, this works
+			 * with 2 leaves, but it would require some bitmask
+			 * checks if we had higher numbers of leaves.
+			 */
+			if ((signed)new->val < (signed)old->val) {
+				new->node.leaf_p = new_left;
+				old->node.leaf_p = new_rght;
+				new->node.branches.b[EB_LEFT] = new_leaf;
+				new->node.branches.b[EB_RGHT] = old_leaf;
+			} else {
+				old->node.leaf_p = new_left;
+				new->node.leaf_p = new_rght;
+				new->node.branches.b[EB_LEFT] = old_leaf;
+				new->node.branches.b[EB_RGHT] = new_leaf;
+			}
+			break;
+		}
+
+		/* OK we're walking down this link */
+		old = container_of(eb_untag(troot, EB_NODE),
+				    struct eb32_node, node.branches);
+
+		/* Stop going down when we don't have common bits anymore. We
+		 * also stop in front of a duplicates tree because it means we
+		 * have to insert above.
+		 */
+
+		if ((old->node.bit < 0) || /* we're above a duplicate tree, stop here */
+		    (((unsigned)(new->val ^ old->val) >> old->node.bit) >= EB_NODE_BRANCHES)) {
+			/* The tree did not contain the value, so we insert <new> before the node
+			 * <old>, and set ->bit to designate the lowest bit position in <new>
+			 * which applies to ->branches.b[].
+			 */
+			eb_troot_t *new_left, *new_rght;
+			eb_troot_t *new_leaf, *old_node;
+
+			new_left = eb_dotag(&new->node.branches, EB_LEFT);
+			new_rght = eb_dotag(&new->node.branches, EB_RGHT);
+			new_leaf = eb_dotag(&new->node.branches, EB_LEAF);
+			old_node = eb_dotag(&old->node.branches, EB_NODE);
+
+			new->node.node_p = old->node.node_p;
+
+			if (new->val == old->val) {
+				/* FIXME!!!! insert_dup(&old->node, &new->node); */
+				return new;
+			}
+			else if ((signed)new->val < (signed)old->val) {
+				new->node.leaf_p = new_left;
+				old->node.node_p = new_rght;
+				new->node.branches.b[EB_LEFT] = new_leaf;
+				new->node.branches.b[EB_RGHT] = old_node;
+			}
+			else {
+				old->node.node_p = new_left;
+				new->node.leaf_p = new_rght;
+				new->node.branches.b[EB_LEFT] = old_node;
+				new->node.branches.b[EB_RGHT] = new_leaf;
+			}
+			break;
+		}
+
+		/* walk down */
+		root = &old->node.branches;
+		side = (newval >> old->node.bit) & EB_NODE_BRANCH_MASK;
+		troot = root->b[side];
+	}
+
+	/* Ok, now we are inserting <new> between <root> and <old>. <old>'s
+	 * parent is already set to <new>, and the <root>'s branch is still in
+	 * <side>. Update the root's leaf till we have it. Note that we can also
+	 * find the side by checking the side of new->node.node_p.
+	 */
+
+	/* We need the common higher bits between new->val and old->val.
+	 * What differences are there between new->val and the node here ?
+	 * NOTE that bit(new) is always < bit(root) because highest
+	 * bit of new->val and old->val are identical here (otherwise they
+	 * would sit on different branches).
+	 */
+	// note that if EB_NODE_BITS > 1, we should check that it's still >= 0
+	new->node.bit = flsnz(new->val ^ old->val) - EB_NODE_BITS;
+	root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
+
+	return new;
+}
+
 
 
 
@@ -1030,14 +1189,17 @@ __eb64_insert(struct eb64_node *root, struct eb64_node *new) {
 /********************************************************************/
 
 
-struct eb32_node *eb32_lookup(struct eb32_node *root, unsigned long x);
-struct eb32_node *eb32_insert(struct eb_root *root, struct eb32_node *new);
-struct eb64_node *eb64_insert(struct eb64_node *root, struct eb64_node *new);
 int eb_delete(struct eb_node *node);
 struct eb_node *eb_first(struct eb_root *root);
 struct eb_node *eb_last(struct eb_root *root);
 struct eb_node *eb_prev(struct eb_node *node);
 struct eb_node *eb_next(struct eb_node *node);
+
+struct eb32_node *eb32_insert(struct eb_root *root, struct eb32_node *new);
+struct eb32_node *eb32i_insert(struct eb_root *root, struct eb32_node *new);
+struct eb32_node *eb32_lookup(struct eb32_node *root, unsigned long x);
+
+struct eb64_node *eb64_insert(struct eb64_node *root, struct eb64_node *new);
 
 
 #define eb32_delete(node)						      \
