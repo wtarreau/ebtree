@@ -728,7 +728,7 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
 			 * insert the new node just above the previous one,
 			 * with the new leaf on the right.
 			 */
-			if ((newval ^ old->val) == 0) {  // (newval == old->val)
+			if (new->val == old->val) {
 				old->node.leaf_p = new_left;
 				new->node.leaf_p = new_rght;
 				new->node.branches.b[EB_LEFT] = old_leaf;
@@ -749,7 +749,7 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
 			 * with 2 leaves, but it would require some bitmask
 			 * checks if we had higher numbers of leaves.
 			 */
-			if (newval < old->val) {
+			if (new->val < old->val) {
 				new->node.leaf_p = new_left;
 				old->node.leaf_p = new_rght;
 				new->node.branches.b[EB_LEFT] = new_leaf;
@@ -773,7 +773,7 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
 		 */
 
 		if ((old->node.bit < 0) || /* we're above a duplicate tree, stop here */
-		    (((newval ^ old->val) >> old->node.bit) >= EB_NODE_BRANCHES)) {
+		    (((new->val ^ old->val) >> old->node.bit) >= EB_NODE_BRANCHES)) {
 			/* The tree did not contain the value, so we insert <new> before the node
 			 * <old>, and set ->bit to designate the lowest bit position in <new>
 			 * which applies to ->branches.b[].
@@ -788,11 +788,11 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
 
 			new->node.node_p = old->node.node_p;
 
-			if (newval == old->val) {
+			if (new->val == old->val) {
 				/* FIXME!!!! insert_dup(&old->node, &new->node); */
 				return new;
 			}
-			else if (newval < old->val) {
+			else if (new->val < old->val) {
 				new->node.leaf_p = new_left;
 				old->node.node_p = new_rght;
 				new->node.branches.b[EB_LEFT] = new_leaf;
@@ -826,7 +826,7 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
 	 * would sit on different branches).
 	 */
 	// note that if EB_NODE_BITS > 1, we should check that it's still >= 0
-	new->node.bit = flsnz(newval ^ old->val) - EB_NODE_BITS;
+	new->node.bit = flsnz(new->val ^ old->val) - EB_NODE_BITS;
 	root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
 
 	return new;
@@ -888,7 +888,7 @@ __eb32i_insert(struct eb_root *root, struct eb32_node *new) {
 			 * insert the new node just above the previous one,
 			 * with the new leaf on the right.
 			 */
-			if ((new->val ^ old->val) == 0) {  // (new->val == old->val)
+			if ((signed)new->val == (signed)old->val) {
 				old->node.leaf_p = new_left;
 				new->node.leaf_p = new_rght;
 				new->node.branches.b[EB_LEFT] = old_leaf;
