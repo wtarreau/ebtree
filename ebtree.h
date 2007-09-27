@@ -278,12 +278,6 @@ typedef unsigned long long u64;
  */
 typedef void eb_troot_t;
 
-/* WARNING! it's important not to change those definitions */
-#define EB_TAG_TYPE_LEAF  EB_LEAF
-#define EB_TAG_TYPE_NODE  EB_NODE
-#define EB_TAG_SIDE_LEFT  EB_LEFT
-#define EB_TAG_SIDE_RIGHT EB_RGHT
-
 /* The eb_root connects the node which contains it to two nodes below it, one
  * of which may be the same node. At the top of the tree, we use an eb_root
  * too, which always has its right branch NULL.
@@ -375,9 +369,6 @@ eb_gettag(eb_troot_t *troot)
 	return (unsigned long)troot & 1;
 }
 
-#define eb_parent_side(ptr) eb_gettag((ptr))
-#define eb_branch_type(ptr) eb_gettag((ptr))
-
 /* Returns a pointer to the eb_node holding <root> */
 static inline struct eb_node *
 eb_root_to_node(struct eb_root *root)
@@ -394,8 +385,8 @@ static inline struct eb_node *
 eb_walk_down(eb_troot_t *start, unsigned int side)
 {
 	/* A NULL pointer on an empty tree root will be returned as-is */
-	while (/*likely*/(eb_gettag(start) == EB_TAG_TYPE_NODE))
-		start = eb_untag(start, EB_NODE)->b[side];
+	while (eb_gettag(start) == EB_NODE)
+		start = (eb_untag(start, EB_NODE))->b[side];
 	/* NULL is left untouched (root==eb_node, EB_LEAF==0) */
 	return eb_root_to_node(eb_untag(start, EB_LEAF));
 }
@@ -420,7 +411,7 @@ __eb_prev(struct eb_node *node)
 {
 	eb_troot_t *t = node->leaf_p;
 
-	while (eb_gettag(t) == EB_TAG_SIDE_LEFT) {
+	while (eb_gettag(t) == EB_LEFT) {
 		/* Walking up from left branch. We must ensure that we never
 		 * walk beyond root.
 		 */
@@ -439,7 +430,7 @@ __eb_next(struct eb_node *node)
 {
 	eb_troot_t *t = node->leaf_p;
 
-	while (eb_gettag(t) != EB_TAG_SIDE_LEFT)
+	while (eb_gettag(t) != EB_LEFT)
 		/* Walking up from right branch, so we cannot be below root */
 		t = (eb_root_to_node(eb_untag(t, EB_RGHT)))->node_p;
 
@@ -460,7 +451,7 @@ __eb_delete(struct eb_node *node)
 	struct eb_root *gparent;
 
 	/* we need the parent, our side, and the grand parent */
-	pside = eb_parent_side(node->leaf_p);
+	pside = eb_gettag(node->leaf_p);
 	parent = eb_root_to_node(eb_untag(node->leaf_p, pside));
 
 	/* We likely have to release the parent link, unless it's the root,
@@ -479,11 +470,11 @@ __eb_delete(struct eb_node *node)
 	 * either be a link or a leaf.
 	 */
 
-	gpside = eb_parent_side(parent->node_p);
+	gpside = eb_gettag(parent->node_p);
 	gparent = eb_untag(parent->node_p, gpside);
 
 	gparent->b[gpside] = parent->branches.b[!pside];
-	sibtype = eb_branch_type(gparent->b[gpside]);
+	sibtype = eb_gettag(gparent->b[gpside]);
 
 	if (sibtype == EB_LEAF) {
 		eb_root_to_node(eb_untag(gparent->b[gpside], EB_LEAF))->leaf_p =
@@ -519,13 +510,13 @@ __eb_delete(struct eb_node *node)
 	parent->bit = node->bit;
 
 	/* We must now update the new node's parent... */
-	gpside = eb_parent_side(parent->node_p);
+	gpside = eb_gettag(parent->node_p);
 	gparent = eb_untag(parent->node_p, gpside);
 	gparent->b[gpside] = eb_dotag(&parent->branches, EB_NODE);
 
 	/* ... and its branches */
 	for (pside = 0; pside <= 1; pside++) {
-		if (eb_branch_type(parent->branches.b[pside]) == EB_NODE) {
+		if (eb_gettag(parent->branches.b[pside]) == EB_NODE) {
 			eb_root_to_node(eb_untag(parent->branches.b[pside], EB_NODE))->node_p =
 				eb_dotag(&parent->branches, pside);
 		} else {
@@ -685,104 +676,104 @@ __eb32_lookup(struct eb32_node *root, unsigned long x)
 }
 
 
-/* Inserts eb32_node <cell> into subtree starting at node root <root>.
- * Only node->leaf.val needs be set with the value.
- * The node is returned.
+/* Inserts eb32_node <new> into subtree starting at node root <root>.
+ * Only new->val needs be set with the value. The eb32_node is returned.
  */
-
 static inline struct eb32_node *
-__eb32_insert(struct eb_root *root, struct eb32_node *cell) {
-	struct eb32_node *next;
-	unsigned int l;
-	eb_troot_t *t;
-	u32 x;
+__eb32_insert(struct eb_root *root, struct eb32_node *new) {
+	struct eb32_node *old;
+	unsigned int side;
+	eb_troot_t *troot;
+	u32 newval; /* caching the value saves approximately one cycle */
 
-	l = EB_LEFT;
-	t = root->b[EB_LEFT];
-	if (unlikely(t == NULL)) {
+	side = EB_LEFT;
+	troot = root->b[EB_LEFT];
+	if (unlikely(troot == NULL)) {
 		/* Tree is empty, insert the leaf part below the left branch */
-		root->b[EB_LEFT] = eb_dotag(&cell->node.branches, EB_LEAF);
-		cell->node.leaf_p = eb_dotag(root, EB_LEFT);
-		cell->node.node_p = NULL; /* node part unused */
-		return cell;
+		root->b[EB_LEFT] = eb_dotag(&new->node.branches, EB_LEAF);
+		new->node.leaf_p = eb_dotag(root, EB_LEFT);
+		new->node.node_p = NULL; /* node part unused */
+		return new;
 	}
 
 	/* The tree descent is fairly easy :
 	 *  - first, check if we have reached a leaf node
 	 *  - second, check if we have gone too far
 	 *  - third, reiterate
-	 * Everywhere, we use <cell> for the node node we are inserting, <root>
-	 * for the node we attach it to, and <next> for the node we are
-	 * displacing below <cell>. <t> will always point to the future node
-	 * (tagged with its type). <l> carries the side the node <cell> is
+	 * Everywhere, we use <new> for the node node we are inserting, <root>
+	 * for the node we attach it to, and <old> for the node we are
+	 * displacing below <new>. <troot> will always point to the future node
+	 * (tagged with its type). <side> carries the side the node <new> is
 	 * attached to below its parent, which is also where previous node
-	 * was attached. <x> carries the value being inserted.
+	 * was attached. <newval> carries the value being inserted.
 	 */
-	x = cell->val;
+	newval = new->val;
 
 	while (1) {
-		if (unlikely(eb_branch_type(t) == EB_TAG_TYPE_LEAF)) {
-			eb_troot_t *cell_left, *cell_rght;
-			eb_troot_t *cell_leaf, *next_leaf;
+		if (unlikely(eb_gettag(troot) == EB_LEAF)) {
+			eb_troot_t *new_left, *new_rght;
+			eb_troot_t *new_leaf, *old_leaf;
 
-			next = container_of(eb_untag(t, EB_LEAF), struct eb32_node, node.branches);
+			old = container_of(eb_untag(troot, EB_LEAF),
+					    struct eb32_node, node.branches);
 
-			cell_left = eb_dotag(&cell->node.branches, EB_LEFT);
-			cell_rght = eb_dotag(&cell->node.branches, EB_RGHT);
-			cell_leaf = eb_dotag(&cell->node.branches, EB_LEAF);
-			next_leaf = eb_dotag(&next->node.branches, EB_LEAF);
+			new_left = eb_dotag(&new->node.branches, EB_LEFT);
+			new_rght = eb_dotag(&new->node.branches, EB_RGHT);
+			new_leaf = eb_dotag(&new->node.branches, EB_LEAF);
+			old_leaf = eb_dotag(&old->node.branches, EB_LEAF);
 
-			cell->node.node_p = next->node.leaf_p;
+			new->node.node_p = old->node.leaf_p;
 
 			/* The tree did contain this value exactly once. We
 			 * insert the new node just above the previous one,
 			 * with the new leaf on the right.
 			 */
-			if ((x ^ next->val) == 0) {  // (x == next->val)
-				next->node.leaf_p = cell_left;
-				cell->node.leaf_p = cell_rght;
-				cell->node.branches.b[EB_LEFT] = next_leaf;
-				cell->node.branches.b[EB_RGHT] = cell_leaf;
-				cell->node.bit = -1;
-				return cell;
+			if ((newval ^ old->val) == 0) {  // (newval == old->val)
+				old->node.leaf_p = new_left;
+				new->node.leaf_p = new_rght;
+				new->node.branches.b[EB_LEFT] = old_leaf;
+				new->node.branches.b[EB_RGHT] = new_leaf;
+				new->node.bit = -1;
+				return new;
 			}
 
 			/* The tree did not contain this value, so we insert
-			 * <cell> before the leaf <next>, and set ->bit to
-			 * designate the lowest bit position in <cell> which
+			 * <new> before the leaf <old>, and set ->bit to
+			 * designate the lowest bit position in <new> which
 			 * applies to ->branches.b[].
 			 *
 			 * We need to check on which of the root's leaves the
 			 * node will be attached. For this we have to compare
-			 * its value to next's. Strictly speaking, this works
+			 * its value to old's. Strictly speaking, this works
 			 * with 2 leaves, but it would require some bitmask
 			 * checks if we had higher numbers of leaves.
 			 */
-			if (x < next->val) {
-				cell->node.leaf_p = cell_left;
-				next->node.leaf_p = cell_rght;
-				cell->node.branches.b[EB_LEFT] = cell_leaf;
-				cell->node.branches.b[EB_RGHT] = next_leaf;
+			if (newval < old->val) {
+				new->node.leaf_p = new_left;
+				old->node.leaf_p = new_rght;
+				new->node.branches.b[EB_LEFT] = new_leaf;
+				new->node.branches.b[EB_RGHT] = old_leaf;
 			} else {
-				next->node.leaf_p = cell_left;
-				cell->node.leaf_p = cell_rght;
-				cell->node.branches.b[EB_LEFT] = next_leaf;
-				cell->node.branches.b[EB_RGHT] = cell_leaf;
+				old->node.leaf_p = new_left;
+				new->node.leaf_p = new_rght;
+				new->node.branches.b[EB_LEFT] = old_leaf;
+				new->node.branches.b[EB_RGHT] = new_leaf;
 			}
 			break;
 		}
 
 		/* OK we're walking down this link */
-		next = container_of(eb_untag(t, EB_NODE), struct eb32_node, node.branches);
+		old = container_of(eb_untag(troot, EB_NODE),
+				    struct eb32_node, node.branches);
 
 		/* First, we must check whether we have reached a duplicate
-		 * tree. This is indicated by next->bit < 0. If so, we insert
-		 * <cell> in this tree then return.
+		 * tree. This is indicated by old->bit < 0. If so, we insert
+		 * <new> in this tree then return.
 		 */
 
-		if (next->node.bit < 0) {
-			/* FIXME!!!! insert_dup(&next->node, &cell->node); */
-			return cell;
+		if (old->node.bit < 0) {
+			/* FIXME!!!! insert_dup(&old->node, &new->node); */
+			return new;
 		}
 
 		/* Stop going down when we don't have common bits anymore.
@@ -792,57 +783,58 @@ __eb32_insert(struct eb_root *root, struct eb32_node *cell) {
 		 * all over the values.
 		 */
 
-		if (((x ^ next->val) >> next->node.bit) >= EB_NODE_BRANCHES) {
-			/* The tree did not contain the value, so we insert <cell> before the node
-			 * <next>, and set ->bit to designate the lowest bit position in <cell>
+		if (((newval ^ old->val) >> old->node.bit) >= EB_NODE_BRANCHES) {
+			/* The tree did not contain the value, so we insert <new> before the node
+			 * <old>, and set ->bit to designate the lowest bit position in <new>
 			 * which applies to ->branches.b[].
 			 */
-			eb_troot_t *cell_left, *cell_rght;
-			eb_troot_t *cell_leaf, *next_node;
+			eb_troot_t *new_left, *new_rght;
+			eb_troot_t *new_leaf, *old_node;
 
-			cell_left = eb_dotag(&cell->node.branches, EB_LEFT);
-			cell_rght = eb_dotag(&cell->node.branches, EB_RGHT);
-			cell_leaf = eb_dotag(&cell->node.branches, EB_LEAF);
-			next_node = eb_dotag(&next->node.branches, EB_NODE);
+			new_left = eb_dotag(&new->node.branches, EB_LEFT);
+			new_rght = eb_dotag(&new->node.branches, EB_RGHT);
+			new_leaf = eb_dotag(&new->node.branches, EB_LEAF);
+			old_node = eb_dotag(&old->node.branches, EB_NODE);
 
-			cell->node.node_p = next->node.node_p;
+			new->node.node_p = old->node.node_p;
 
-			if (x < next->val) {
-				cell->node.leaf_p = cell_left;
-				next->node.node_p = cell_rght;
-				cell->node.branches.b[EB_LEFT] = cell_leaf;
-				cell->node.branches.b[EB_RGHT] = next_node;
+			if (newval < old->val) {
+				new->node.leaf_p = new_left;
+				old->node.node_p = new_rght;
+				new->node.branches.b[EB_LEFT] = new_leaf;
+				new->node.branches.b[EB_RGHT] = old_node;
 			} else {
-				next->node.node_p = cell_left;
-				cell->node.leaf_p = cell_rght;
-				cell->node.branches.b[EB_LEFT] = next_node;
-				cell->node.branches.b[EB_RGHT] = cell_leaf;
+				old->node.node_p = new_left;
+				new->node.leaf_p = new_rght;
+				new->node.branches.b[EB_LEFT] = old_node;
+				new->node.branches.b[EB_RGHT] = new_leaf;
 			}
 			break;
 		}
 
 		/* walk down */
-		root = &next->node.branches;
-		l = (x >> next->node.bit) & EB_NODE_BRANCH_MASK;
-		t = root->b[l];
+		root = &old->node.branches;
+		side = (newval >> old->node.bit) & EB_NODE_BRANCH_MASK;
+		troot = root->b[side];
 	}
 
-	/* Ok, now we are inserting <cell> between <root> and <next>. <next>'s
-	 * parent is already set to <cell>, and the <root>'s branch is still in
-	 * <l>. Update the root's leaf till we have it. Note that we can also
-	 * find the side by checking the side of cell->node.node_p.
+	/* Ok, now we are inserting <new> between <root> and <old>. <old>'s
+	 * parent is already set to <new>, and the <root>'s branch is still in
+	 * <side>. Update the root's leaf till we have it. Note that we can also
+	 * find the side by checking the side of new->node.node_p.
 	 */
 
-	/* We need the common higher bits between x and next->val.
-	 * What differences are there between x and the node here ?
-	 * NOTE that bit(cell) is always < bit(root) because highest
-	 * bit of x and next->val are identical here (otherwise they
+	/* We need the common higher bits between newval and old->val.
+	 * What differences are there between newval and the node here ?
+	 * NOTE that bit(new) is always < bit(root) because highest
+	 * bit of newval and old->val are identical here (otherwise they
 	 * would sit on different branches).
 	 */
-	cell->node.bit = flsnz(x ^ next->val) - EB_NODE_BITS; // note that if EB_NODE_BITS > 1, we should check that it's still >= 0
-	root->b[l] = eb_dotag(&cell->node.branches, EB_NODE);
+	// note that if EB_NODE_BITS > 1, we should check that it's still >= 0
+	new->node.bit = flsnz(newval ^ old->val) - EB_NODE_BITS;
+	root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
 
-	return cell;
+	return new;
 }
 
 
