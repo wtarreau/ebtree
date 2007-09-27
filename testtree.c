@@ -103,7 +103,7 @@ struct task {
 
 struct eb_root wait_queue = EB_ROOT;
 
-#define tree_node  eb32_node
+#define tree_node  eb_node
 #define insert_task_queue(task) eb32_insert((task)->wq, &task->eb_node)
 
 #define tree_lookup(root, x) __eb_lookup(root, x)

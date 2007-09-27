@@ -597,14 +597,6 @@ eb_walk_down(eb_tagptr_t *start, unsigned int side)
 //	eb_walk_up_right_with_parent((node), (node)->leaf_p)
 
 
-/* returns first leaf in the tree starting at <root>, or NULL if none */
-#define eb_first(root)							\
-	((typeof(root))__eb_first_node((struct eb_node *)(root)))
-
-/* returns last leaf in the tree starting at <root>, or NULL if none */
-#define eb_last(root)							\
-	((typeof(root))__eb_last_node((struct eb_node *)(root)))
-
 /* returns next leaf node after an existing leaf node, or NULL if none. */
 #define eb_next(node)							\
 	((typeof(node))__eb_next_node((struct eb_node *)(node)))
@@ -614,21 +606,18 @@ eb_walk_down(eb_tagptr_t *start, unsigned int side)
 	((typeof(node))__eb_prev_node((struct eb_node *)(node)))
 
 
-/* Returns first leaf in the tree starting at <root>, or NULL if none */
+/* Returns the first leaf in the tree starting at <root>, or NULL if none */
 static inline struct eb_node *
-__eb_first_node(struct eb_node *root)
+__eb_first(struct eb_root *root)
 {
-	return eb_leaf_from_branch(eb_walk_down_left(root->branches.b[0]));
+	return eb_leaf_from_branch(eb_walk_down_left(root->b[0]));
 }
 
-/* Returns last leaf in the tree starting at <root>, or NULL if none */
+/* Returns the last leaf in the tree starting at <root>, or NULL if none */
 static inline struct eb_node *
-__eb_last_node(struct eb_node *root)
+__eb_last(struct eb_root *root)
 {
-	struct eb_node *node;
-
-	node = eb_leaf_from_branch(eb_walk_down_right(root->branches.b[0]));
-	return node;
+	return eb_leaf_from_branch(eb_walk_down_right(root->b[0]));
 }
 
 /* Returns previous leaf node before an existing leaf node, or NULL if none. */
@@ -1319,8 +1308,8 @@ struct eb32_node *eb32_lookup(struct eb32_node *root, unsigned long x);
 struct eb32_node *eb32_insert(struct eb_root *root, struct eb32_node *new);
 struct eb64_node *eb64_insert(struct eb64_node *root, struct eb64_node *new);
 int eb_delete(struct eb_node *node);
-struct eb_node *eb_first_node(struct eb_node *root);
-struct eb_node *eb_last_node(struct eb_node *root);
+struct eb_node *eb_first(struct eb_root *root);
+struct eb_node *eb_last(struct eb_root *root);
 struct eb_node *eb_prev_node(struct eb_node *node);
 struct eb_node *eb_next_node(struct eb_node *node);
 

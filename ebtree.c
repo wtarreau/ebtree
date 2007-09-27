@@ -35,31 +35,18 @@ struct eb64_node *eb64_insert(struct eb64_node *root, struct eb64_node *new) {
     return __eb64_insert(root, new);
 }
 
-/* Returns first leaf in the tree starting at <root>, or NULL if none */
+/* Returns the first leaf in the tree starting at <root>, or NULL if none */
 struct eb_node *
-eb_first_node(struct eb_node *root)
+eb_first(struct eb_root *root)
 {
-	return __eb_first_node(root);
+	return __eb_first(root);
 }
 
-#if 0
-// Alternative method, may clobber less registers.
-/* Returns first leaf in the tree starting at <root>, or NULL if none */
+/* Returns the last leaf in the tree starting at <root>, or NULL if none */
 struct eb_node *
-eb_first_node(struct eb_node *root)
+eb_last(struct eb_root *root)
 {
-	return eb_walk_down_left((struct eb_node *)(root),
-		((struct eb_node *)(root))->leaf[0] ?
-		    ((struct eb_node *)(root))->leaf[0] :
-		    ((struct eb_node *)(root))->leaf[1]);
-}
-#endif
-
-/* returns last leaf in the tree starting at <root>, or NULL if none */
-struct eb_node *
-eb_last_node(struct eb_node *root)
-{
-	return __eb_last_node(root);
+	return __eb_last(root);
 }
 
 /* returns previous leaf node before an existing leaf node, or NULL if none. */
