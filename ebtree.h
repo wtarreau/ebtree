@@ -295,7 +295,7 @@ struct eb_node {
 	struct eb_root branches; /* branches, must be at the beginning */
 	eb_troot_t    *node_p;  /* link node's parent */
 	eb_troot_t    *leaf_p;  /* leaf node's parent */
-	unsigned int    bit;     /* link's bit position. */
+	int           bit;     /* link's bit position. */
 };
 
 /* Those structs carry nodes and data. They must start with the eb_node so that
@@ -734,6 +734,7 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
 				new->node.branches.b[EB_LEFT] = old_leaf;
 				new->node.branches.b[EB_RGHT] = new_leaf;
 				new->node.bit = -1;
+				root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
 				return new;
 			}
 
@@ -766,30 +767,24 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
 		old = container_of(eb_untag(troot, EB_NODE),
 				    struct eb32_node, node.branches);
 
-		/* First, we must check whether we have reached a duplicate
-		 * tree. This is indicated by old->bit < 0. If so, we insert
-		 * <new> in this tree then return.
+		/* Stop going down when we don't have common bits anymore. We
+		 * also stop in front of a duplicates tree because it means we
+		 * have to insert above.
 		 */
 
-		if (old->node.bit < 0) {
-			/* FIXME!!!! insert_dup(&old->node, &new->node); */
-			return new;
-		}
-
-		/* Stop going down when we don't have common bits anymore.
-		 * The test below could be optimized depending on the expected size of the tree.
-		 * Below 1000 values, using "likely" shows better performance. Above 1000 values,
-		 * "unlikely" gives better values. Using neither of them provides average performance
-		 * all over the values.
-		 */
-
-		if (((newval ^ old->val) >> old->node.bit) >= EB_NODE_BRANCHES) {
+		if ((old->node.bit < 0) || /* we're above a duplicate tree, stop here */
+		    (((newval ^ old->val) >> old->node.bit) >= EB_NODE_BRANCHES)) {
 			/* The tree did not contain the value, so we insert <new> before the node
 			 * <old>, and set ->bit to designate the lowest bit position in <new>
 			 * which applies to ->branches.b[].
 			 */
 			eb_troot_t *new_left, *new_rght;
 			eb_troot_t *new_leaf, *old_node;
+
+			if (newval == old->val) {
+				/* FIXME!!!! insert_dup(&old->node, &new->node); */
+				return new;
+			}
 
 			new_left = eb_dotag(&new->node.branches, EB_LEFT);
 			new_rght = eb_dotag(&new->node.branches, EB_RGHT);
