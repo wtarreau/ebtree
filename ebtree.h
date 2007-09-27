@@ -781,11 +781,6 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
 			eb_troot_t *new_left, *new_rght;
 			eb_troot_t *new_leaf, *old_node;
 
-			if (newval == old->val) {
-				/* FIXME!!!! insert_dup(&old->node, &new->node); */
-				return new;
-			}
-
 			new_left = eb_dotag(&new->node.branches, EB_LEFT);
 			new_rght = eb_dotag(&new->node.branches, EB_RGHT);
 			new_leaf = eb_dotag(&new->node.branches, EB_LEAF);
@@ -793,12 +788,17 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
 
 			new->node.node_p = old->node.node_p;
 
-			if (newval < old->val) {
+			if (newval == old->val) {
+				/* FIXME!!!! insert_dup(&old->node, &new->node); */
+				return new;
+			}
+			else if (newval < old->val) {
 				new->node.leaf_p = new_left;
 				old->node.node_p = new_rght;
 				new->node.branches.b[EB_LEFT] = new_leaf;
 				new->node.branches.b[EB_RGHT] = old_node;
-			} else {
+			}
+			else {
 				old->node.node_p = new_left;
 				new->node.leaf_p = new_rght;
 				new->node.branches.b[EB_LEFT] = old_node;
@@ -833,10 +833,10 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
 }
 
 
-	/********** OK TILL THERE *********/
 
 
 
+/***************** OK TILL THERE ****************/
 
 /* Inserts node <new> into subtree starting at link node <root>.
  * Only new->leaf.val needs be set with the value.
