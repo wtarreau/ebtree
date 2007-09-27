@@ -995,16 +995,29 @@ __eb32_insert(struct eb_root *root, struct eb32_node *cell) {
 
 	while (1) {
 		if (unlikely(eb_branch_type(t) == EB_TAG_TYPE_LEAF)) {
+			eb_tagptr_t *cell_left, *cell_rght;
+			eb_tagptr_t *cell_leaf, *next_leaf;
+
 			/* FIXME: we may remove LIST_ELEM here */
 			next = LIST_ELEM(eb_leaf_from_branch(t), struct eb32_node *, node);
+
+			cell_left = eb_tag_parent(&cell->node, EB_LEFT);
+			cell_rght = eb_tag_parent(&cell->node, EB_RGHT);
+			cell_leaf = eb_branch(&cell->node, EB_LEAF);
+			next_leaf = eb_branch(&next->node, EB_LEAF);
+
+			cell->node.node_p = next->node.leaf_p;
+
+			/* The tree did contain this value exactly once. We
+			 * insert the new node just above the previous one,
+			 * with the new leaf on the right.
+			 */
 			if ((x ^ next->val) == 0) {  // (x == next->val)
-				/* add the first duplicate here on the right */
+				next->node.leaf_p = cell_left;
+				cell->node.leaf_p = cell_rght;
+				cell->node.branches.b[EB_LEFT] = next_leaf;
+				cell->node.branches.b[EB_RGHT] = cell_leaf;
 				cell->node.bit = -1;
-				cell->node.node_p = next->node.leaf_p;
-				cell->node.branches.b[EB_LEFT] = eb_branch(&next->node, EB_LEAF);
-				cell->node.branches.b[EB_RGHT] = eb_branch(&cell->node, EB_LEAF);
-				cell->node.leaf_p = eb_tag_parent(&cell->node, EB_RGHT);
-				next->node.leaf_p = eb_tag_parent(&cell->node, EB_LEFT);
 				return cell;
 			}
 
@@ -1012,24 +1025,23 @@ __eb32_insert(struct eb_root *root, struct eb32_node *cell) {
 			 * <cell> before the leaf <next>, and set ->bit to
 			 * designate the lowest bit position in <cell> which
 			 * applies to ->branches.b[].
-			 */
-			cell->node.node_p = next->node.leaf_p;
-
-			/* We need to check on which of the root's leaves the node will
-			 * be attached. For this we have to compare its value to next's.
-			 * Strictly speaking, this works with 2 leaves, but it would
-			 * require some bitmask checks with higher numbers of leaves.
+			 *
+			 * We need to check on which of the root's leaves the
+			 * node will be attached. For this we have to compare
+			 * its value to next's. Strictly speaking, this works
+			 * with 2 leaves, but it would require some bitmask
+			 * checks if we had higher numbers of leaves.
 			 */
 			if (x < next->val) {
-				cell->node.branches.b[EB_LEFT] = eb_branch(&cell->node, EB_LEAF);
-				cell->node.branches.b[EB_RGHT] = eb_branch(&next->node, EB_LEAF);
-				cell->node.leaf_p = eb_tag_parent(&cell->node, EB_LEFT);
-				next->node.leaf_p = eb_tag_parent(&cell->node, EB_RGHT);
+				cell->node.leaf_p = cell_left;
+				next->node.leaf_p = cell_rght;
+				cell->node.branches.b[EB_LEFT] = cell_leaf;
+				cell->node.branches.b[EB_RGHT] = next_leaf;
 			} else {
-				cell->node.branches.b[EB_LEFT] = eb_branch(&next->node, EB_LEAF);
-				cell->node.branches.b[EB_RGHT] = eb_branch(&cell->node, EB_LEAF);
-				next->node.leaf_p = eb_tag_parent(&cell->node, EB_LEFT);
-				cell->node.leaf_p = eb_tag_parent(&cell->node, EB_RGHT);
+				next->node.leaf_p = cell_left;
+				cell->node.leaf_p = cell_rght;
+				cell->node.branches.b[EB_LEFT] = next_leaf;
+				cell->node.branches.b[EB_RGHT] = cell_leaf;
 			}
 			break;
 		}
@@ -1064,18 +1076,26 @@ __eb32_insert(struct eb_root *root, struct eb32_node *cell) {
 			 * <next>, and set ->bit to designate the lowest bit position in <cell>
 			 * which applies to ->branches.b[].
 			 */
+			eb_tagptr_t *cell_left, *cell_rght;
+			eb_tagptr_t *cell_leaf, *next_node;
+
+			cell_left = eb_tag_parent(&cell->node, EB_LEFT);
+			cell_rght = eb_tag_parent(&cell->node, EB_RGHT);
+			cell_leaf = eb_branch(&cell->node, EB_LEAF);
+			next_node = eb_branch(&next->node, EB_NODE);
 
 			cell->node.node_p = next->node.node_p;
+
 			if (x < next->val) {
-				cell->node.branches.b[EB_LEFT] = eb_branch(&cell->node, EB_LEAF);
-				cell->node.branches.b[EB_RGHT] = eb_branch(&next->node, EB_NODE);
-				cell->node.leaf_p = eb_tag_parent(&cell->node, EB_LEFT);
-				next->node.node_p = eb_tag_parent(&cell->node, EB_RGHT);
+				cell->node.leaf_p = cell_left;
+				next->node.node_p = cell_rght;
+				cell->node.branches.b[EB_LEFT] = cell_leaf;
+				cell->node.branches.b[EB_RGHT] = next_node;
 			} else {
-				cell->node.branches.b[EB_LEFT] = eb_branch(&next->node, EB_NODE);
-				cell->node.branches.b[EB_RGHT] = eb_branch(&cell->node, EB_LEAF);
-				next->node.node_p = eb_tag_parent(&cell->node, EB_LEFT);
-				cell->node.leaf_p = eb_tag_parent(&cell->node, EB_RGHT);
+				next->node.node_p = cell_left;
+				cell->node.leaf_p = cell_rght;
+				cell->node.branches.b[EB_LEFT] = next_node;
+				cell->node.branches.b[EB_RGHT] = cell_leaf;
 			}
 			break;
 		}
