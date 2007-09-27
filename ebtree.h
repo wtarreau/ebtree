@@ -420,46 +420,17 @@ __eb_prev(struct eb_node *node)
 {
 	eb_troot_t *t = node->leaf_p;
 
-	while (1) {
-		if (eb_gettag(t) != EB_TAG_SIDE_LEFT) {
-			/* Note that <t> cannot be NULL at this stage */
-			t = (eb_untag(t, EB_RGHT))->b[EB_LEFT];
-			node = eb_walk_down(t, EB_RGHT);
-			return node;
-		}
+	while (eb_gettag(t) == EB_TAG_SIDE_LEFT) {
 		/* Walking up from left branch. We must ensure that we never
 		 * walk beyond root.
 		 */
-		if (unlikely(!(eb_untag(t, EB_LEFT))->b[EB_RGHT]))
+		if (unlikely((eb_untag(t, EB_LEFT))->b[EB_RGHT] == NULL))
 			return NULL;
 		t = (eb_root_to_node(eb_untag(t, EB_LEFT)))->node_p;
 	}
-}
-
-/* Returns previous leaf node before an existing leaf node, but never returns
- * duplicates. The initial node must be a real one and not a duplicate either,
- * otherwise NULL is returned. NULL is also returned after the first node has
- * been reached.
- */
-static inline struct eb_node *
-__eb_prev_unique(struct eb_node *node)
-{
-	eb_troot_t *t = node->leaf_p;
-
-	while (1) {
-		if (eb_gettag(t) != EB_TAG_SIDE_LEFT) {
-			/* Note that <t> cannot be NULL at this stage */
-			t = (eb_untag(t, EB_RGHT))->b[EB_LEFT];
-			node = eb_walk_down(t, EB_RGHT);
-			return node;
-		}
-		/* Walking up from left branch. We must ensure that we never
-		 * walk beyond root.
-		 */
-		if (unlikely(!(eb_untag(t, EB_LEFT))->b[EB_RGHT]))
-			return NULL;
-		t = (eb_root_to_node(eb_untag(t, EB_LEFT)))->node_p;
-	}
+	/* Note that <t> cannot be NULL at this stage */
+	t = (eb_untag(t, EB_RGHT))->b[EB_LEFT];
+	return eb_walk_down(t, EB_RGHT);
 }
 
 /* Returns next leaf node after an existing leaf node, or NULL if none. */
@@ -478,31 +449,6 @@ __eb_next(struct eb_node *node)
 }
 
 
-/* Returns next leaf node after an existing leaf node, but never returns
- * duplicates. The initial node must be a real one and not a duplicate either,
- * otherwise NULL is returned. NULL is also returned after the last node has
- * been reached.
- */
-
-
-//////////////FIXME: principe: ne pas descendre sur les noeuds dont le niveau est <0 //////////
-static inline struct eb_node *
-__eb_next_unique(struct eb_node *node)
-{
-	eb_troot_t *t = node->leaf_p;
-	
-	while (1) {
-		if (eb_gettag(t) == EB_TAG_SIDE_LEFT) {
-			/* Note that <t> cannot be NULL at this stage */
-			t = (eb_untag(t, EB_LEFT))->b[EB_RGHT];
-			return eb_walk_down(t, EB_LEFT);
-		}
-		/* Walking up from right branch, so we cannot be below root */
-		t = (eb_root_to_node(eb_untag(t, EB_RGHT)))->node_p;
-	}
-}
-
-/******* FIXME: must be rewritten *********/
 /* Removes a leaf node from the tree, and returns zero after deleting the
  * last node. Otherwise, non-zero is returned.
  */
