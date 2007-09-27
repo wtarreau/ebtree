@@ -724,41 +724,39 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
 
 			new->node.node_p = old->node.leaf_p;
 
-			/* The tree did contain this value exactly once. We
-			 * insert the new node just above the previous one,
-			 * with the new leaf on the right.
-			 */
-			if (new->val == old->val) {
-				old->node.leaf_p = new_left;
-				new->node.leaf_p = new_rght;
-				new->node.branches.b[EB_LEFT] = old_leaf;
-				new->node.branches.b[EB_RGHT] = new_leaf;
-				new->node.bit = -1;
-				root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
-				return new;
-			}
+			/* Right here, we have 3 possibilities :
+			   - the tree does not contain the value, and we have
+			     new->val < old->val. We insert new above old, on
+			     the left ;
 
-			/* The tree did not contain this value, so we insert
-			 * <new> before the leaf <old>, and set ->bit to
-			 * designate the lowest bit position in <new> which
-			 * applies to ->branches.b[].
-			 *
-			 * We need to check on which of the root's leaves the
-			 * node will be attached. For this we have to compare
-			 * its value to old's. Strictly speaking, this works
-			 * with 2 leaves, but it would require some bitmask
-			 * checks if we had higher numbers of leaves.
-			 */
+			   - the tree does not contain the value, and we have
+			     new->val > old->val. We insert new above old, on
+			     the right ;
+
+			   - the tree does contain the value, which implies it
+			     is alone. We add the new value next to it as a
+			     first duplicate.
+
+			   The last two cases can easily be partially merged.
+			*/
+			 
 			if (new->val < old->val) {
 				new->node.leaf_p = new_left;
 				old->node.leaf_p = new_rght;
 				new->node.branches.b[EB_LEFT] = new_leaf;
 				new->node.branches.b[EB_RGHT] = old_leaf;
 			} else {
+				/* new->val >= old->val, new goes the right */
 				old->node.leaf_p = new_left;
 				new->node.leaf_p = new_rght;
 				new->node.branches.b[EB_LEFT] = old_leaf;
 				new->node.branches.b[EB_RGHT] = new_leaf;
+
+				if (new->val == old->val) {
+					new->node.bit = -1;
+					root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
+					return new;
+				}
 			}
 			break;
 		}
@@ -788,21 +786,21 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
 
 			new->node.node_p = old->node.node_p;
 
-			if (new->val == old->val) {
-				/* FIXME!!!! insert_dup(&old->node, &new->node); */
-				return new;
-			}
-			else if (new->val < old->val) {
+			if (new->val < old->val) {
 				new->node.leaf_p = new_left;
 				old->node.node_p = new_rght;
 				new->node.branches.b[EB_LEFT] = new_leaf;
 				new->node.branches.b[EB_RGHT] = old_node;
 			}
-			else {
+			else if (new->val > old->val) {
 				old->node.node_p = new_left;
 				new->node.leaf_p = new_rght;
 				new->node.branches.b[EB_LEFT] = old_node;
 				new->node.branches.b[EB_RGHT] = new_leaf;
+			}
+			else {
+				/* FIXME!!!! insert_dup(&old->node, &new->node); */
+				return new;
 			}
 			break;
 		}
@@ -884,41 +882,39 @@ __eb32i_insert(struct eb_root *root, struct eb32_node *new) {
 
 			new->node.node_p = old->node.leaf_p;
 
-			/* The tree did contain this value exactly once. We
-			 * insert the new node just above the previous one,
-			 * with the new leaf on the right.
-			 */
-			if ((signed)new->val == (signed)old->val) {
-				old->node.leaf_p = new_left;
-				new->node.leaf_p = new_rght;
-				new->node.branches.b[EB_LEFT] = old_leaf;
-				new->node.branches.b[EB_RGHT] = new_leaf;
-				new->node.bit = -1;
-				root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
-				return new;
-			}
+			/* Right here, we have 3 possibilities :
+			   - the tree does not contain the value, and we have
+			     new->val < old->val. We insert new above old, on
+			     the left ;
 
-			/* The tree did not contain this value, so we insert
-			 * <new> before the leaf <old>, and set ->bit to
-			 * designate the lowest bit position in <new> which
-			 * applies to ->branches.b[].
-			 *
-			 * We need to check on which of the root's leaves the
-			 * node will be attached. For this we have to compare
-			 * its value to old's. Strictly speaking, this works
-			 * with 2 leaves, but it would require some bitmask
-			 * checks if we had higher numbers of leaves.
-			 */
+			   - the tree does not contain the value, and we have
+			     new->val > old->val. We insert new above old, on
+			     the right ;
+
+			   - the tree does contain the value, which implies it
+			     is alone. We add the new value next to it as a
+			     first duplicate.
+
+			   The last two cases can easily be partially merged.
+			*/
+			 
 			if ((signed)new->val < (signed)old->val) {
 				new->node.leaf_p = new_left;
 				old->node.leaf_p = new_rght;
 				new->node.branches.b[EB_LEFT] = new_leaf;
 				new->node.branches.b[EB_RGHT] = old_leaf;
 			} else {
+				/* new->val >= old->val, new goes the right */
 				old->node.leaf_p = new_left;
 				new->node.leaf_p = new_rght;
 				new->node.branches.b[EB_LEFT] = old_leaf;
 				new->node.branches.b[EB_RGHT] = new_leaf;
+
+				if (new->val == old->val) {
+					new->node.bit = -1;
+					root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
+					return new;
+				}
 			}
 			break;
 		}
@@ -948,21 +944,21 @@ __eb32i_insert(struct eb_root *root, struct eb32_node *new) {
 
 			new->node.node_p = old->node.node_p;
 
-			if (new->val == old->val) {
-				/* FIXME!!!! insert_dup(&old->node, &new->node); */
-				return new;
-			}
-			else if ((signed)new->val < (signed)old->val) {
+			if ((signed)new->val < (signed)old->val) {
 				new->node.leaf_p = new_left;
 				old->node.node_p = new_rght;
 				new->node.branches.b[EB_LEFT] = new_leaf;
 				new->node.branches.b[EB_RGHT] = old_node;
 			}
-			else {
+			else if ((signed)new->val > (signed)old->val) {
 				old->node.node_p = new_left;
 				new->node.leaf_p = new_rght;
 				new->node.branches.b[EB_LEFT] = old_node;
 				new->node.branches.b[EB_RGHT] = new_leaf;
+			}
+			else {
+				/* FIXME!!!! insert_dup(&old->node, &new->node); */
+				return new;
 			}
 			break;
 		}
