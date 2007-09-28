@@ -675,6 +675,63 @@ __eb32_lookup(struct eb32_node *root, unsigned long x)
 	}
 }
 
+/* This function is used to build a tree of duplicates by adding a new node to
+ * a subtree of at least 2 entries.
+ */
+struct eb_node *eb_insert_dup(struct eb_node *sub, struct eb_node *new);
+
+static inline struct eb_node *
+__eb_insert_dup(struct eb_node *sub, struct eb_node *new)
+{
+	struct eb_node *head = sub;
+	
+	struct eb_troot *new_left = eb_dotag(&new->branches, EB_LEFT);
+	struct eb_troot *new_rght = eb_dotag(&new->branches, EB_RGHT);
+	struct eb_troot *new_leaf = eb_dotag(&new->branches, EB_LEAF);
+
+	/* first, identify the deepest hole on the right branch */
+	while (eb_gettag(head->branches.b[EB_RGHT]) != EB_LEAF) {
+		struct eb_node *last = head;
+		head = container_of(eb_untag(head->branches.b[EB_RGHT], EB_NODE),
+				    struct eb_node, branches);
+		if (head->bit > last->bit + 1)
+			sub = head;     /* there's a hole here */
+	}
+
+	/* Here we have a leaf attached to (head)->b[EB_RGHT] */
+	if (head->bit < -1) {
+		/* A hole exists just before the leaf, we insert there */
+		new->bit = -1;
+		sub = container_of(eb_untag(head->branches.b[EB_RGHT], EB_LEAF),
+				   struct eb_node, branches);
+		head->branches.b[EB_RGHT] = eb_dotag(&new->branches, EB_NODE);
+
+		new->node_p = sub->leaf_p;
+		new->leaf_p = new_rght;
+		sub->leaf_p = new_left;
+		new->branches.b[EB_LEFT] = eb_dotag(&sub->branches, EB_LEAF);
+		new->branches.b[EB_RGHT] = new_leaf;
+		return new;
+	} else {
+		int side;
+		/* No hole was found before a leaf. We have to insert above
+		 * <sub>. Note that we cannot be certain that <sub> is attached
+		 * to the right of its parent, as this is only true if <sub>
+		 * is inside the dup tree, not at the head.
+		 */
+		new->bit = sub->bit - 1; /* install at the lowest level */
+		side = eb_gettag(sub->node_p);
+		head = container_of(eb_untag(sub->node_p, side), struct eb_node, branches);
+		head->branches.b[side] = eb_dotag(&new->branches, EB_NODE);
+					
+		new->node_p = sub->node_p;
+		new->leaf_p = new_rght;
+		sub->node_p = new_left;
+		new->branches.b[EB_LEFT] = eb_dotag(&sub->branches, EB_NODE);
+		new->branches.b[EB_RGHT] = new_leaf;
+		return new;
+	}
+}
 
 /* Inserts eb32_node <new> into subtree starting at node root <root>.
  * Only new->val needs be set with the value. The eb32_node is returned.
@@ -799,8 +856,9 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
 				new->node.branches.b[EB_RGHT] = new_leaf;
 			}
 			else {
-				/* FIXME!!!! insert_dup(&old->node, &new->node); */
-				return new;
+				struct eb_node *ret;
+				ret = eb_insert_dup(&old->node, &new->node);
+				return container_of(ret, struct eb32_node, node);
 			}
 			break;
 		}
@@ -957,8 +1015,9 @@ __eb32i_insert(struct eb_root *root, struct eb32_node *new) {
 				new->node.branches.b[EB_RGHT] = new_leaf;
 			}
 			else {
-				/* FIXME!!!! insert_dup(&old->node, &new->node); */
-				return new;
+				struct eb_node *ret;
+				ret = eb_insert_dup(&old->node, &new->node);
+				return container_of(ret, struct eb32_node, node);
 			}
 			break;
 		}

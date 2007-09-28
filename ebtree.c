@@ -48,6 +48,11 @@ struct eb_node *eb_next(struct eb_node *node)
 	return __eb_next(node);
 }
 
+struct eb_node *eb_insert_dup(struct eb_node *sub, struct eb_node *new)
+{
+	return __eb_insert_dup(sub, new);
+}
+
 struct eb32_node *eb32_insert(struct eb_root *root, struct eb32_node *new)
 {
     return __eb32_insert(root, new);
