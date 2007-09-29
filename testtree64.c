@@ -85,23 +85,23 @@ static inline void rb_insert_task_queue(struct task *newtask)
 
 struct task {
     struct eb64_node eb_node;
-    struct eb64_node *wq;
+    struct eb_root *wq;
     void *data;
-    char task_data[200];
+    char task_data[196];
 };
 #define expire eb_node.val
 
-EB64_TREE_HEAD(wait_queue);
+struct eb_root wait_queue = EB_ROOT;
 
-#define tree_node  eb64_node
-#define insert_task_queue(task) eb64_insert((task)->wq, &task->eb_node)
+#define tree_node  eb_node
+#define insert_task_queue(task) __eb64_insert((task)->wq, &task->eb_node)
 
 #define tree_lookup(root, x) __eb_lookup(root, x)
 #define tree_first(root) eb_first(root)
 #define tree_last(root) eb_last(root)
-#define tree_next(node) eb_next(node)
-#define tree_prev(node) eb_prev(node)
-#define tree_erase(node, root) eb64_delete(node);
+#define tree_next(node) __eb_next(node)
+#define tree_prev(node) __eb_prev(node)
+#define tree_erase(node, root) eb_delete(node);
 #define tree_entry(node) container_of((node), struct task, eb_node)
 
 #ifdef __eb_lookup
