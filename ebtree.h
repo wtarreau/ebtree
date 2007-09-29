@@ -19,6 +19,7 @@
  *
  * Short history :
  *
+ * 2007/09/28: full support for the duplicates tree => v3
  * 2007/07/08: merge back cleanups from kernel version.
  * 2007/07/01: merge into Linux Kernel (try 1).
  * 2007/05/27: version 2: compact everything into one single struct
@@ -30,72 +31,153 @@
 
 /*
   General idea:
+  -------------
   In a radix binary tree, we may have up to 2N-1 nodes for N values if all of
-  them are leaves. If we find a way to differentiate intermediate nodes (called
-  "link nodes") and final nodes (called "leaf nodes"), and we associate them
-  by two, it is possible to build sort of a self-contained radix tree with
+  them are leaves. If we find a way to differentiate intermediate nodes (later
+  called "nodes") and final nodes (later called "leaves"), and we associate
+  them by two, it is possible to build sort of a self-contained radix tree with
   intermediate nodes always present. It will not be as cheap as the ultree for
   optimal cases as shown below, but the optimal case almost never happens :
 
   Eg, to store 8, 10, 12, 13, 14 :
 
-      ultree       this tree
+             ultree          this theorical tree
 
-        8              8
-       / \            / \
-      10 12          10 12
-        /  \           /  \
-       13  14         12  14
-                     / \
-                    12 13
+               8                   8
+              / \                 / \
+             10 12               10 12
+               /  \                /  \
+              13  14              12  14
+                                 / \
+                                12 13
 
    Note that on real-world tests (with a scheduler), is was verified that the
    case with data on an intermediate node never happens. This is because the
-   population is too large for such coincidences to happen. It would require
+   data spectrum is too large for such coincidences to happen. It would require
    for instance that a task has its expiration time at an exact second, with
    other tasks sharing that second. This is too rare to try to optimize for it.
 
-   What is interesting is that the link will only be added above the leaf when
+   What is interesting is that the node will only be added above the leaf when
    necessary, which implies that it will always remain somewhere above it. So
-   both the leaf and the link can share the exact value of the node, because
-   when going down the link, the bit mask will be applied to comparisons. So we
-   are tempted to have one value for both nodes.
+   both the leaf and the node can share the exact value of the leaf, because
+   when going down the node, the bit mask will be applied to comparisons. So we
+   are tempted to have one single value shared between the node and the leaf.
 
-   The bit only serves the links, and the dups only serve the leaves. So we can
-   put a lot of information in common. This results in one single node with two
-   leaves and two parents, one for the link part, and one for the leaf part.
-   The link may refer to its leaf counterpart in one of its leaves, which will
-   be a solution to quickly distinguish between different nodes and common
-   nodes.
+   The bit only serves the nodes, and the dups only serve the leaves. So we can
+   put a lot of information in common. This results in one single entity with
+   two branch pointers and two parent pointers, one for the node part, and one
+   for the leaf part :
 
-   Here's what we find in an eb_node :
+              node's         leaf's
+              parent         parent
+                |              |
+              [node]         [leaf]
+               / \
+           left   right
+         branch   branch
 
-   struct eb_node {
-       struct list    dup;      // leaf duplicates
-       struct eb_node *node_p;  // link node's parent
-       struct eb_node *leaf_p;  // leaf node's parent
-       struct eb_node *leaf[2]; // link's leaf nodes
-       int            bit;      // link's bit position. Maybe we should use a char ?
-   };
+   The node may very well refer to its leaf counterpart in one of its branches,
+   indicating that its own leaf is just below it :
 
-   struct eb32_node {
-       struct eb_node node;
-       u32 val;
-   };
+              node's
+              parent
+                |
+              [node]
+               / \
+           left  [leaf]
+         branch
 
-   struct eb64_node {
-       struct eb_node node;
-       u64 val;
-   };
+   Adding values in such a tree simply consists in inserting nodes between
+   other nodes and/or leaves :
 
+                [root]
+                  |
+               [node2]
+                 / \
+          [leaf1]   [node3]
+                      / \
+               [leaf2]   [leaf3]
 
-   Algorithmic complexity (max and avg computed for a tree full of distinct values) :
-     - lookup              : avg=O(logN), max = O(logN)
-     - insertion from root : avg=O(logN), max = O(logN)
-     - insertion of dups   : O(1) after lookup
-     - moves               : not implemented yet, O(logN)
-     - deletion            : max = O(1)
-     - prev/next           : avg = 2, max = O(logN)
+   On this diagram, we notice that [node2] and [leaf2] have been pulled away
+   from each other due to the insertion of [node3], just as if there would be
+   an elastic between both parts. This elastic-like behaviour gave its name to
+   the tree : "Elastic Binary Tree", or "EBtree". The entity which associates a
+   node part and a leaf part will be called an "EB node".
+
+   We also notice on the diagram that there is a root entity required to attach
+   the tree. It only contains two branches and there is nothing above it. This
+   is an "EB root". Some will note that [leaf1] has no [node1]. One property of
+   the EBtree is that all nodes have their branches filled, and that if a node
+   has only one branch, it does not need to exist. Here, [leaf1] was added
+   below [root] and did not need any node.
+
+   An EB node contains :
+     - a pointer to the node's parent (node_p)
+     - a pointer to the leaf's parent (leaf_p)
+     - two branches pointing to lower nodes or leaves (branches)
+     - a bit position (bit)
+     - an optional value.
+
+   The value here is optional because it's used only during insertion, in order
+   to classify the nodes. Nothing else in the tree structure requires knowledge
+   of the value. This makes it possible to write type-agnostic primitives for
+   everything, and type-specific insertion primitives. This has led to consider
+   two types of EB nodes. The type-agnostic ones will serve as a header for the
+   other ones, and will simply be called "struct eb_node". The other ones will
+   have their type indicated in the structure name. Eg: "struct eb32_node" for
+   nodes carrying 32 bit values.
+
+   We will also node that the two branches in a node serve exactly the same
+   purpose as an EB root. For this reason, a "struct eb_root" will be used as
+   well inside the struct eb_node. In order to ease pointer manipulation and
+   ROOT detection when walking upwards, all the pointers inside an eb_node will
+   point to the eb_root part of the referenced EB nodes, relying on the same
+   principle as the linked lists in Linux.
+
+   Another important point to note, is that when walking inside a tree, it is
+   very convenient to know where a node is attached in its parent, and what
+   type of branch it has below it (leaf or node). In order to simplify the
+   operations and to speed up the processing, it was decided in this specific
+   implementation to use the lowest bit from the pointer to designate the side
+   of the upper pointers (left/right) and the type of a branch (leaf/node).
+   This practise is not mandatory by design, but an implementation-specific
+   optimisation permitted on all platforms on which data must be aligned. All
+   known 32 bit platforms align their integers and pointers to 32 bits, leaving
+   the two lower bits unused. So, we say that the pointers are "tagged". And
+   since they designate pointers to root parts, we simply call them
+   "tagged root pointers", or "eb_troot" in the code.
+
+   Duplicate values are stored in a special manner. When inserting a value, if
+   the same one is found, then an incremental binary tree is built at this
+   place from these values. This ensures that no special case has to be written
+   to handle duplicates when walking through the tree or when deleting entries.
+   It also guarantees that duplicates will be walked in the exact same order
+   they were inserted. This is very important when trying to achieve fair
+   processing distribution for instance.
+
+   Algorithmic complexity can be derived from 3 variables :
+     - the number of possible different values in the tree : P
+     - the number of entries in the tree : N
+     - the number of duplicates for one value : D
+
+   Note that this tree is deliberately NOT balanced. For this reason, the worst
+   case may happen with a small tree (eg: 32 distinct values of one bit). BUT,
+   the operations required to manage such data are so much cheap that they make
+   it worth using it even under such conditions. For instance, a balanced tree
+   may require only 6 levels to store those 32 values when this tree will
+   require 32. But if per-level operations are 5 times cheaper, it wins.
+
+   Minimal, Maximal and Average times are specified in number of operations.
+   Minimal is given for best condition, Maximal for worst condition, and the
+   average is reported for a tree containing random values. An operation
+   generally consists in jumping from one node to the other.
+
+   Complexity :
+     - lookup              : min=1, max=log(P), avg=log(N)
+     - insertion from root : min=1, max=log(P), avg=log(N)
+     - insertion of dups   : min=1, max=log(D), avg=log(D)/2 after lookup
+     - deletion            : min=1, max=1,      avg=1
+     - prev/next           : min=1, max=log(P), avg=2 :
        N/2 nodes need 1 hop  => 1*N/2
        N/4 nodes need 2 hops => 2*N/4
        N/8 nodes need 3 hops => 3*N/8
@@ -104,93 +186,61 @@
        Total cost for all N nodes : sum[i=1..N](log2(i)*N/i) = N*sum[i=1..N](log2(i)/i)
        Average cost across N nodes = total / N = sum[i=1..N](log2(i)/i) = 2
 
-   Useful properties (outdated) :
-     - links are only provided above the leaf, never below. This implies that
-       the nodes directly attached to the root do not use their link. It also
-       enhances the probability that the link directly above a leaf are from
-       the same node.
+   This design is currently limited to only two branches per node. Most of the
+   tree descent algorithm would be compatible with more branches (eg: 4, to cut
+   the height in half), but this would probably require more complex operations
+   and the deletion algorithm would be problematic.
 
-     - a link connected to its own leaf will have leaf_p = node = leaf[0|1].
+   Useful properties :
+     - a node is always added above the leaf it is tied to, and never can get
+       below nor in another branch. This implies that leaves directly attached
+       to the root do not use their node part, which is indicated by a NULL
+       value in node_p. This also enhances the cache efficiency when walking
+       down the tree, because when the leaf is reached, its node part will
+       already have been visited (unless it's the first leaf in the tree).
 
-     - leaf[0] can never be equal to leaf[1] except for the root which can have
-       them both NULL.
+     - pointers to lower nodes or leaves are stored in "branch" pointers. Only
+       the root node may have a NULL in either branch, it is not possible for
+       other branches. Since the nodes are attached to the left branch of the
+       root, it is not possible to see a NULL left branch when walking up a
+       tree. Thus, an empty tree is immediately identified by a NULL left
+       branch at the root. Conversely, the one and only way to identify the
+       root node is to check that it right branch is NULL.
 
-     - node_p can never be equal to the same node.
+     - a node connected to its own leaf will have branch[0|1] pointing to
+       itself, and leaf_p pointing to itself.
 
-     - two leaves can never point to the same location
+     - a node can never have node_p pointing to itself.
 
-     - duplicates do not use their link part, nor their leaf_p pointer.
+     - a node can never have both branches equal, except for the root which can
+       have them both NULL.
 
-     - links do not use their dup list.
+     - deletion only applies to leaves. When a leaf is deleted, its parent must
+       be released too (unless it's the root), and its sibling must attach to
+       the grand-parent, replacing the parent. Also, when a leaf is deleted,
+       the node tied to this leaf will be removed and must be released too. If
+       this node is different from the leaf's parent, the freshly released
+       leaf's parent will be used to replace the node which must go. A released
+       node will never be used anymore, so there's no point in tracking it.
 
-     - those cannot be merged because a leaf at the head of a dup list needs
-       both a link above it and a dup list.
+     - the bit index in a node indicates the bit position in the value which is
+       represented by the branches. That means that a node with (bit == 0) is
+       just above two leaves. Negative bit values are used to build a duplicate
+       tree. The first node above two identical leaves gets (bit == -1). This
+       value logarithmically decreases as the duplicate tree grows. During
+       duplicate insertion, a node is inserted above the highest bit value (the
+       lowest absolute value) in the tree during the right-sided walk. If bit
+       -1 is not encountered (highest < -1), we insert above last leaf.
+       Otherwise, we insert above the node with the highest value which was not
+       equal to the one of its parent + 1.
 
-     - a leaf-only node should have some easily distinguishable info in the
-       link part, such as NULL or a pointer to the same node (which cannot
-       happen in normal case). The NULL might be better to identify the root.
+     - the "eb_next" primitive walks from left to right, which means from lower
+       to higher values. It returns duplicates in the order they were inserted.
+       The "eb_first" primitive returns the left-most entry.
 
-     - bit is necessarily > 0.
-
-   New properties (2007/08/04) :
-     - pointers to lower nodes are stored in "branch" pointers (currently 2,
-       but may be extended to 4).
-     - pointers to higher nodes are stored in "parent" pointers, one being used
-       by the leaf part of the eb_node, the other one by the node part.
-     - root <=> (branch[right]==NULL)
-     - (root || dup) <=> (parent[L]==parent[N]) && (parent[*]==NULL)
-     
-   Basic definitions (subject to change) :
-     - for duplicate leaf nodes, leaf_p = NULL.
-     - use bit == 0 to indicate a leaf node which is not used as a link
-     - root->bit = INTBITS for the represented data type (eg: 32)
-     - root->node_p = root->leaf_p = NULL
-     - root->leaf[0,1] = NULL if branch is empty
-
-   Deletion is not very complex:
-     - it only applies to leaves
-     - if the leaf is a duplicate, simply remove it from the list.
-     - when a leaf is deleted, its parent must be unlinked (unless it is the root)
-     - when a leaf is deleted, the link provided with the same node must be
-       replaced if used, because it will not be available anymore. We put
-       the one we freed instead.
-
-   It is important to understand that once a link node is removed, it will
-   never be needed anymore. If another node comes above and needs a link, it
-   will provide its own.
-
-   Also, when we delete a leaf attached to the root, we get no link back. It's
-   not a problem because by definition, since a node can only provide links
-   above it, it has no link in use.
-
-   New properties (2007/09/26)
-   ---------------------------
-     - nodes are of distinct types :
-       - structure nodes, whose type is "eb_node"
-       - data nodes, whose type is eb32_node/eb64_node, etc... They contain
-         an eb_node and a value.
-     - an eb_node has two parts :
-       - the "node" part, which is the one constituting the tree structure
-       - the "leaf" part, which is the one designating the position of the
-         value in the tree.
-     - pointers to lower nodes are stored in "branch" pointers of a node
-       (currently 2, but may be extended to 4).
-     - pointer to the node's upper node is stored in the node_p pointer
-     - pointer to the leaf's upper node is stored in the leaf_p pointer
-     - root <=> (branch[right] == NULL)
-     - only root may have a NULL in a branch
-     - an eb_node with the node part unused has node_p == NULL
-     - the bit value designates the bit position for which branch[] applies.
-       By definition, if it is negative, it is because we are on a duplicates tree.
-     - ALL nodes in duplicate trees have their bit value < 0. During
-       duplicate insertion, a node is inserted above the highest bit value
-       (the lowest absolute value) in the tree during the right walk. If bit -1
-       is not encountered (highest < -1), we insert above last leaf. Otherwise,
-       we insert above the node with highest value which was not equal to the
-       one of its parent + 1.
-
-     - root does not need leaf_p, node_p, bit. So it only needs branches[]. A
-       new "struct eb_root" type has been created for this.
+     - the "eb_prev" primitive walks from right to left, which means from
+       higher to lower values. It returns duplicates in the opposite order they
+       were inserted. The "eb_last" primitive returns the right-most entry.
 
  */
 
@@ -234,15 +284,20 @@ static inline int fls64(unsigned long long x)
 
 #define fls_auto(x) ((sizeof(x) > 4) ? fls64(x) : flsnz(x))
 
+/* Linux-like "container_of". It returns a pointer to the structure of type
+ * <type> which has its member <name> stored at address <ptr>.
+ */
 #ifndef container_of
 #define container_of(ptr, type, name) ((type *)(((void *)(ptr)) - ((long)&((type *)0)->name)))
 #endif
 
 /*
- * Gcc >= 3 provides the ability for the programme to give hints to the
- * compiler about what branch of an if is most likely to be taken. This
- * helps the compiler produce the most compact critical paths, which is
- * generally better for the cache and to reduce the number of jumps.
+ * Gcc >= 3 provides the ability for the program to give hints to the compiler
+ * about what branch of an if is most likely to be taken. This helps the
+ * compiler produce the most compact critical paths, which is generally better
+ * for the cache and to reduce the number of jumps. Be very careful not to use
+ * this in inline functions, because the code reordering it causes very often
+ * has a negative impact on the calling functions.
  */
 #if __GNUC__ < 3
 #define __builtin_expect(x,y) (x)
@@ -257,28 +312,27 @@ typedef unsigned short u16;
 typedef unsigned int u32;
 typedef unsigned long long u64;
 
-/* Each eb_node contains two views, one node and one leaf. Both may be
- * referenced in a pointer.
- */
-#define EB_LEAF     0
-#define EB_NODE     1
-
 /* Number of bits per node, and number of leaves per node */
 #define EB_NODE_BITS          1
 #define EB_NODE_BRANCHES      (1 << EB_NODE_BITS)
 #define EB_NODE_BRANCH_MASK   (EB_NODE_BRANCHES - 1)
 
+/* Be careful not to tweak those values. The walking code is optimized for NULL
+ * detection on the assumption that the following values are intact.
+ */
 #define EB_LEFT     0
 #define EB_RGHT     1
+#define EB_LEAF     0
+#define EB_NODE     1
 
 /* This is the same as an eb_node pointer, except that the lower bit embeds
- * a tag. This tag has two meanings :
- *  - 0=left, 1=right for leaf_p/node_p
- *  - 0=link, 1=leaf  for branch[]
+ * a tag. See eb_dotag()/eb_untag()/eb_gettag(). This tag has two meanings :
+ *  - 0=left, 1=right to designate the parent's branch for leaf_p/node_p
+ *  - 0=link, 1=leaf  to designate the branch's type for branch[]
  */
 typedef void eb_troot_t;
 
-/* The eb_root connects the node which contains it to two nodes below it, one
+/* The eb_root connects the node which contains it, to two nodes below it, one
  * of which may be the same node. At the top of the tree, we use an eb_root
  * too, which always has its right branch NULL.
  */
@@ -288,8 +342,8 @@ struct eb_root {
 
 /* The eb_node contains the two parts, one for the leaf, which always exists,
  * and one for the node, which remains unused in the very first node inserted
- * into the tree.
- * This structure is 20 bytes per node on 32-bit machines.
+ * into the tree. This structure is 20 bytes per node on 32-bit machines. Do
+ * not change the order, benchmarks have shown that it's optimal this way.
  */
 struct eb_node {
 	struct eb_root branches; /* branches, must be at the beginning */
@@ -299,13 +353,18 @@ struct eb_node {
 };
 
 /* Those structs carry nodes and data. They must start with the eb_node so that
- * any eb*_node can be cast into an eb_node.
+ * any eb*_node can be cast into an eb_node. We could also have put some sort
+ * of transparent union here to reduce the indirection level, but the fact is,
+ * the end user is not meant to manipulate internals, so this is pointless.
  */
+
+/* 32bit integer value, to be used with eb32_insert() and eb32i_insert() */
 struct eb32_node {
 	struct eb_node node; /* the tree node, must be at the beginning */
 	u32 val;
 };
 
+/* 64bit integer value, to be used with eb64_insert() and eb64i_insert() */
 struct eb64_node {
 	struct eb_node node; /* the tree node, must be at the beginning */
 	u64 val;
@@ -315,38 +374,24 @@ struct eb64_node {
  * During its life, only the left pointer will change. The right one will
  * always remain NULL, which is the way we detect it.
  */
-
 #define EB_ROOT						\
 	(struct eb_root) {				\
 		.b = {[0] = NULL, [1] = NULL },		\
 	}
 
-#define EB_TREE_HEAD(name) 				\
+#define EB_TREE_HEAD(name)				\
 	struct eb_root name = EB_ROOT
 
 
-#ifndef DEPRECATED
-/********************************************************************/
-#define EB64_ROOT							\
-	(struct eb64_node) {						\
-		.node = { .bit = 64, 					\
-			  .node_p = NULL, .leaf_p = NULL,		\
-			  .branches = { .b = {[0] = NULL, [1] = NULL }}}, \
-		.val = 0,						\
-	}
+/***************************************\
+ * Private functions. Not for end-user *
+\***************************************/
 
-#define EB64_TREE_HEAD(name) 						\
-	struct eb64_node name = EB64_ROOT
-/********************************************************************/
-#endif /* DEPRECATED */
-
-
-/* Converts a root pointer pointer to its equivalent eb_troot_t pointer,
+/* Converts a root pointer to its equivalent eb_troot_t pointer,
  * ready to be stored in ->branch[], leaf_p or node_p. NULL is not
  * conserved. To be used with EB_LEAF, EB_NODE, EB_LEFT or EB_RGHT in <tag>.
  */
-static inline eb_troot_t *
-eb_dotag(const struct eb_root *root, const int tag)
+static inline eb_troot_t *eb_dotag(const struct eb_root *root, const int tag)
 {
 	return (eb_troot_t *)((void *)root + tag);
 }
@@ -356,33 +401,29 @@ eb_dotag(const struct eb_root *root, const int tag)
  * as long as the tree is not corrupted. To be used with EB_LEAF, EB_NODE,
  * EB_LEFT or EB_RGHT in <tag>.
  */
-static inline struct eb_root *
-eb_untag(const eb_troot_t *troot, const int tag)
+static inline struct eb_root *eb_untag(const eb_troot_t *troot, const int tag)
 {
 	return (struct eb_root *)((void *)troot - tag);
 }
 
 /* returns the tag associated with an eb_troot_t pointer */
-static inline int
-eb_gettag(eb_troot_t *troot)
+static inline int eb_gettag(eb_troot_t *troot)
 {
 	return (unsigned long)troot & 1;
 }
 
 /* Returns a pointer to the eb_node holding <root> */
-static inline struct eb_node *
-eb_root_to_node(struct eb_root *root)
+static inline struct eb_node *eb_root_to_node(struct eb_root *root)
 {
 	return container_of(root, struct eb_node, branches);
 }
 
 /* Walks down starting at root pointer <start>, and always walking on side
- * <side>. It either returns the link to the first leaf on that side, or NULL if no leaf
- * is left. <start> may either be NULL, a link pointer, but not a dup. The
- * link pointer to the leaf (or NULL) is returned.
+ * <side>. It either returns the node hosting the first leaf on that side,
+ * or NULL if no leaf is found. <start> may either be NULL or a branch pointer.
+ * The pointer to the leaf (or NULL) is returned.
  */
-static inline struct eb_node *
-eb_walk_down(eb_troot_t *start, unsigned int side)
+static inline struct eb_node *eb_walk_down(eb_troot_t *start, unsigned int side)
 {
 	/* A NULL pointer on an empty tree root will be returned as-is */
 	while (eb_gettag(start) == EB_NODE)
@@ -391,23 +432,84 @@ eb_walk_down(eb_troot_t *start, unsigned int side)
 	return eb_root_to_node(eb_untag(start, EB_LEAF));
 }
 
-/* Returns the first leaf in the tree starting at <root>, or NULL if none */
+/* This function is used to build a tree of duplicates by adding a new node to
+ * a subtree of at least 2 entries. It will probably never be needed inlined,
+ * and it is not for end-user.
+ */
+struct eb_node *eb_insert_dup(struct eb_node *sub, struct eb_node *new);
+
 static inline struct eb_node *
-__eb_first(struct eb_root *root)
+__eb_insert_dup(struct eb_node *sub, struct eb_node *new)
+{
+	struct eb_node *head = sub;
+	
+	struct eb_troot *new_left = eb_dotag(&new->branches, EB_LEFT);
+	struct eb_troot *new_rght = eb_dotag(&new->branches, EB_RGHT);
+	struct eb_troot *new_leaf = eb_dotag(&new->branches, EB_LEAF);
+
+	/* first, identify the deepest hole on the right branch */
+	while (eb_gettag(head->branches.b[EB_RGHT]) != EB_LEAF) {
+		struct eb_node *last = head;
+		head = container_of(eb_untag(head->branches.b[EB_RGHT], EB_NODE),
+				    struct eb_node, branches);
+		if (head->bit > last->bit + 1)
+			sub = head;     /* there's a hole here */
+	}
+
+	/* Here we have a leaf attached to (head)->b[EB_RGHT] */
+	if (head->bit < -1) {
+		/* A hole exists just before the leaf, we insert there */
+		new->bit = -1;
+		sub = container_of(eb_untag(head->branches.b[EB_RGHT], EB_LEAF),
+				   struct eb_node, branches);
+		head->branches.b[EB_RGHT] = eb_dotag(&new->branches, EB_NODE);
+
+		new->node_p = sub->leaf_p;
+		new->leaf_p = new_rght;
+		sub->leaf_p = new_left;
+		new->branches.b[EB_LEFT] = eb_dotag(&sub->branches, EB_LEAF);
+		new->branches.b[EB_RGHT] = new_leaf;
+		return new;
+	} else {
+		int side;
+		/* No hole was found before a leaf. We have to insert above
+		 * <sub>. Note that we cannot be certain that <sub> is attached
+		 * to the right of its parent, as this is only true if <sub>
+		 * is inside the dup tree, not at the head.
+		 */
+		new->bit = sub->bit - 1; /* install at the lowest level */
+		side = eb_gettag(sub->node_p);
+		head = container_of(eb_untag(sub->node_p, side), struct eb_node, branches);
+		head->branches.b[side] = eb_dotag(&new->branches, EB_NODE);
+					
+		new->node_p = sub->node_p;
+		new->leaf_p = new_rght;
+		sub->node_p = new_left;
+		new->branches.b[EB_LEFT] = eb_dotag(&sub->branches, EB_NODE);
+		new->branches.b[EB_RGHT] = new_leaf;
+		return new;
+	}
+}
+
+
+/**************************************\
+ * Public functions, for the end-user *
+\**************************************/
+
+/* Returns the first leaf in the tree starting at <root>, or NULL if none */
+static inline struct eb_node *__eb_first(struct eb_root *root)
 {
 	return eb_walk_down(root->b[0], EB_LEFT);
 }
 
 /* Returns the last leaf in the tree starting at <root>, or NULL if none */
-static inline struct eb_node *
-__eb_last(struct eb_root *root)
+static inline struct eb_node *__eb_last(struct eb_root *root)
 {
 	return eb_walk_down(root->b[0], EB_RGHT);
 }
 
 /* Returns previous leaf node before an existing leaf node, or NULL if none. */
-static inline struct eb_node *
-__eb_prev(struct eb_node *node)
+static inline struct eb_node *__eb_prev(struct eb_node *node)
 {
 	eb_troot_t *t = node->leaf_p;
 
@@ -425,8 +527,7 @@ __eb_prev(struct eb_node *node)
 }
 
 /* Returns next leaf node after an existing leaf node, or NULL if none. */
-static inline struct eb_node *
-__eb_next(struct eb_node *node)
+static inline struct eb_node *__eb_next(struct eb_node *node)
 {
 	eb_troot_t *t = node->leaf_p;
 
@@ -443,8 +544,7 @@ __eb_next(struct eb_node *node)
 /* Removes a leaf node from the tree, and returns zero after deleting the
  * last node. Otherwise, non-zero is returned.
  */
-static inline int
-__eb_delete(struct eb_node *node)
+static inline int __eb_delete(struct eb_node *node)
 {
 	unsigned int pside, gpside, sibtype;
 	struct eb_node *parent;
@@ -672,64 +772,6 @@ __eb32_lookup(struct eb32_node *root, unsigned long x)
 			root = (struct eb32_node *)parent->branches.b[1];
 		else
 			root = (struct eb32_node *)parent->branches.b[0];
-	}
-}
-
-/* This function is used to build a tree of duplicates by adding a new node to
- * a subtree of at least 2 entries.
- */
-struct eb_node *eb_insert_dup(struct eb_node *sub, struct eb_node *new);
-
-static inline struct eb_node *
-__eb_insert_dup(struct eb_node *sub, struct eb_node *new)
-{
-	struct eb_node *head = sub;
-	
-	struct eb_troot *new_left = eb_dotag(&new->branches, EB_LEFT);
-	struct eb_troot *new_rght = eb_dotag(&new->branches, EB_RGHT);
-	struct eb_troot *new_leaf = eb_dotag(&new->branches, EB_LEAF);
-
-	/* first, identify the deepest hole on the right branch */
-	while (eb_gettag(head->branches.b[EB_RGHT]) != EB_LEAF) {
-		struct eb_node *last = head;
-		head = container_of(eb_untag(head->branches.b[EB_RGHT], EB_NODE),
-				    struct eb_node, branches);
-		if (head->bit > last->bit + 1)
-			sub = head;     /* there's a hole here */
-	}
-
-	/* Here we have a leaf attached to (head)->b[EB_RGHT] */
-	if (head->bit < -1) {
-		/* A hole exists just before the leaf, we insert there */
-		new->bit = -1;
-		sub = container_of(eb_untag(head->branches.b[EB_RGHT], EB_LEAF),
-				   struct eb_node, branches);
-		head->branches.b[EB_RGHT] = eb_dotag(&new->branches, EB_NODE);
-
-		new->node_p = sub->leaf_p;
-		new->leaf_p = new_rght;
-		sub->leaf_p = new_left;
-		new->branches.b[EB_LEFT] = eb_dotag(&sub->branches, EB_LEAF);
-		new->branches.b[EB_RGHT] = new_leaf;
-		return new;
-	} else {
-		int side;
-		/* No hole was found before a leaf. We have to insert above
-		 * <sub>. Note that we cannot be certain that <sub> is attached
-		 * to the right of its parent, as this is only true if <sub>
-		 * is inside the dup tree, not at the head.
-		 */
-		new->bit = sub->bit - 1; /* install at the lowest level */
-		side = eb_gettag(sub->node_p);
-		head = container_of(eb_untag(sub->node_p, side), struct eb_node, branches);
-		head->branches.b[side] = eb_dotag(&new->branches, EB_NODE);
-					
-		new->node_p = sub->node_p;
-		new->leaf_p = new_rght;
-		sub->node_p = new_left;
-		new->branches.b[EB_LEFT] = eb_dotag(&sub->branches, EB_NODE);
-		new->branches.b[EB_RGHT] = new_leaf;
-		return new;
 	}
 }
 
