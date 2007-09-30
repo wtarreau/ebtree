@@ -756,14 +756,12 @@ __eb32_lookup(struct eb_root *root, u32 x)
 			 * we have a dup tree. In the later case, we have to
 			 * walk it down left to get the first entry.
 			 */
-			if ((node->node.bit < 0)) {
-				do {
-					troot = node->node.branches.b[EB_LEFT];
-					node = container_of(eb_untag(troot, EB_NODE),
-							   struct eb32_node, node.branches);
-				} while (eb_gettag(troot) == EB_NODE);
+			if (node->node.bit < 0) {
+				troot = node->node.branches.b[EB_LEFT];
+				while (eb_gettag(troot) != EB_LEAF)
+					troot = (eb_untag(troot, EB_NODE))->b[EB_LEFT];
 				node = container_of(eb_untag(troot, EB_LEAF),
-						   struct eb32_node, node.branches);
+						    struct eb32_node, node.branches);
 			}
 			return node;
 		}
