@@ -25,29 +25,35 @@ int eb_delete(struct eb_node *node)
 }
 
 /* Returns the first leaf in the tree starting at <root>, or NULL if none */
+__attribute__((noinline))
 struct eb_node *eb_first(struct eb_root *root)
 {
 	return __eb_first(root);
 }
 
 /* Returns the last leaf in the tree starting at <root>, or NULL if none */
+__attribute__((noinline))
 struct eb_node *eb_last(struct eb_root *root)
 {
 	return __eb_last(root);
 }
 
 /* returns previous leaf node before an existing leaf node, or NULL if none. */
+__attribute__((noinline))
 struct eb_node *eb_prev(struct eb_node *node)
 {
 	return __eb_prev(node);
 }
 
 /* returns next leaf node after an existing leaf node, or NULL if none. */
+__attribute__((noinline))
 struct eb_node *eb_next(struct eb_node *node)
 {
 	return __eb_next(node);
 }
 
+/* used by insertion primitives */
+__attribute__((noinline))
 struct eb_node *eb_insert_dup(struct eb_node *sub, struct eb_node *new)
 {
 	return __eb_insert_dup(sub, new);
