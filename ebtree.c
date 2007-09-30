@@ -73,6 +73,10 @@ struct eb32_node *eb32_lookup(struct eb_root *root, u32 x) {
     return __eb32_lookup(root, x);
 }
 
+struct eb32_node *eb32i_lookup(struct eb_root *root, s32 x) {
+    return __eb32i_lookup(root, x);
+}
+
 struct eb64_node *eb64_insert(struct eb_root *root, struct eb64_node *new) {
     return __eb64_insert(root, new);
 }
