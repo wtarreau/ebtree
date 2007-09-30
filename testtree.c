@@ -12,6 +12,12 @@
 #ifdef __i386__
 #define rdtscll(val) \
      __asm__ __volatile__("rdtsc" : "=A" (val))
+#elif __x86_64__
+#define rdtscll(val) do { \
+     unsigned int __a,__d; \
+     asm volatile("rdtsc" : "=a" (__a), "=d" (__d)); \
+     (val) = ((unsigned long)__a) | (((unsigned long)__d)<<32); \
+} while(0)
 #else
 #define rdtscll(val)
 #endif
@@ -106,7 +112,7 @@ struct eb_root wait_queue = EB_ROOT;
 #define tree_node  eb_node
 #define insert_task_queue(task) __eb32_insert((task)->wq, &task->eb_node)
 
-#define tree_lookup(root, x) __eb_lookup(root, x)
+#define tree_lookup(root, x) &__eb32_lookup(root, x)->node
 #define tree_first(root) eb_first(root)
 #define tree_last(root) eb_last(root)
 #define tree_next(node) __eb_next(node)
@@ -250,6 +256,7 @@ int main(int argc, char **argv) {
 	    x = (i / 1000) * 50000 + (i % 1000) * 4 - 1500;
 	    //x = i>>2;
 	    //x = i;
+	    //x = 1000;
 	    task = (struct task *)calloc(1,sizeof(*task));
 	    task->expire = x;//*x;//total-i-1;//*/(x>>10)&65535;//i&65535;//(x>>8)&65535;//rev32(i);//i&32767;//x;//i ^ (long)lasttask;
 	    task->wq = &wait_queue;
@@ -282,10 +289,10 @@ int main(int argc, char **argv) {
 	tv_now(&t_insert);
 	printf("%llu cycles/ent avg, last = %llu cycles\n", cycles/total, (end - calibrate) - (calibrate - start));
 
-#if 0 && defined(tree_lookup)
+#if defined(tree_lookup)
 	printf("Timing %d lookups... ", total);
 	cycles3 = 0;
-	task = lasttask;
+	task = firsttask;
 	for (i = 0; i < total; i++) {
 	    rdtscll(start); rdtscll(calibrate); // account for the time spent calling rdtsc too !
 	    node = tree_lookup(&wait_queue, task->expire);
