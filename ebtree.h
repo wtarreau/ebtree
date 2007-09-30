@@ -307,11 +307,10 @@ static inline int fls64(unsigned long long x)
 #define unlikely(x) (__builtin_expect((x) != 0, 0))
 
 
-typedef unsigned char u8;
-typedef unsigned short u16;
 typedef unsigned int u32;
+typedef   signed int s32;
 typedef unsigned long long u64;
-typedef signed long long s64;
+typedef   signed long long s64;
 
 /* Number of bits per node, and number of leaves per node */
 #define EB_NODE_BITS          1
@@ -918,10 +917,10 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
 	 * find the side by checking the side of new->node.node_p.
 	 */
 
-	/* We need the common higher bits between newval and old->val.
-	 * What differences are there between newval and the node here ?
+	/* We need the common higher bits between new->val and old->val.
+	 * What differences are there between new->val and the node here ?
 	 * NOTE that bit(new) is always < bit(root) because highest
-	 * bit of newval and old->val are identical here (otherwise they
+	 * bit of new->val and old->val are identical here (otherwise they
 	 * would sit on different branches).
 	 */
 	// note that if EB_NODE_BITS > 1, we should check that it's still >= 0
@@ -998,7 +997,7 @@ __eb32i_insert(struct eb_root *root, struct eb32_node *new) {
 			   The last two cases can easily be partially merged.
 			*/
 			 
-			if ((signed)new->val < (signed)old->val) {
+			if ((s32)new->val < (s32)old->val) {
 				new->node.leaf_p = new_left;
 				old->node.leaf_p = new_rght;
 				new->node.branches.b[EB_LEFT] = new_leaf;
@@ -1029,7 +1028,7 @@ __eb32i_insert(struct eb_root *root, struct eb32_node *new) {
 		 */
 
 		if ((old->node.bit < 0) || /* we're above a duplicate tree, stop here */
-		    (((unsigned)(new->val ^ old->val) >> old->node.bit) >= EB_NODE_BRANCHES)) {
+		    (((new->val ^ old->val) >> old->node.bit) >= EB_NODE_BRANCHES)) {
 			/* The tree did not contain the value, so we insert <new> before the node
 			 * <old>, and set ->bit to designate the lowest bit position in <new>
 			 * which applies to ->branches.b[].
@@ -1044,13 +1043,13 @@ __eb32i_insert(struct eb_root *root, struct eb32_node *new) {
 
 			new->node.node_p = old->node.node_p;
 
-			if ((signed)new->val < (signed)old->val) {
+			if ((s32)new->val < (s32)old->val) {
 				new->node.leaf_p = new_left;
 				old->node.node_p = new_rght;
 				new->node.branches.b[EB_LEFT] = new_leaf;
 				new->node.branches.b[EB_RGHT] = old_node;
 			}
-			else if ((signed)new->val > (signed)old->val) {
+			else if ((s32)new->val > (s32)old->val) {
 				old->node.node_p = new_left;
 				new->node.leaf_p = new_rght;
 				new->node.branches.b[EB_LEFT] = old_node;
@@ -1231,10 +1230,10 @@ __eb64_insert(struct eb_root *root, struct eb64_node *new) {
 	 * find the side by checking the side of new->node.node_p.
 	 */
 
-	/* We need the common higher bits between newval and old->val.
-	 * What differences are there between newval and the node here ?
+	/* We need the common higher bits between new->val and old->val.
+	 * What differences are there between new->val and the node here ?
 	 * NOTE that bit(new) is always < bit(root) because highest
-	 * bit of newval and old->val are identical here (otherwise they
+	 * bit of new->val and old->val are identical here (otherwise they
 	 * would sit on different branches).
 	 */
 	// note that if EB_NODE_BITS > 1, we should check that it's still >= 0
@@ -1253,7 +1252,7 @@ __eb64i_insert(struct eb_root *root, struct eb64_node *new) {
 	struct eb64_node *old;
 	unsigned int side;
 	eb_troot_t *troot;
-	s64 newval; /* caching the value saves approximately one cycle */
+	u64 newval; /* caching the value saves approximately one cycle */
 
 	side = EB_LEFT;
 	troot = root->b[EB_LEFT];
@@ -1311,7 +1310,7 @@ __eb64i_insert(struct eb_root *root, struct eb64_node *new) {
 			   The last two cases can easily be partially merged.
 			*/
 			 
-			if ((signed)new->val < (signed)old->val) {
+			if ((s64)new->val < (s64)old->val) {
 				new->node.leaf_p = new_left;
 				old->node.leaf_p = new_rght;
 				new->node.branches.b[EB_LEFT] = new_leaf;
@@ -1342,7 +1341,7 @@ __eb64i_insert(struct eb_root *root, struct eb64_node *new) {
 		 */
 
 		if ((old->node.bit < 0) || /* we're above a duplicate tree, stop here */
-		    (((unsigned)(new->val ^ old->val) >> old->node.bit) >= EB_NODE_BRANCHES)) {
+		    (((new->val ^ old->val) >> old->node.bit) >= EB_NODE_BRANCHES)) {
 			/* The tree did not contain the value, so we insert <new> before the node
 			 * <old>, and set ->bit to designate the lowest bit position in <new>
 			 * which applies to ->branches.b[].
@@ -1357,13 +1356,13 @@ __eb64i_insert(struct eb_root *root, struct eb64_node *new) {
 
 			new->node.node_p = old->node.node_p;
 
-			if ((signed)new->val < (signed)old->val) {
+			if ((s64)new->val < (s64)old->val) {
 				new->node.leaf_p = new_left;
 				old->node.node_p = new_rght;
 				new->node.branches.b[EB_LEFT] = new_leaf;
 				new->node.branches.b[EB_RGHT] = old_node;
 			}
-			else if ((signed)new->val > (signed)old->val) {
+			else if ((s64)new->val > (s64)old->val) {
 				old->node.node_p = new_left;
 				new->node.leaf_p = new_rght;
 				new->node.branches.b[EB_LEFT] = old_node;
