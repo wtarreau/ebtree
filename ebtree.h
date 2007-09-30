@@ -729,8 +729,7 @@ static inline int __eb_delete(struct eb_node *node)
  * Finds the first occurence of a value in the tree <root>. If none can be
  * found, NULL is returned.
  */
-static inline struct eb32_node *
-__eb32_lookup(struct eb_root *root, u32 x)
+static inline struct eb32_node *__eb32_lookup(struct eb_root *root, u32 x)
 {
 	struct eb32_node *node;
 	eb_troot_t *troot;
@@ -767,6 +766,51 @@ __eb32_lookup(struct eb_root *root, u32 x)
 		}
 
 		troot = node->node.branches.b[(x >> node->node.bit) & EB_NODE_BRANCH_MASK];
+	}
+}
+
+/*
+ * Finds the first occurence of a signed value in the tree <root>. If none can
+ * be found, NULL is returned.
+ */
+static inline struct eb32_node *__eb32i_lookup(struct eb_root *root, s32 x)
+{
+	struct eb32_node *node;
+	eb_troot_t *troot;
+	u32 val = x ^ 0x80000000;
+
+	troot = root->b[EB_LEFT];
+	if (unlikely(troot == NULL))
+		return NULL;
+
+	while (1) {
+		if ((eb_gettag(troot) == EB_LEAF)) {
+			node = container_of(eb_untag(troot, EB_LEAF),
+					    struct eb32_node, node.branches);
+			if (node->val == x)
+				return node;
+			else
+				return NULL;
+		}
+		node = container_of(eb_untag(troot, EB_NODE),
+				    struct eb32_node, node.branches);
+
+		if (x == node->val) {
+			/* Either we found the node which holds the value, or
+			 * we have a dup tree. In the later case, we have to
+			 * walk it down left to get the first entry.
+			 */
+			if (node->node.bit < 0) {
+				troot = node->node.branches.b[EB_LEFT];
+				while (eb_gettag(troot) != EB_LEAF)
+					troot = (eb_untag(troot, EB_NODE))->b[EB_LEFT];
+				node = container_of(eb_untag(troot, EB_LEAF),
+						    struct eb32_node, node.branches);
+			}
+			return node;
+		}
+
+		troot = node->node.branches.b[(val >> node->node.bit) & EB_NODE_BRANCH_MASK];
 	}
 }
 
