@@ -69,7 +69,7 @@ struct eb32_node *eb32i_insert(struct eb_root *root, struct eb32_node *new)
     return __eb32i_insert(root, new);
 }
 
-struct eb32_node *eb32_lookup(struct eb32_node *root, unsigned long x) {
+struct eb32_node *eb32_lookup(struct eb_root *root, u32 x) {
     return __eb32_lookup(root, x);
 }
 

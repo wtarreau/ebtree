@@ -717,61 +717,50 @@ static inline int __eb_delete(struct eb_node *node)
 /*         The following functions are data type-specific           */
 /********************************************************************/
 
-/*********** FIXME ************/
 /*
  * Finds the first occurence of a value in the tree <root>. If none can be
  * found, NULL is returned.
  */
 static inline struct eb32_node *
-__eb32_lookup(struct eb32_node *root, unsigned long x)
+__eb32_lookup(struct eb_root *root, u32 x)
 {
-	struct eb_node *parent = (struct eb_node *)root;
+	struct eb32_node *node;
+	eb_troot_t *troot;
 
-	root = (struct eb32_node *)parent->branches.b[x >> 31];
-	if (unlikely(!root))
+	troot = root->b[EB_LEFT];
+	if (unlikely(troot == NULL))
 		return NULL;
 
 	while (1) {
-		if (unlikely(root->node.leaf_p == parent)) {
-			/* reached a leaf */
-			if (root->val == x)
-				return root;
+		if ((eb_gettag(troot) == EB_LEAF)) {
+			node = container_of(eb_untag(troot, EB_LEAF),
+					    struct eb32_node, node.branches);
+			if (node->val == x)
+				return node;
 			else
 				return NULL;
 		}
-#if 1
-		/* Optimization 1: if x is equal to the exact value of the node,
-		 * it implies that this node contains a leaf with this exact
-		 * value, so we can return it now.
-		 * This can boost by up to 50% on randomly inserted values, but may
-		 * degrade by 5-10% when values have been carefully inserted in order,
-		 * which is not exactly what we try to use anyway.
-		 */
-		if (unlikely((x ^ root->val) == 0))
-			return root;
-#endif
-#if 1
-		/* Optimization 2: if there are no bits in common anymore, let's
-		 * stop right now instead of going down to the leaf.
-		 * This one greatly improves performance in sparse trees, but it
-		 * appears that repeating this test at every level in complete
-		 * trees instead degrades performance by about 5%. Anyway, it
-		 * generally is worth it.
-		 */
-		if (unlikely((x ^ root->val) >> root->node.bit))
-			return NULL;
-#endif
+		node = container_of(eb_untag(troot, EB_NODE),
+				    struct eb32_node, node.branches);
 
-		parent = (struct eb_node *)root;
+		if (x == node->val) {
+			/* Either we found the node which holds the value, or
+			 * we have a dup tree. In the later case, we have to
+			 * walk it down left to get the first entry.
+			 */
+			if ((node->node.bit < 0)) {
+				do {
+					troot = node->node.branches.b[EB_LEFT];
+					node = container_of(eb_untag(troot, EB_NODE),
+							   struct eb32_node, node.branches);
+				} while (eb_gettag(troot) == EB_NODE);
+				node = container_of(eb_untag(troot, EB_LEAF),
+						   struct eb32_node, node.branches);
+			}
+			return node;
+		}
 
-		// Don't ask why this slows down like hell ! Gcc completely
-		// changes all the loop sequencing !
-		// root = (struct eb32_node *)parent->branch[((x >> (parent->bit - 1)) & 1)];
-
-		if ((x >> (parent->bit - 1)) & 1)
-			root = (struct eb32_node *)parent->branches.b[1];
-		else
-			root = (struct eb32_node *)parent->branches.b[0];
+		troot = node->node.branches.b[(x >> node->node.bit) & EB_NODE_BRANCH_MASK];
 	}
 }
 
@@ -1607,7 +1596,7 @@ struct eb_node *eb_next(struct eb_node *node);
 
 struct eb32_node *eb32_insert(struct eb_root *root, struct eb32_node *new);
 struct eb32_node *eb32i_insert(struct eb_root *root, struct eb32_node *new);
-struct eb32_node *eb32_lookup(struct eb32_node *root, unsigned long x);
+struct eb32_node *eb32_lookup(struct eb_root *root, u32 x);
 
 struct eb64_node *eb64_insert(struct eb_root *root, struct eb64_node *new);
 struct eb64_node *eb64i_insert(struct eb_root *root, struct eb64_node *new);
