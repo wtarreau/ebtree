@@ -412,6 +412,14 @@ static inline int eb_gettag(eb_troot_t *troot)
 	return (unsigned long)troot & 1;
 }
 
+/* Converts a root pointer to its equivalent eb_troot_t pointer and clears the
+ * tag, no matter what its value was.
+ */
+static inline struct eb_root *eb_clrtag(const eb_troot_t *troot)
+{
+	return (struct eb_root *)((unsigned long)troot & ~1UL);
+}
+
 /* Returns a pointer to the eb_node holding <root> */
 static inline struct eb_node *eb_root_to_node(struct eb_root *root)
 {
