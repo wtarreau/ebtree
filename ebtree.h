@@ -275,11 +275,14 @@ static inline int flsnz(int x)
 static inline int fls64(unsigned long long x)
 {
 	unsigned int h;
+	unsigned int bits = 32;
 
 	h = x >> 32;
-	if (h)
-		return flsnz(h) + 32;
-	return flsnz(x);
+	if (!h) {
+		h = x;
+		bits = 0;
+	}
+	return flsnz(h) + bits;
 }
 
 #define fls_auto(x) ((sizeof(x) > 4) ? fls64(x) : flsnz(x))
@@ -1176,7 +1179,17 @@ __eb64_insert(struct eb_root *root, struct eb64_node *new) {
 
 		/* walk down */
 		root = &old->node.branches;
+#if BITS_PER_LONG >= 64
 		side = (newval >> old->node.bit) & EB_NODE_BRANCH_MASK;
+#else
+		side = newval;
+		side >>= old->node.bit;
+		if (old->node.bit >= 32) {
+			side = newval >> 32;
+			side >>= old->node.bit & 0x1F;
+		}
+		side &= EB_NODE_BRANCH_MASK;
+#endif
 		troot = root->b[side];
 	}
 
@@ -1334,7 +1347,17 @@ __eb64i_insert(struct eb_root *root, struct eb64_node *new) {
 
 		/* walk down */
 		root = &old->node.branches;
+#if BITS_PER_LONG >= 64
 		side = (newval >> old->node.bit) & EB_NODE_BRANCH_MASK;
+#else
+		side = newval;
+		side >>= old->node.bit;
+		if (old->node.bit >= 32) {
+			side = newval >> 32;
+			side >>= old->node.bit & 0x1F;
+		}
+		side &= EB_NODE_BRANCH_MASK;
+#endif
 		troot = root->b[side];
 	}
 

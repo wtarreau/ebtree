@@ -226,7 +226,8 @@ int main(int argc, char **argv) {
 
 	    // simulates some sparse groups of values like with a scheduler
 	    x = (i / 1000) * 50000 + (i % 1000) * 4 - 1500;
-	    x = x + (1ULL << 63);
+	    //x = x + (1ULL << 63);
+	    x ^= (1ULL << i&0x3F);
 	    //x = i & -256;
 	    task = (struct task *)calloc(1,sizeof(*task));
 	    task->expire = x;//*x;//total-i-1;//*/(x>>10)&65535;//i&65535;//(x>>8)&65535;//rev32(i);//i&32767;//x;//i ^ (long)lasttask;
