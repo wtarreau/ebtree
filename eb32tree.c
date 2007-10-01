@@ -1,5 +1,5 @@
 /*
- * Elastic Binary Trees - exported generic functions
+ * Elastic Binary Trees - exported functions for operations on 32bit nodes.
  * (C) 2002-2007 - Willy Tarreau <w@1wt.eu>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,15 +17,26 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "ebtree.h"
+/* Consult eb32tree.h for more details about those functions */
 
-int eb_delete(struct eb_node *node)
+#include "eb32tree.h"
+
+struct eb32_node *eb32_insert(struct eb_root *root, struct eb32_node *new)
 {
-    return __eb_delete(node);
+	return __eb32_insert(root, new);
 }
 
-/* used by insertion primitives */
-struct eb_node *eb_insert_dup(struct eb_node *sub, struct eb_node *new)
+struct eb32_node *eb32i_insert(struct eb_root *root, struct eb32_node *new)
 {
-	return __eb_insert_dup(sub, new);
+	return __eb32i_insert(root, new);
+}
+
+struct eb32_node *eb32_lookup(struct eb_root *root, u32 x)
+{
+	return __eb32_lookup(root, x);
+}
+
+struct eb32_node *eb32i_lookup(struct eb_root *root, s32 x)
+{
+	return __eb32i_lookup(root, x);
 }

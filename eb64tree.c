@@ -1,5 +1,5 @@
 /*
- * Elastic Binary Trees - exported generic functions
+ * Elastic Binary Trees - exported functions for operations on 64bit nodes.
  * (C) 2002-2007 - Willy Tarreau <w@1wt.eu>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,15 +17,26 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "ebtree.h"
+/* Consult eb64tree.h for more details about those functions */
 
-int eb_delete(struct eb_node *node)
+#include "eb64tree.h"
+
+struct eb64_node *eb64_insert(struct eb_root *root, struct eb64_node *new)
 {
-    return __eb_delete(node);
+	return __eb64_insert(root, new);
 }
 
-/* used by insertion primitives */
-struct eb_node *eb_insert_dup(struct eb_node *sub, struct eb_node *new)
+struct eb64_node *eb64i_insert(struct eb_root *root, struct eb64_node *new)
 {
-	return __eb_insert_dup(sub, new);
+	return __eb64i_insert(root, new);
+}
+
+struct eb64_node *eb64_lookup(struct eb_root *root, u64 x)
+{
+	return __eb64_lookup(root, x);
+}
+
+struct eb64_node *eb64i_lookup(struct eb_root *root, s64 x)
+{
+	return __eb64i_lookup(root, x);
 }

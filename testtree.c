@@ -97,7 +97,7 @@ static inline void rb_insert_task_queue(struct task *newtask)
 
 #else
 
-#include "ebtree.h"
+#include "eb32tree.h"
 
 struct task {
     struct eb32_node eb_node;
@@ -109,49 +109,15 @@ struct task {
 
 struct eb_root wait_queue = EB_ROOT;
 
-#define tree_node  eb_node
+#define tree_node               eb32_node
+#define tree_first(root)        eb32_first(root)
+#define tree_last(root)         eb32_last(root)
+#define tree_next(node)         eb32_next(node)
+#define tree_prev(node)         eb32_prev(node)
+#define tree_entry(node)        eb32_entry((node), struct task, eb_node)
 #define insert_task_queue(task) __eb32_insert((task)->wq, &task->eb_node)
-
-#define tree_lookup(root, x) &__eb32_lookup(root, x)->node
-#define tree_first(root) eb_first(root)
-#define tree_last(root) eb_last(root)
-#define tree_next(node) __eb_next(node)
-#define tree_prev(node) __eb_prev(node)
-#define tree_erase(node, root) eb_delete(node);
-#define tree_entry(node) container_of((node), struct task, eb_node)
-
-#ifdef __eb_lookup
-#undef __eb_lookup
-#define __eb_lookup(root, x) ({                                               \
-	__label__ __out_lookup;                                               \
-	typeof(root)    __ro = root;                                          \
-	typeof(x)       __x = x;                                              \
-	struct eb_node *__par = (struct eb_node *)__ro;                       \
-	__ro = (typeof(root))__par->leaf[(__x >> (__par->bit - 1)) & 1];      \
-	if (unlikely(!__ro))                                                  \
-		goto __out_lookup;                                            \
-	while (1) {                                                           \
-		if (unlikely(__ro->node.leaf_p == __par)) {                   \
-			if (__ro->val != __x)                                 \
-				__ro = NULL;                                  \
-			break;                                                \
-		}                                                             \
-		if (unlikely((__x ^ __ro->val) == 0))                         \
-			break;                                                \
-		if (unlikely((__x ^ __ro->val) >> __ro->node.bit)) {          \
-			__ro = NULL;                                          \
-			break;                                                \
-		}                                                             \
-		__par = (struct eb_node *)__ro;                               \
-		if ((__x >> (__par->bit - 1)) & 1)                            \
-			__ro = (typeof(root))__par->leaf[1];                  \
-		else                                                          \
-			__ro = (typeof(root))__par->leaf[0];                  \
-	}                                                                     \
- __out_lookup:                                                                \
-	__ro;                                                                 \
-})
-#endif
+#define tree_lookup(root, x)    __eb32_lookup(root, x)
+#define tree_erase(node, root)  __eb32_delete(node);
 
 #endif
 
