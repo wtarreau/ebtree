@@ -21,22 +21,22 @@
 
 #include "eb64tree.h"
 
-struct eb64_node *eb64_insert(struct eb_root *root, struct eb64_node *new)
+REGPRM2 struct eb64_node *eb64_insert(struct eb_root *root, struct eb64_node *new)
 {
 	return __eb64_insert(root, new);
 }
 
-struct eb64_node *eb64i_insert(struct eb_root *root, struct eb64_node *new)
+REGPRM2 struct eb64_node *eb64i_insert(struct eb_root *root, struct eb64_node *new)
 {
 	return __eb64i_insert(root, new);
 }
 
-struct eb64_node *eb64_lookup(struct eb_root *root, u64 x)
+REGPRM2 struct eb64_node *eb64_lookup(struct eb_root *root, u64 x)
 {
 	return __eb64_lookup(root, x);
 }
 
-struct eb64_node *eb64i_lookup(struct eb_root *root, s64 x)
+REGPRM2 struct eb64_node *eb64i_lookup(struct eb_root *root, s64 x)
 {
 	return __eb64i_lookup(root, x);
 }

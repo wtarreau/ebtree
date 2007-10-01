@@ -309,6 +309,29 @@ static inline int fls64(unsigned long long x)
 #define likely(x) (__builtin_expect((x) != 0, 1))
 #define unlikely(x) (__builtin_expect((x) != 0, 0))
 
+/* Support passing function parameters in registers. For this, the
+ * CONFIG_EBTREE_REGPARM macro has to be set to the maximal number of registers
+ * allowed. Some functions have intentionally received a regparm lower than
+ * their parameter count, it is in order to avoid register clobbering where
+ * they are called.
+ */
+#if CONFIG_EBTREE_REGPARM >= 1
+#define REGPRM1	__attribute__((regparm(1)))
+#else
+#define REGPRM1
+#endif
+
+#if CONFIG_EBTREE_REGPARM >= 2
+#define REGPRM2	__attribute__((regparm(2)))
+#else
+#define REGPRM2 REGPRM1
+#endif
+
+#if CONFIG_EBTREE_REGPARM >= 3
+#define REGPRM3	__attribute__((regparm(3)))
+#else
+#define REGPRM3 REGPRM2
+#endif
 
 /* Number of bits per node, and number of leaves per node */
 #define EB_NODE_BITS          1
@@ -620,7 +643,7 @@ static inline int __eb_delete(struct eb_node *node)
 
 /* These functions are declared in ebtree.c */
 int eb_delete(struct eb_node *node);
-struct eb_node *eb_insert_dup(struct eb_node *sub, struct eb_node *new);
+REGPRM1 struct eb_node *eb_insert_dup(struct eb_node *sub, struct eb_node *new);
 
 
 /*
