@@ -73,12 +73,12 @@ static inline struct ebpt_node *ebpt_prev(struct ebpt_node *ebpt)
 	return ebpt_entry(eb_prev(&ebpt->node), struct ebpt_node, node);
 }
 
-/* Delete node from the tree. Return 0 if the tree is empty afterwards. Note
+/* Delete node from the tree if it was linked in. Mark the node unused. Note
  * that this function relies on a non-inlined generic function: eb_delete.
  */
-static inline int ebpt_delete(struct ebpt_node *ebpt)
+static inline void ebpt_delete(struct ebpt_node *ebpt)
 {
-	return eb_delete(&ebpt->node);
+	eb_delete(&ebpt->node);
 }
 
 /*
@@ -93,10 +93,10 @@ REGPRM2 struct ebpt_node *ebpt_insert(struct eb_root *root, struct ebpt_node *ne
  * code is larger. The non-inlined version is preferred.
  */
 
-/* Delete node from the tree. Return 0 if the tree is empty afterwards */
-static inline int __ebpt_delete(struct ebpt_node *ebpt)
+/* Delete node from the tree if it was linked in. Mark the node unused. */
+static inline void __ebpt_delete(struct ebpt_node *ebpt)
 {
-	return __eb_delete(&ebpt->node);
+	__eb_delete(&ebpt->node);
 }
 
 /*

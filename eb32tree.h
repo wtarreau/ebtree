@@ -70,12 +70,12 @@ static inline struct eb32_node *eb32_prev(struct eb32_node *eb32)
 	return eb32_entry(eb_prev(&eb32->node), struct eb32_node, node);
 }
 
-/* Delete node from the tree. Return 0 if the tree is empty afterwards. Note
+/* Delete node from the tree if it was linked in. Mark the node unused. Note
  * that this function relies on a non-inlined generic function: eb_delete.
  */
-static inline int eb32_delete(struct eb32_node *eb32)
+static inline void eb32_delete(struct eb32_node *eb32)
 {
-	return eb_delete(&eb32->node);
+	eb_delete(&eb32->node);
 }
 
 /*
@@ -92,10 +92,10 @@ REGPRM2 struct eb32_node *eb32i_insert(struct eb_root *root, struct eb32_node *n
  * code is larger. The non-inlined version is preferred.
  */
 
-/* Delete node from the tree. Return 0 if the tree is empty afterwards */
-static inline int __eb32_delete(struct eb32_node *eb32)
+/* Delete node from the tree if it was linked in. Mark the node unused. */
+static inline void __eb32_delete(struct eb32_node *eb32)
 {
-	return __eb_delete(&eb32->node);
+	__eb_delete(&eb32->node);
 }
 
 /*

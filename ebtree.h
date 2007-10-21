@@ -212,6 +212,8 @@
 
      - a node can never have node_p pointing to itself.
 
+     - a node is linked in a tree if and only if it has a non-null leaf_p.
+
      - a node can never have both branches equal, except for the root which can
        have them both NULL.
 
@@ -553,14 +555,18 @@ static inline struct eb_node *eb_next(struct eb_node *node)
 }
 
 
-/* Removes a leaf node from the tree, and returns zero after deleting the
- * last node. Otherwise, non-zero is returned.
+/* Removes a leaf node from the tree if it was still in it. Marks the node
+ * as unlinked.
  */
-static inline int __eb_delete(struct eb_node *node)
+static inline void __eb_delete(struct eb_node *node)
 {
+	__label__ delete_unlink;
 	unsigned int pside, gpside, sibtype;
 	struct eb_node *parent;
 	struct eb_root *gparent;
+
+	if (!node->leaf_p)
+		return;
 
 	/* we need the parent, our side, and the grand parent */
 	pside = eb_gettag(node->leaf_p);
@@ -574,7 +580,7 @@ static inline int __eb_delete(struct eb_node *node)
 	if (parent->branches.b[EB_RGHT] == NULL) {
 		/* we're just below the root, it's trivial. */
 		parent->branches.b[EB_LEFT] = NULL;
-		return 0;
+		goto delete_unlink;
 	}
 
 	/* To release our parent, we have to identify our sibling, and reparent
@@ -610,7 +616,7 @@ static inline int __eb_delete(struct eb_node *node)
 
 	/* If our link part is unused, we can safely exit now */
 	if (!node->node_p)
-		return 1; /* tree is not empty yet */
+		goto delete_unlink;
 
 	/* From now on, <node> and <parent> are necessarily different, and the
 	 * <node>'s node part is in use. By definition, <parent> is at least
@@ -636,13 +642,14 @@ static inline int __eb_delete(struct eb_node *node)
 				eb_dotag(&parent->branches, pside);
 		}
 	}
-
+ delete_unlink:
 	/* Now the node has been completely unlinked */
-	return 1; /* tree is not empty yet */
+	node->leaf_p = NULL;
+	return; /* tree is not empty yet */
 }
 
 /* These functions are declared in ebtree.c */
-int eb_delete(struct eb_node *node);
+void eb_delete(struct eb_node *node);
 REGPRM1 struct eb_node *eb_insert_dup(struct eb_node *sub, struct eb_node *new);
 
 

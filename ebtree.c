@@ -19,9 +19,9 @@
 
 #include "ebtree.h"
 
-int eb_delete(struct eb_node *node)
+void eb_delete(struct eb_node *node)
 {
-    return __eb_delete(node);
+	__eb_delete(node);
 }
 
 /* used by insertion primitives */

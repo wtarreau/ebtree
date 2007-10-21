@@ -70,18 +70,18 @@ static inline struct eb64_node *eb64_prev(struct eb64_node *eb64)
 	return eb64_entry(eb_prev(&eb64->node), struct eb64_node, node);
 }
 
-/* Delete node from the tree. Return 0 if the tree is empty afterwards. Note
+/* Delete node from the tree if it was linked in. Mark the node unused. Note
  * that this function relies on a non-inlined generic function: eb_delete.
  */
-static inline int eb64_delete(struct eb64_node *eb64)
+static inline void eb64_delete(struct eb64_node *eb64)
 {
-	return eb_delete(&eb64->node);
+	eb_delete(&eb64->node);
 }
+
 /*
  * The following functions are not inlined by default. They are declared
  * in eb64tree.c, which simply relies on their inline version.
  */
-
 REGPRM2 struct eb64_node *eb64_lookup(struct eb_root *root, u64 x);
 REGPRM2 struct eb64_node *eb64i_lookup(struct eb_root *root, s64 x);
 REGPRM2 struct eb64_node *eb64_insert(struct eb_root *root, struct eb64_node *new);
@@ -92,10 +92,10 @@ REGPRM2 struct eb64_node *eb64i_insert(struct eb_root *root, struct eb64_node *n
  * code is larger. The non-inlined version is preferred.
  */
 
-/* Delete node from the tree. Return 0 if the tree is empty afterwards */
-static inline int __eb64_delete(struct eb64_node *eb64)
+/* Delete node from the tree if it was linked in. Mark the node unused. */
+static inline void __eb64_delete(struct eb64_node *eb64)
 {
-	return __eb_delete(&eb64->node);
+	__eb_delete(&eb64->node);
 }
 
 /*
