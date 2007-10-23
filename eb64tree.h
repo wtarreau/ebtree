@@ -30,14 +30,14 @@
 typedef unsigned long long u64;
 typedef   signed long long s64;
 
-/* This structure carries a node, a leaf, and a value. It must start with the
+/* This structure carries a node, a leaf, and a key. It must start with the
  * eb_node so that it can be cast into an eb_node. We could also have put some
  * sort of transparent union here to reduce the indirection level, but the fact
  * is, the end user is not meant to manipulate internals, so this is pointless.
  */
 struct eb64_node {
 	struct eb_node node; /* the tree node, must be at the beginning */
-	u64 val;
+	u64 key;
 };
 
 /*
@@ -99,7 +99,7 @@ static inline void __eb64_delete(struct eb64_node *eb64)
 }
 
 /*
- * Find the first occurence of a value in the tree <root>. If none can be
+ * Find the first occurence of a key in the tree <root>. If none can be
  * found, return NULL.
  */
 static inline struct eb64_node *__eb64_lookup(struct eb_root *root, u64 x)
@@ -115,7 +115,7 @@ static inline struct eb64_node *__eb64_lookup(struct eb_root *root, u64 x)
 		if ((eb_gettag(troot) == EB_LEAF)) {
 			node = container_of(eb_untag(troot, EB_LEAF),
 					    struct eb64_node, node.branches);
-			if (node->val == x)
+			if (node->key == x)
 				return node;
 			else
 				return NULL;
@@ -123,8 +123,8 @@ static inline struct eb64_node *__eb64_lookup(struct eb_root *root, u64 x)
 		node = container_of(eb_untag(troot, EB_NODE),
 				    struct eb64_node, node.branches);
 
-		if (x == node->val) {
-			/* Either we found the node which holds the value, or
+		if (x == node->key) {
+			/* Either we found the node which holds the key, or
 			 * we have a dup tree. In the later case, we have to
 			 * walk it down left to get the first entry.
 			 */
@@ -143,14 +143,14 @@ static inline struct eb64_node *__eb64_lookup(struct eb_root *root, u64 x)
 }
 
 /*
- * Find the first occurence of a signed value in the tree <root>. If none can
+ * Find the first occurence of a signed key in the tree <root>. If none can
  * be found, return NULL.
  */
 static inline struct eb64_node *__eb64i_lookup(struct eb_root *root, s64 x)
 {
 	struct eb64_node *node;
 	eb_troot_t *troot;
-	u64 val = x ^ (1ULL << 63);
+	u64 key = x ^ (1ULL << 63);
 
 	troot = root->b[EB_LEFT];
 	if (unlikely(troot == NULL))
@@ -160,7 +160,7 @@ static inline struct eb64_node *__eb64i_lookup(struct eb_root *root, s64 x)
 		if ((eb_gettag(troot) == EB_LEAF)) {
 			node = container_of(eb_untag(troot, EB_LEAF),
 					    struct eb64_node, node.branches);
-			if (node->val == x)
+			if (node->key == x)
 				return node;
 			else
 				return NULL;
@@ -168,8 +168,8 @@ static inline struct eb64_node *__eb64i_lookup(struct eb_root *root, s64 x)
 		node = container_of(eb_untag(troot, EB_NODE),
 				    struct eb64_node, node.branches);
 
-		if (x == node->val) {
-			/* Either we found the node which holds the value, or
+		if (x == node->key) {
+			/* Either we found the node which holds the key, or
 			 * we have a dup tree. In the later case, we have to
 			 * walk it down left to get the first entry.
 			 */
@@ -183,19 +183,19 @@ static inline struct eb64_node *__eb64i_lookup(struct eb_root *root, s64 x)
 			return node;
 		}
 
-		troot = node->node.branches.b[(val >> node->node.bit) & EB_NODE_BRANCH_MASK];
+		troot = node->node.branches.b[(key >> node->node.bit) & EB_NODE_BRANCH_MASK];
 	}
 }
 
 /* Insert eb64_node <new> into subtree starting at node root <root>.
- * Only new->val needs be set with the value. The eb64_node is returned.
+ * Only new->key needs be set with the key. The eb64_node is returned.
  */
 static inline struct eb64_node *
 __eb64_insert(struct eb_root *root, struct eb64_node *new) {
 	struct eb64_node *old;
 	unsigned int side;
 	eb_troot_t *troot;
-	u64 newval; /* caching the value saves approximately one cycle */
+	u64 newkey; /* caching the key saves approximately one cycle */
 
 	side = EB_LEFT;
 	troot = root->b[EB_LEFT];
@@ -216,9 +216,9 @@ __eb64_insert(struct eb_root *root, struct eb64_node *new) {
 	 * displacing below <new>. <troot> will always point to the future node
 	 * (tagged with its type). <side> carries the side the node <new> is
 	 * attached to below its parent, which is also where previous node
-	 * was attached. <newval> carries the value being inserted.
+	 * was attached. <newkey> carries the key being inserted.
 	 */
-	newval = new->val;
+	newkey = new->key;
 
 	while (1) {
 		if (unlikely(eb_gettag(troot) == EB_LEAF)) {
@@ -236,34 +236,34 @@ __eb64_insert(struct eb_root *root, struct eb64_node *new) {
 			new->node.node_p = old->node.leaf_p;
 
 			/* Right here, we have 3 possibilities :
-			   - the tree does not contain the value, and we have
-			     new->val < old->val. We insert new above old, on
+			   - the tree does not contain the key, and we have
+			     new->key < old->key. We insert new above old, on
 			     the left ;
 
-			   - the tree does not contain the value, and we have
-			     new->val > old->val. We insert new above old, on
+			   - the tree does not contain the key, and we have
+			     new->key > old->key. We insert new above old, on
 			     the right ;
 
-			   - the tree does contain the value, which implies it
-			     is alone. We add the new value next to it as a
+			   - the tree does contain the key, which implies it
+			     is alone. We add the new key next to it as a
 			     first duplicate.
 
 			   The last two cases can easily be partially merged.
 			*/
 			 
-			if (new->val < old->val) {
+			if (new->key < old->key) {
 				new->node.leaf_p = new_left;
 				old->node.leaf_p = new_rght;
 				new->node.branches.b[EB_LEFT] = new_leaf;
 				new->node.branches.b[EB_RGHT] = old_leaf;
 			} else {
-				/* new->val >= old->val, new goes the right */
+				/* new->key >= old->key, new goes the right */
 				old->node.leaf_p = new_left;
 				new->node.leaf_p = new_rght;
 				new->node.branches.b[EB_LEFT] = old_leaf;
 				new->node.branches.b[EB_RGHT] = new_leaf;
 
-				if (new->val == old->val) {
+				if (new->key == old->key) {
 					new->node.bit = -1;
 					root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
 					return new;
@@ -282,8 +282,8 @@ __eb64_insert(struct eb_root *root, struct eb64_node *new) {
 		 */
 
 		if ((old->node.bit < 0) || /* we're above a duplicate tree, stop here */
-		    (((new->val ^ old->val) >> old->node.bit) >= EB_NODE_BRANCHES)) {
-			/* The tree did not contain the value, so we insert <new> before the node
+		    (((new->key ^ old->key) >> old->node.bit) >= EB_NODE_BRANCHES)) {
+			/* The tree did not contain the key, so we insert <new> before the node
 			 * <old>, and set ->bit to designate the lowest bit position in <new>
 			 * which applies to ->branches.b[].
 			 */
@@ -297,13 +297,13 @@ __eb64_insert(struct eb_root *root, struct eb64_node *new) {
 
 			new->node.node_p = old->node.node_p;
 
-			if (new->val < old->val) {
+			if (new->key < old->key) {
 				new->node.leaf_p = new_left;
 				old->node.node_p = new_rght;
 				new->node.branches.b[EB_LEFT] = new_leaf;
 				new->node.branches.b[EB_RGHT] = old_node;
 			}
-			else if (new->val > old->val) {
+			else if (new->key > old->key) {
 				old->node.node_p = new_left;
 				new->node.leaf_p = new_rght;
 				new->node.branches.b[EB_LEFT] = old_node;
@@ -320,12 +320,12 @@ __eb64_insert(struct eb_root *root, struct eb64_node *new) {
 		/* walk down */
 		root = &old->node.branches;
 #if BITS_PER_LONG >= 64
-		side = (newval >> old->node.bit) & EB_NODE_BRANCH_MASK;
+		side = (newkey >> old->node.bit) & EB_NODE_BRANCH_MASK;
 #else
-		side = newval;
+		side = newkey;
 		side >>= old->node.bit;
 		if (old->node.bit >= 32) {
-			side = newval >> 32;
+			side = newkey >> 32;
 			side >>= old->node.bit & 0x1F;
 		}
 		side &= EB_NODE_BRANCH_MASK;
@@ -339,21 +339,21 @@ __eb64_insert(struct eb_root *root, struct eb64_node *new) {
 	 * find the side by checking the side of new->node.node_p.
 	 */
 
-	/* We need the common higher bits between new->val and old->val.
-	 * What differences are there between new->val and the node here ?
+	/* We need the common higher bits between new->key and old->key.
+	 * What differences are there between new->key and the node here ?
 	 * NOTE that bit(new) is always < bit(root) because highest
-	 * bit of new->val and old->val are identical here (otherwise they
+	 * bit of new->key and old->key are identical here (otherwise they
 	 * would sit on different branches).
 	 */
 	// note that if EB_NODE_BITS > 1, we should check that it's still >= 0
-	new->node.bit = fls64(new->val ^ old->val) - EB_NODE_BITS;
+	new->node.bit = fls64(new->key ^ old->key) - EB_NODE_BITS;
 	root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
 
 	return new;
 }
 
 /* Insert eb64_node <new> into subtree starting at node root <root>, using
- * signed values. Only new->val needs be set with the value. The eb64_node
+ * signed keys. Only new->key needs be set with the key. The eb64_node
  * is returned.
  */
 static inline struct eb64_node *
@@ -361,7 +361,7 @@ __eb64i_insert(struct eb_root *root, struct eb64_node *new) {
 	struct eb64_node *old;
 	unsigned int side;
 	eb_troot_t *troot;
-	u64 newval; /* caching the value saves approximately one cycle */
+	u64 newkey; /* caching the key saves approximately one cycle */
 
 	side = EB_LEFT;
 	troot = root->b[EB_LEFT];
@@ -382,11 +382,11 @@ __eb64i_insert(struct eb_root *root, struct eb64_node *new) {
 	 * displacing below <new>. <troot> will always point to the future node
 	 * (tagged with its type). <side> carries the side the node <new> is
 	 * attached to below its parent, which is also where previous node
-	 * was attached. <newval> carries a high bit shift of the value being
-	 * inserted in order to have negative values stored before positive
+	 * was attached. <newkey> carries a high bit shift of the key being
+	 * inserted in order to have negative keys stored before positive
 	 * ones.
 	 */
-	newval = new->val ^ (1ULL << 63);
+	newkey = new->key ^ (1ULL << 63);
 
 	while (1) {
 		if (unlikely(eb_gettag(troot) == EB_LEAF)) {
@@ -404,34 +404,34 @@ __eb64i_insert(struct eb_root *root, struct eb64_node *new) {
 			new->node.node_p = old->node.leaf_p;
 
 			/* Right here, we have 3 possibilities :
-			   - the tree does not contain the value, and we have
-			     new->val < old->val. We insert new above old, on
+			   - the tree does not contain the key, and we have
+			     new->key < old->key. We insert new above old, on
 			     the left ;
 
-			   - the tree does not contain the value, and we have
-			     new->val > old->val. We insert new above old, on
+			   - the tree does not contain the key, and we have
+			     new->key > old->key. We insert new above old, on
 			     the right ;
 
-			   - the tree does contain the value, which implies it
-			     is alone. We add the new value next to it as a
+			   - the tree does contain the key, which implies it
+			     is alone. We add the new key next to it as a
 			     first duplicate.
 
 			   The last two cases can easily be partially merged.
 			*/
 			 
-			if ((s64)new->val < (s64)old->val) {
+			if ((s64)new->key < (s64)old->key) {
 				new->node.leaf_p = new_left;
 				old->node.leaf_p = new_rght;
 				new->node.branches.b[EB_LEFT] = new_leaf;
 				new->node.branches.b[EB_RGHT] = old_leaf;
 			} else {
-				/* new->val >= old->val, new goes the right */
+				/* new->key >= old->key, new goes the right */
 				old->node.leaf_p = new_left;
 				new->node.leaf_p = new_rght;
 				new->node.branches.b[EB_LEFT] = old_leaf;
 				new->node.branches.b[EB_RGHT] = new_leaf;
 
-				if (new->val == old->val) {
+				if (new->key == old->key) {
 					new->node.bit = -1;
 					root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
 					return new;
@@ -450,8 +450,8 @@ __eb64i_insert(struct eb_root *root, struct eb64_node *new) {
 		 */
 
 		if ((old->node.bit < 0) || /* we're above a duplicate tree, stop here */
-		    (((new->val ^ old->val) >> old->node.bit) >= EB_NODE_BRANCHES)) {
-			/* The tree did not contain the value, so we insert <new> before the node
+		    (((new->key ^ old->key) >> old->node.bit) >= EB_NODE_BRANCHES)) {
+			/* The tree did not contain the key, so we insert <new> before the node
 			 * <old>, and set ->bit to designate the lowest bit position in <new>
 			 * which applies to ->branches.b[].
 			 */
@@ -465,13 +465,13 @@ __eb64i_insert(struct eb_root *root, struct eb64_node *new) {
 
 			new->node.node_p = old->node.node_p;
 
-			if ((s64)new->val < (s64)old->val) {
+			if ((s64)new->key < (s64)old->key) {
 				new->node.leaf_p = new_left;
 				old->node.node_p = new_rght;
 				new->node.branches.b[EB_LEFT] = new_leaf;
 				new->node.branches.b[EB_RGHT] = old_node;
 			}
-			else if ((s64)new->val > (s64)old->val) {
+			else if ((s64)new->key > (s64)old->key) {
 				old->node.node_p = new_left;
 				new->node.leaf_p = new_rght;
 				new->node.branches.b[EB_LEFT] = old_node;
@@ -488,12 +488,12 @@ __eb64i_insert(struct eb_root *root, struct eb64_node *new) {
 		/* walk down */
 		root = &old->node.branches;
 #if BITS_PER_LONG >= 64
-		side = (newval >> old->node.bit) & EB_NODE_BRANCH_MASK;
+		side = (newkey >> old->node.bit) & EB_NODE_BRANCH_MASK;
 #else
-		side = newval;
+		side = newkey;
 		side >>= old->node.bit;
 		if (old->node.bit >= 32) {
-			side = newval >> 32;
+			side = newkey >> 32;
 			side >>= old->node.bit & 0x1F;
 		}
 		side &= EB_NODE_BRANCH_MASK;
@@ -507,14 +507,14 @@ __eb64i_insert(struct eb_root *root, struct eb64_node *new) {
 	 * find the side by checking the side of new->node.node_p.
 	 */
 
-	/* We need the common higher bits between new->val and old->val.
-	 * What differences are there between new->val and the node here ?
+	/* We need the common higher bits between new->key and old->key.
+	 * What differences are there between new->key and the node here ?
 	 * NOTE that bit(new) is always < bit(root) because highest
-	 * bit of new->val and old->val are identical here (otherwise they
+	 * bit of new->key and old->key are identical here (otherwise they
 	 * would sit on different branches).
 	 */
 	// note that if EB_NODE_BITS > 1, we should check that it's still >= 0
-	new->node.bit = fls64(new->val ^ old->val) - EB_NODE_BITS;
+	new->node.bit = fls64(new->key ^ old->key) - EB_NODE_BITS;
 	root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
 
 	return new;

@@ -32,7 +32,7 @@
 /*
   General idea:
   -------------
-  In a radix binary tree, we may have up to 2N-1 nodes for N values if all of
+  In a radix binary tree, we may have up to 2N-1 nodes for N keys if all of
   them are leaves. If we find a way to differentiate intermediate nodes (later
   called "nodes") and final nodes (later called "leaves"), and we associate
   them by two, it is possible to build sort of a self-contained radix tree with
@@ -61,7 +61,7 @@
    necessary, which implies that it will always remain somewhere above it. So
    both the leaf and the node can share the exact value of the leaf, because
    when going down the node, the bit mask will be applied to comparisons. So we
-   are tempted to have one single value shared between the node and the leaf.
+   are tempted to have one single key shared between the node and the leaf.
 
    The bit only serves the nodes, and the dups only serve the leaves. So we can
    put a lot of information in common. This results in one single entity with
@@ -87,7 +87,7 @@
            left  [leaf]
          branch
 
-   Adding values in such a tree simply consists in inserting nodes between
+   Adding keys in such a tree simply consists in inserting nodes between
    other nodes and/or leaves :
 
                 [root]
@@ -116,16 +116,16 @@
      - a pointer to the leaf's parent (leaf_p)
      - two branches pointing to lower nodes or leaves (branches)
      - a bit position (bit)
-     - an optional value.
+     - an optional key.
 
-   The value here is optional because it's used only during insertion, in order
+   The key here is optional because it's used only during insertion, in order
    to classify the nodes. Nothing else in the tree structure requires knowledge
-   of the value. This makes it possible to write type-agnostic primitives for
+   of the key. This makes it possible to write type-agnostic primitives for
    everything, and type-specific insertion primitives. This has led to consider
    two types of EB nodes. The type-agnostic ones will serve as a header for the
    other ones, and will simply be called "struct eb_node". The other ones will
    have their type indicated in the structure name. Eg: "struct eb32_node" for
-   nodes carrying 32 bit values.
+   nodes carrying 32 bit keys.
 
    We will also node that the two branches in a node serve exactly the same
    purpose as an EB root. For this reason, a "struct eb_root" will be used as
@@ -147,29 +147,29 @@
    since they designate pointers to root parts, we simply call them
    "tagged root pointers", or "eb_troot" in the code.
 
-   Duplicate values are stored in a special manner. When inserting a value, if
+   Duplicate keys are stored in a special manner. When inserting a key, if
    the same one is found, then an incremental binary tree is built at this
-   place from these values. This ensures that no special case has to be written
+   place from these keys. This ensures that no special case has to be written
    to handle duplicates when walking through the tree or when deleting entries.
    It also guarantees that duplicates will be walked in the exact same order
    they were inserted. This is very important when trying to achieve fair
    processing distribution for instance.
 
    Algorithmic complexity can be derived from 3 variables :
-     - the number of possible different values in the tree : P
+     - the number of possible different keys in the tree : P
      - the number of entries in the tree : N
-     - the number of duplicates for one value : D
+     - the number of duplicates for one key : D
 
    Note that this tree is deliberately NOT balanced. For this reason, the worst
-   case may happen with a small tree (eg: 32 distinct values of one bit). BUT,
+   case may happen with a small tree (eg: 32 distinct keys of one bit). BUT,
    the operations required to manage such data are so much cheap that they make
    it worth using it even under such conditions. For instance, a balanced tree
-   may require only 6 levels to store those 32 values when this tree will
+   may require only 6 levels to store those 32 keys when this tree will
    require 32. But if per-level operations are 5 times cheaper, it wins.
 
    Minimal, Maximal and Average times are specified in number of operations.
    Minimal is given for best condition, Maximal for worst condition, and the
-   average is reported for a tree containing random values. An operation
+   average is reported for a tree containing random keys. An operation
    generally consists in jumping from one node to the other.
 
    Complexity :
@@ -225,7 +225,7 @@
        leaf's parent will be used to replace the node which must go. A released
        node will never be used anymore, so there's no point in tracking it.
 
-     - the bit index in a node indicates the bit position in the value which is
+     - the bit index in a node indicates the bit position in the key which is
        represented by the branches. That means that a node with (bit == 0) is
        just above two leaves. Negative bit values are used to build a duplicate
        tree. The first node above two identical leaves gets (bit == -1). This
@@ -237,11 +237,11 @@
        equal to the one of its parent + 1.
 
      - the "eb_next" primitive walks from left to right, which means from lower
-       to higher values. It returns duplicates in the order they were inserted.
+       to higher keys. It returns duplicates in the order they were inserted.
        The "eb_first" primitive returns the left-most entry.
 
      - the "eb_prev" primitive walks from right to left, which means from
-       higher to lower values. It returns duplicates in the opposite order they
+       higher to lower keys. It returns duplicates in the opposite order they
        were inserted. The "eb_last" primitive returns the right-most entry.
 
  */
@@ -249,7 +249,7 @@
 
 #include <stdlib.h>
 
-/* Note: we never need to run fls on null values, so we can optimize the fls
+/* Note: we never need to run fls on null keys, so we can optimize the fls
  * function by removing a conditional jump.
  */
 #if defined(__i386__)
@@ -620,7 +620,7 @@ static inline void __eb_delete(struct eb_node *node)
 
 	/* From now on, <node> and <parent> are necessarily different, and the
 	 * <node>'s node part is in use. By definition, <parent> is at least
-	 * below <node>, so keeping its value for the bit string is OK.
+	 * below <node>, so keeping its key for the bit string is OK.
 	 */
 
 	parent->node_p = node->node_p;
