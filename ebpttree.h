@@ -26,9 +26,9 @@
 #define EBPT_ROOT	EB_ROOT
 #define EBPT_TREE_HEAD	EB_TREE_HEAD
 
-/* on *almost* all platforms, a pointer can be cast into an unsigned long */
+/* on *almost* all platforms, a pointer can be cast into a size_t which is unsigned */
 #ifndef PTR_INT_TYPE
-#define PTR_INT_TYPE	unsigned long int
+#define PTR_INT_TYPE	size_t
 #endif
 
 typedef PTR_INT_TYPE ptr_t;
