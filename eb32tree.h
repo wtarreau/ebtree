@@ -70,6 +70,18 @@ static inline struct eb32_node *eb32_prev(struct eb32_node *eb32)
 	return eb32_entry(eb_prev(&eb32->node), struct eb32_node, node);
 }
 
+/* Return next node in the tree, skipping duplicates, or NULL if none */
+static inline struct eb32_node *eb32_next_unique(struct eb32_node *eb32)
+{
+	return eb32_entry(eb_next_unique(&eb32->node), struct eb32_node, node);
+}
+
+/* Return previous node in the tree, skipping duplicates, or NULL if none */
+static inline struct eb32_node *eb32_prev_unique(struct eb32_node *eb32)
+{
+	return eb32_entry(eb_prev_unique(&eb32->node), struct eb32_node, node);
+}
+
 /* Delete node from the tree if it was linked in. Mark the node unused. Note
  * that this function relies on a non-inlined generic function: eb_delete.
  */

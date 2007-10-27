@@ -73,6 +73,18 @@ static inline struct ebpt_node *ebpt_prev(struct ebpt_node *ebpt)
 	return ebpt_entry(eb_prev(&ebpt->node), struct ebpt_node, node);
 }
 
+/* Return next node in the tree, skipping duplicates, or NULL if none */
+static inline struct ebpt_node *ebpt_next_unique(struct ebpt_node *ebpt)
+{
+	return ebpt_entry(eb_next_unique(&ebpt->node), struct ebpt_node, node);
+}
+
+/* Return previous node in the tree, skipping duplicates, or NULL if none */
+static inline struct ebpt_node *ebpt_prev_unique(struct ebpt_node *ebpt)
+{
+	return ebpt_entry(eb_prev_unique(&ebpt->node), struct ebpt_node, node);
+}
+
 /* Delete node from the tree if it was linked in. Mark the node unused. Note
  * that this function relies on a non-inlined generic function: eb_delete.
  */

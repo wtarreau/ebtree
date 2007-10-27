@@ -70,6 +70,18 @@ static inline struct eb64_node *eb64_prev(struct eb64_node *eb64)
 	return eb64_entry(eb_prev(&eb64->node), struct eb64_node, node);
 }
 
+/* Return next node in the tree, skipping duplicates, or NULL if none */
+static inline struct eb64_node *eb64_next_unique(struct eb64_node *eb64)
+{
+	return eb64_entry(eb_next_unique(&eb64->node), struct eb64_node, node);
+}
+
+/* Return previous node in the tree, skipping duplicates, or NULL if none */
+static inline struct eb64_node *eb64_prev_unique(struct eb64_node *eb64)
+{
+	return eb64_entry(eb_prev_unique(&eb64->node), struct eb64_node, node);
+}
+
 /* Delete node from the tree if it was linked in. Mark the node unused. Note
  * that this function relies on a non-inlined generic function: eb_delete.
  */

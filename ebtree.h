@@ -554,6 +554,62 @@ static inline struct eb_node *eb_next(struct eb_node *node)
 	return eb_walk_down(t, EB_LEFT);
 }
 
+/* Return previous leaf node before an existing leaf node, skipping duplicates,
+ * or NULL if none. */
+static inline struct eb_node *eb_prev_unique(struct eb_node *node)
+{
+	eb_troot_t *t = node->leaf_p;
+
+	while (1) {
+		if (eb_gettag(t) != EB_LEFT) {
+			node = eb_root_to_node(eb_untag(t, EB_RGHT));
+			/* if we're right and not in duplicates, stop here */
+			if (node->bit >= 0)
+				break;
+			t = node->node_p;
+		}
+		else {
+			/* Walking up from left branch. We must ensure that we never
+			 * walk beyond root.
+			 */
+			if (unlikely((eb_untag(t, EB_LEFT))->b[EB_RGHT] == NULL))
+				return NULL;
+			t = (eb_root_to_node(eb_untag(t, EB_LEFT)))->node_p;
+		}
+	}
+	/* Note that <t> cannot be NULL at this stage */
+	t = (eb_untag(t, EB_RGHT))->b[EB_LEFT];
+	return eb_walk_down(t, EB_RGHT);
+}
+
+/* Return next leaf node after an existing leaf node, skipping duplicates, or
+ * NULL if none.
+ */
+static inline struct eb_node *eb_next_unique(struct eb_node *node)
+{
+	eb_troot_t *t = node->leaf_p;
+
+	while (1) {
+		if (eb_gettag(t) == EB_LEFT) {
+			if (unlikely((eb_untag(t, EB_LEFT))->b[EB_RGHT] == NULL))
+				return NULL;	/* we reached root */
+			node = eb_root_to_node(eb_untag(t, EB_LEFT));
+			/* if we're left and not in duplicates, stop here */
+			if (node->bit >= 0)
+				break;
+			t = node->node_p;
+		}
+		else {
+			/* Walking up from right branch, so we cannot be below root */
+			t = (eb_root_to_node(eb_untag(t, EB_RGHT)))->node_p;
+		}
+	}
+
+	/* Note that <t> cannot be NULL at this stage */
+	t = (eb_untag(t, EB_LEFT))->b[EB_RGHT];
+	return eb_walk_down(t, EB_LEFT);
+}
+
 
 /* Removes a leaf node from the tree if it was still in it. Marks the node
  * as unlinked.
