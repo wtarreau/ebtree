@@ -89,7 +89,7 @@ struct task {
     void *data;
     char task_data[196];
 };
-#define expire eb_node.val
+#define expire eb_node.key
 
 struct eb_root wait_queue = EB_ROOT;
 
