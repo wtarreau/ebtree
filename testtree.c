@@ -107,7 +107,7 @@ struct task {
 };
 #define expire eb_node.key
 
-struct eb_root wait_queue = EB_ROOT;
+struct eb_root wait_queue = EB_ROOT;  /* EB_ROOT || EB_ROOT_UNIQUE */
 
 #define tree_node               eb32_node
 #define tree_first(root)        eb32_first(root)
@@ -160,6 +160,7 @@ int main(int argc, char **argv) {
     if (argc < 2) {
 	tv_now(&t_start);
 	while (fgets(buffer, sizeof(buffer), stdin) != NULL) {
+		void *p;
 	    char *ret = strchr(buffer, '\n');
 	    if (ret)
 		*ret = 0;
@@ -169,7 +170,11 @@ int main(int argc, char **argv) {
 	    task = (struct task *)calloc(1, sizeof(*task));
 	    task->expire = x;
 	    task->wq = &wait_queue;
-	    insert_task_queue(task);
+	    p = insert_task_queue(task);
+	    if (p == task)
+		    printf("Inserted task %p\n", p);
+	    else
+		    printf("Reused task %p\n", p);
 	}
 	tv_now(&t_random);
 	tv_now(&t_insert);
