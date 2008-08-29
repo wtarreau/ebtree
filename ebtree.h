@@ -253,7 +253,6 @@
 
  */
 
-
 #include <stdlib.h>
 
 /* Note: we never need to run fls on null keys, so we can optimize the fls
@@ -311,12 +310,35 @@ static inline int fls64(unsigned long long x)
  * this in inline functions, because the code reordering it causes very often
  * has a negative impact on the calling functions.
  */
+#if !defined(likely)
 #if __GNUC__ < 3
 #define __builtin_expect(x,y) (x)
-#endif
-
+#define likely(x) (x)
+#define unlikely(x) (x)
+#elif __GNUC__ < 4
+/* gcc 3.x does the best job at this */
 #define likely(x) (__builtin_expect((x) != 0, 1))
 #define unlikely(x) (__builtin_expect((x) != 0, 0))
+#else
+/* GCC 4.x is stupid, it performs the comparison then compares it to 1,
+ * so we cheat in a dirty way to prevent it from doing this. This will
+ * only work with ints and booleans though.
+ */
+#define likely(x) (x)
+#define unlikely(x) (__builtin_expect((unsigned long)(x), 0))
+#endif
+#endif
+
+/* By default, gcc does not inline large chunks of code, but we want it to
+ * respect our choices.
+ */
+#if !defined(forceinline)
+#if __GNUC__ < 3
+#define forceinline inline
+#else
+#define forceinline inline __attribute__((always_inline))
+#endif
+#endif
 
 /* Support passing function parameters in registers. For this, the
  * CONFIG_EBTREE_REGPARM macro has to be set to the maximal number of registers
@@ -324,22 +346,28 @@ static inline int fls64(unsigned long long x)
  * their parameter count, it is in order to avoid register clobbering where
  * they are called.
  */
+#ifndef REGPRM1
 #if CONFIG_EBTREE_REGPARM >= 1
 #define REGPRM1	__attribute__((regparm(1)))
 #else
 #define REGPRM1
 #endif
+#endif
 
+#ifndef REGPRM2
 #if CONFIG_EBTREE_REGPARM >= 2
 #define REGPRM2	__attribute__((regparm(2)))
 #else
 #define REGPRM2 REGPRM1
 #endif
+#endif
 
+#ifndef REGPRM3
 #if CONFIG_EBTREE_REGPARM >= 3
 #define REGPRM3	__attribute__((regparm(3)))
 #else
 #define REGPRM3 REGPRM2
+#endif
 #endif
 
 /* Number of bits per node, and number of leaves per node */
@@ -471,7 +499,7 @@ static inline struct eb_node *eb_walk_down(eb_troot_t *start, unsigned int side)
  * a subtree of at least 2 entries. It will probably never be needed inlined,
  * and it is not for end-user.
  */
-static inline struct eb_node *
+static forceinline struct eb_node *
 __eb_insert_dup(struct eb_node *sub, struct eb_node *new)
 {
 	struct eb_node *head = sub;
@@ -637,7 +665,7 @@ static inline struct eb_node *eb_next_unique(struct eb_node *node)
 /* Removes a leaf node from the tree if it was still in it. Marks the node
  * as unlinked.
  */
-static inline void __eb_delete(struct eb_node *node)
+static forceinline void __eb_delete(struct eb_node *node)
 {
 	__label__ delete_unlink;
 	unsigned int pside, gpside, sibtype;
