@@ -268,10 +268,10 @@ int main(int argc, char **argv) {
 	    rdtscll(start); rdtscll(calibrate); // account for the time spent calling rdtsc too !
 	    node = tree_lookup(&wait_queue, task->expire);
 	    rdtscll(end); cycles3 += (end - calibrate) - (calibrate - start);
-	    if (!node)
-		*(int*)0=0;
-	    if (tree_entry(node)->expire != task->expire)
-		*(int*)0 = 0;
+	    //if (!node)
+	    //	*(int*)0=0;
+	    //if (tree_entry(node)->expire != task->expire)
+	    //	*(int*)0 = 0;
 	    task = task->data;
 	}
 	tv_now(&t_lookup);

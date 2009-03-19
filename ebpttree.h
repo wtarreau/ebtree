@@ -120,6 +120,7 @@ static forceinline struct ebpt_node *__ebpt_lookup(struct eb_root *root, void *x
 {
 	struct ebpt_node *node;
 	eb_troot_t *troot;
+	ptr_t y;
 
 	troot = root->b[EB_LEFT];
 	if (unlikely(troot == NULL))
@@ -137,7 +138,8 @@ static forceinline struct ebpt_node *__ebpt_lookup(struct eb_root *root, void *x
 		node = container_of(eb_untag(troot, EB_NODE),
 				    struct ebpt_node, node.branches);
 
-		if (x == node->key) {
+		y = (ptr_t)node->key ^ (ptr_t)x;
+		if (!y) {
 			/* Either we found the node which holds the key, or
 			 * we have a dup tree. In the later case, we have to
 			 * walk it down left to get the first entry.
@@ -151,6 +153,9 @@ static forceinline struct ebpt_node *__ebpt_lookup(struct eb_root *root, void *x
 			}
 			return node;
 		}
+
+		if ((y >> node->node.bit) >= EB_NODE_BRANCHES)
+			return NULL; /* no more common bits */
 
 		troot = node->node.branches.b[((ptr_t)x >> node->node.bit) & EB_NODE_BRANCH_MASK];
 	}
