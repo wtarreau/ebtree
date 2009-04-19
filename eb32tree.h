@@ -97,6 +97,7 @@ static inline void eb32_delete(struct eb32_node *eb32)
  */
 REGPRM2 struct eb32_node *eb32_lookup(struct eb_root *root, u32 x);
 REGPRM2 struct eb32_node *eb32i_lookup(struct eb_root *root, s32 x);
+REGPRM2 struct eb32_node *eb32_lookup_le(struct eb_root *root, u32 x);
 REGPRM2 struct eb32_node *eb32_lookup_ge(struct eb_root *root, u32 x);
 REGPRM2 struct eb32_node *eb32_insert(struct eb_root *root, struct eb32_node *new);
 REGPRM2 struct eb32_node *eb32i_insert(struct eb_root *root, struct eb32_node *new);
