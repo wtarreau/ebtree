@@ -99,6 +99,8 @@ static inline void ebpt_delete(struct ebpt_node *ebpt)
  * in ebpttree.c, which simply relies on their inline version.
  */
 REGPRM2 struct ebpt_node *ebpt_lookup(struct eb_root *root, void *x);
+REGPRM2 struct ebpt_node *ebpt_lookup_le(struct eb_root *root, void *x);
+REGPRM2 struct ebpt_node *ebpt_lookup_ge(struct eb_root *root, void *x);
 REGPRM2 struct ebpt_node *ebpt_insert(struct eb_root *root, struct ebpt_node *new);
 
 /*
