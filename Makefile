@@ -8,5 +8,10 @@ libebtree.a: $(OBJS)
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $^
 
+test: test32 test64
+
+test%: test%.c libebtree.a
+	$(CC) $(CFLAGS) -o $@ $< -L. -lebtree
+
 clean:
-	-rm -fv libebtree.a $(OBJS) *~ *.rej core
+	-rm -fv libebtree.a $(OBJS) *~ *.rej core test32 test64
