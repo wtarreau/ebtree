@@ -18,6 +18,9 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#ifndef _EB32TREE_H
+#define _EB32TREE_H
+
 #include "ebtree.h"
 
 
@@ -541,3 +544,5 @@ __eb32i_insert(struct eb_root *root, struct eb32_node *new) {
 
 	return new;
 }
+
+#endif /* _EB32_TREE_H */

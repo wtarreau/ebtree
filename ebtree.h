@@ -253,6 +253,9 @@
 
  */
 
+#ifndef _EBTREE_H
+#define _EBTREE_H
+
 #include <stdlib.h>
 
 /* Note: we never need to run fls on null keys, so we can optimize the fls
@@ -759,6 +762,7 @@ static forceinline void __eb_delete(struct eb_node *node)
 void eb_delete(struct eb_node *node);
 REGPRM1 struct eb_node *eb_insert_dup(struct eb_node *sub, struct eb_node *new);
 
+#endif /* _EB_TREE_H */
 
 /*
  * Local variables:
