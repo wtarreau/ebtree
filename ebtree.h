@@ -799,6 +799,57 @@ static forceinline unsigned int equal_bits(const unsigned char *a,
 	return ret;
 }
 
+/* Compare strings <a> and <b> byte-to-byte, from bit <ignore> to the last 0.
+ * Return the number of equal bits between strings, assuming that the first
+ * <ignore> bits are already identical. Note that parts or all of <ignore> bits
+ * may be rechecked. It is only passed here as a hint to speed up the check.
+ * The caller is responsible for not passing an <ignore> value larger than any
+ * of the two strings. However, referencing any bit from the trailing zero is
+ * permitted.
+ */
+static forceinline unsigned int string_equal_bits(const unsigned char *a,
+						  const unsigned char *b,
+						  unsigned int ignore)
+{
+	unsigned int beg;
+	unsigned int end;
+	unsigned int ret;
+	unsigned char c;
+
+	beg = ignore >> 3;
+
+	/* skip known and identical bits. We stop at the first different byte
+	 * or at the first zero we encounter on either side.
+	 */
+	while (1) {
+		unsigned char d;
+
+		c = a[beg];
+		d = b[beg];
+		beg++;
+
+		c ^= d;
+		if (c)
+			break;
+		if (!d)
+			break;
+	}
+
+	/* OK now we know that a and b differ at byte <beg>, or that both are zero.
+	 * We have to find what bit is differing and report it as the number of
+	 * identical bits. Note that low bit numbers are assigned to high positions
+	 * in the byte, as we compare them as strings.
+	 */
+	beg <<= 3;
+	if (c & 0xf0) { c >>= 4; beg -= 4; }
+	if (c & 0x0c) { c >>= 2; beg -= 2; }
+	beg -= (c >> 1);
+	if (c)
+		beg--;
+
+	return beg;
+}
+
 static forceinline int cmp_bits(const unsigned char *a, const unsigned char *b, unsigned int pos)
 {
 	unsigned int ofs;
