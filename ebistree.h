@@ -20,6 +20,7 @@
 
 /* These functions and macros rely on Multi-Byte nodes */
 
+#include <string.h>
 #include "ebtree.h"
 #include "ebpttree.h"
 

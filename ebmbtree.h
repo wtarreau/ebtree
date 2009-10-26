@@ -18,6 +18,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include <string.h>
 #include "ebtree.h"
 
 /* Return the structure of type <type> whose member <member> points to <ptr> */

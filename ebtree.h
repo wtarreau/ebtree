@@ -812,8 +812,6 @@ static forceinline unsigned int string_equal_bits(const unsigned char *a,
 						  unsigned int ignore)
 {
 	unsigned int beg;
-	unsigned int end;
-	unsigned int ret;
 	unsigned char c;
 
 	beg = ignore >> 3;
