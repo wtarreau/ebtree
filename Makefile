@@ -1,4 +1,4 @@
-OBJS = ebtree.o eb32tree.o eb64tree.o ebmbtree.o
+OBJS = ebtree.o eb32tree.o eb64tree.o ebmbtree.o ebsttree.o
 
 all: libebtree.a
 
