@@ -758,6 +758,70 @@ static forceinline void __eb_delete(struct eb_node *node)
 	return; /* tree is not empty yet */
 }
 
+/* Compare blocks <a> and <b> byte-to-byte, from bit <ignore> to bit <len-1>.
+ * Return the number of equal bits between strings, assuming that the first
+ * <ignore> bits are already identical. It is possible to return slightly more
+ * than <len> bits if <len> does not stop on a byte boundary and we find exact
+ * bytes. Note that parts or all of <ignore> bits may be rechecked. It is only
+ * passed here as a hint to speed up the check.
+ */
+static forceinline unsigned int equal_bits(const unsigned char *a,
+				      const unsigned char *b,
+				      unsigned int ignore, unsigned int len)
+{
+	unsigned int beg;
+	unsigned int end;
+	unsigned int ret;
+	unsigned char c;
+
+	beg = ignore >> 3;
+	end = (len + 7) >> 3;
+	ret = end << 3;
+	
+	do {
+		if (beg >= end)
+			goto out;
+		beg++;
+		c = a[beg-1] ^ b[beg-1];
+	} while (!c);
+
+	/* OK now we know that a and b differ at byte <beg> and that <c> holds
+	 * the bit differences. We have to find what bit is differing and report
+	 * it as the number of identical bits. Note that low bit numbers are
+	 * assigned to high positions in the byte, as we compare them as strings.
+	 */
+	ret = beg << 3;
+	if (c & 0xf0) { c >>= 4; ret -= 4; }
+	if (c & 0x0c) { c >>= 2; ret -= 2; }
+	ret -= (c >> 1);
+	ret--;
+ out:
+	return ret;
+}
+
+static forceinline int cmp_bits(const unsigned char *a, const unsigned char *b, unsigned int pos)
+{
+	unsigned int ofs;
+	unsigned char bit_a, bit_b;
+
+	ofs = pos >> 3;
+	pos = ~pos & 7;
+
+	bit_a = (a[ofs] >> pos) & 1;
+	bit_b = (b[ofs] >> pos) & 1;
+
+	return bit_a - bit_b; /* -1: a<b; 0: a=b; 1: a>b */
+}
+
+static forceinline int get_bit(const unsigned char *a, unsigned int pos)
+{
+	unsigned int ofs;
+
+	ofs = pos >> 3;
+	pos = ~pos & 7;
+	return (a[ofs] >> pos) & 1;
+}
+
 /* These functions are declared in ebtree.c */
 void eb_delete(struct eb_node *node);
 REGPRM1 struct eb_node *eb_insert_dup(struct eb_node *sub, struct eb_node *new);
