@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
 	printf("Dump of command line values :\n");
 	node = ebmb_first(&root);
 	while (node) {
-		printf("node %p = %d\n", node, node->key);
+		printf("node %p = %s\n", node, (char *)node->key);
 		node = ebmb_next(node);
 	}
 
