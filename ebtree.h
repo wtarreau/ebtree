@@ -350,7 +350,8 @@ struct eb_node {
 	struct eb_root branches; /* branches, must be at the beginning */
 	eb_troot_t    *node_p;  /* link node's parent */
 	eb_troot_t    *leaf_p;  /* leaf node's parent */
-	int           bit;     /* link's bit position. */
+	short int      bit;     /* link's bit position. */
+	short int      pfx;     /* data prefix length */
 };
 
 /* Return the structure of type <type> whose member <member> points to <ptr> */
