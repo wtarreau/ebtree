@@ -698,13 +698,13 @@ static forceinline void __eb_delete(struct eb_node *node)
  * bytes. Note that parts or all of <ignore> bits may be rechecked. It is only
  * passed here as a hint to speed up the check.
  */
-static forceinline unsigned int equal_bits(const unsigned char *a,
-				      const unsigned char *b,
-				      unsigned int ignore, unsigned int len)
+static forceinline int equal_bits(const unsigned char *a,
+				  const unsigned char *b,
+				  int ignore, int len)
 {
-	unsigned int beg;
-	unsigned int end;
-	unsigned int ret;
+	int beg;
+	int end;
+	int ret;
 	unsigned char c;
 
 	beg = ignore >> 3;
@@ -723,6 +723,10 @@ static forceinline unsigned int equal_bits(const unsigned char *a,
 	 * it as the number of identical bits. Note that low bit numbers are
 	 * assigned to high positions in the byte, as we compare them as strings.
 	 */
+	/* Note that we don't subtract 1 below because gcc 3 to 4.2 generate
+	 * stupidly larger and inefficient code when we do that, while the
+	 * processors offer all that's needed to merge some instructions.
+	 */
 	ret = beg << 3;
 	if (c & 0xf0) { c >>= 4; ret -= 4; }
 	if (c & 0x0c) { c >>= 2; ret -= 2; }
@@ -740,11 +744,11 @@ static forceinline unsigned int equal_bits(const unsigned char *a,
  * of the two strings. However, referencing any bit from the trailing zero is
  * permitted.
  */
-static forceinline unsigned int string_equal_bits(const unsigned char *a,
-						  const unsigned char *b,
-						  unsigned int ignore)
+static forceinline int string_equal_bits(const unsigned char *a,
+					 const unsigned char *b,
+					 int ignore)
 {
-	unsigned int beg;
+	int beg;
 	unsigned char c;
 
 	beg = ignore >> 3;
