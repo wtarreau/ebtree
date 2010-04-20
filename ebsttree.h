@@ -41,7 +41,7 @@ static forceinline struct ebmb_node *__ebst_lookup(struct eb_root *root, const v
 {
 	struct ebmb_node *node;
 	eb_troot_t *troot;
-	unsigned int bit;
+	int bit;
 
 	troot = root->b[EB_LEFT];
 	if (unlikely(troot == NULL))

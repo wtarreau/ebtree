@@ -184,7 +184,7 @@ static forceinline struct eb64_node *__eb64i_lookup(struct eb_root *root, s64 x)
 		if ((eb_gettag(troot) == EB_LEAF)) {
 			node = container_of(eb_untag(troot, EB_LEAF),
 					    struct eb64_node, node.branches);
-			if (node->key == x)
+			if (node->key == (u64)x)
 				return node;
 			else
 				return NULL;

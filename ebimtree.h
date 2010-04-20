@@ -40,7 +40,7 @@ __ebim_lookup(struct eb_root *root, const void *x, unsigned int len)
 {
 	struct ebpt_node *node;
 	eb_troot_t *troot;
-	unsigned int bit;
+	int bit;
 
 	troot = root->b[EB_LEFT];
 	if (unlikely(troot == NULL))

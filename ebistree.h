@@ -43,7 +43,7 @@ static forceinline struct ebpt_node *__ebis_lookup(struct eb_root *root, const v
 {
 	struct ebpt_node *node;
 	eb_troot_t *troot;
-	unsigned int bit;
+	int bit;
 
 	troot = root->b[EB_LEFT];
 	if (unlikely(troot == NULL))

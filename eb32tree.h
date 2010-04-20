@@ -184,7 +184,7 @@ static forceinline struct eb32_node *__eb32i_lookup(struct eb_root *root, s32 x)
 		if ((eb_gettag(troot) == EB_LEAF)) {
 			node = container_of(eb_untag(troot, EB_LEAF),
 					    struct eb32_node, node.branches);
-			if (node->key == x)
+			if (node->key == (u32)x)
 				return node;
 			else
 				return NULL;
