@@ -97,7 +97,7 @@ REGPRM2 struct eb64_node *eb64_lookup_le(struct eb_root *root, u64 x)
 			 * small and we need to get its highest value, or it is
 			 * too large, and we need to get the prev value.
 			 */
-			if ((node->key >> node->node.bit) > (x >> node->node.bit)) {
+			if ((node->key >> node->node.bit) < (x >> node->node.bit)) {
 				troot = node->node.branches.b[EB_RGHT];
 				return eb64_entry(eb_walk_down(troot, EB_RGHT), struct eb64_node, node);
 			}
