@@ -259,6 +259,13 @@
 #include <stdlib.h>
 #include "compiler.h"
 
+static inline int flsnz8_generic(unsigned int x)
+{
+	int ret = 0;
+	if (x >> 4) { x >>= 4; ret += 4; }
+	return ret + ((0xFFFFAA50U >> (x << 1)) & 3) + 1;
+}
+
 /* Note: we never need to run fls on null keys, so we can optimize the fls
  * function by removing a conditional jump.
  */
@@ -270,6 +277,16 @@ static inline int flsnz(int x)
 	        : "=r" (r) : "rm" (x));
 	return r+1;
 }
+
+static inline int flsnz8(unsigned char x)
+{
+	int r;
+	__asm__("movzbl %%al, %%eax\n"
+		"bsrl %%eax,%0\n"
+	        : "=r" (r) : "a" (x));
+	return r+1;
+}
+
 #else
 // returns 1 to 32 for 1<<0 to 1<<31. Undefined for 0.
 #define flsnz(___a) ({ \
@@ -282,6 +299,13 @@ static inline int flsnz(int x)
 	if (___x & 0xaaaaaaaa) { ___x &= 0xaaaaaaaa; ___bits +=  1;} \
 	___bits + 1; \
 	})
+
+static inline int flsnz8(unsigned int x)
+{
+	return flsnz8_generic(x);
+}
+
+
 #endif
 
 static inline int fls64(unsigned long long x)
@@ -724,15 +748,7 @@ static forceinline int equal_bits(const unsigned char *a,
 	 * it as the number of identical bits. Note that low bit numbers are
 	 * assigned to high positions in the byte, as we compare them as strings.
 	 */
-	/* Note that we don't subtract 1 below because gcc 3 to 4.2 generate
-	 * stupidly larger and inefficient code when we do that, while the
-	 * processors offer all that's needed to merge some instructions.
-	 */
-	ret = beg << 3;
-	if (c & 0xf0) { c >>= 4; ret -= 4; }
-	if (c & 0x0c) { c >>= 2; ret -= 2; }
-	ret -= (c >> 1);
-	ret--;
+	ret = (beg << 3) - flsnz8(c);
  out:
 	return ret;
 }
@@ -776,14 +792,7 @@ static forceinline int string_equal_bits(const unsigned char *a,
 	 * identical bits. Note that low bit numbers are assigned to high positions
 	 * in the byte, as we compare them as strings.
 	 */
-	beg <<= 3;
-	if (c & 0xf0) { c >>= 4; beg -= 4; }
-	if (c & 0x0c) { c >>= 2; beg -= 2; }
-	beg -= (c >> 1);
-	if (c)
-		beg--;
-
-	return beg;
+	return (beg << 3) - flsnz8(c);
 }
 
 static forceinline int cmp_bits(const unsigned char *a, const unsigned char *b, unsigned int pos)
