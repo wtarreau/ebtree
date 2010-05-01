@@ -727,30 +727,25 @@ static forceinline int equal_bits(const unsigned char *a,
 				  const unsigned char *b,
 				  int ignore, int len)
 {
-	int beg;
-	int end;
-	int ret;
-	unsigned char c;
+	for (ignore >>= 3, a += ignore, b += ignore, ignore <<= 3;
+	     ignore < len; ) {
+		unsigned char c;
 
-	beg = ignore >> 3;
-	end = (len + 7) >> 3;
-	ret = end << 3;
-	
-	do {
-		if (beg >= end)
-			goto out;
-		beg++;
-		c = a[beg-1] ^ b[beg-1];
-	} while (!c);
+		a++; b++;
+		ignore += 8;
+		c = b[-1] ^ a[-1];
 
-	/* OK now we know that a and b differ at byte <beg> and that <c> holds
-	 * the bit differences. We have to find what bit is differing and report
-	 * it as the number of identical bits. Note that low bit numbers are
-	 * assigned to high positions in the byte, as we compare them as strings.
-	 */
-	ret = (beg << 3) - flsnz8(c);
- out:
-	return ret;
+		if (c) {
+			/* OK now we know that old and new differ at byte <ptr> and that <c> holds
+			 * the bit differences. We have to find what bit is differing and report
+			 * it as the number of identical bits. Note that low bit numbers are
+			 * assigned to high positions in the byte, as we compare them as strings.
+			 */
+			ignore -= flsnz8(c);
+			break;
+		}
+	}
+	return ignore;
 }
 
 /* Compare strings <a> and <b> byte-to-byte, from bit <ignore> to the last 0.
