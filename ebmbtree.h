@@ -191,8 +191,6 @@ __ebmb_insert(struct eb_root *root, struct ebmb_node *new, unsigned int len)
 		return new;
 	}
 
-	len <<= 3;
-
 	/* The tree descent is fairly easy :
 	 *  - first, check if we have reached a leaf node
 	 *  - second, check if we have gone too far
@@ -211,16 +209,24 @@ __ebmb_insert(struct eb_root *root, struct ebmb_node *new, unsigned int len)
 			/* insert above a leaf */
 			old = container_of(eb_untag(troot, EB_LEAF),
 					    struct ebmb_node, node.branches);
-			bit = equal_bits(new->key, old->key, bit, len);
 			new->node.node_p = old->node.leaf_p;
 			up_ptr = &old->node.leaf_p;
-			break;
+			goto check_bit_and_break;
 		}
 
 		/* OK we're walking down this link */
 		old = container_of(eb_untag(troot, EB_NODE),
 				   struct ebmb_node, node.branches);
 		old_node_bit = old->node.bit;
+
+		if (unlikely(old->node.bit < 0)) {
+			/* We're above a duplicate tree, so we must compare the whole value */
+			new->node.node_p = old->node.node_p;
+			up_ptr = &old->node.node_p;
+		check_bit_and_break:
+			bit = equal_bits(new->key, old->key, bit, len << 3);
+			break;
+		}
 
 		/* Stop going down when we don't have common bits anymore. We
 		 * also stop in front of a duplicates tree because it means we
@@ -229,10 +235,9 @@ __ebmb_insert(struct eb_root *root, struct ebmb_node *new, unsigned int len)
 		 * know we descend along the correct side.
 		 */
 
-		bit = equal_bits(new->key, old->key, bit, (old_node_bit >= 0 ? old_node_bit : len));
-		if (unlikely(old_node_bit < 0 || bit < old_node_bit)) {
-			/* Either we're above a duplicate tree, so we must compare till the end,
-			 * or the tree did not contain the key, so we insert <new> before the
+		bit = equal_bits(new->key, old->key, bit, old_node_bit);
+		if (unlikely(bit < old_node_bit)) {
+			/* The tree did not contain the key, so we insert <new> before the
 			 * node <old>, and set ->bit to designate the lowest bit position in
 			 * <new> which applies to ->branches.b[].
 			 */
@@ -240,6 +245,11 @@ __ebmb_insert(struct eb_root *root, struct ebmb_node *new, unsigned int len)
 			up_ptr = &old->node.node_p;
 			break;
 		}
+		/* we don't want to skip bits for further comparisons, so we must limit <bit>.
+		 * However, since we're going down around <old_node_bit>, we know it will be
+		 * properly matched, so we can skip this bit.
+		 */
+		bit = old_node_bit + 1;
 
 		/* walk down */
 		root = &old->node.branches;
