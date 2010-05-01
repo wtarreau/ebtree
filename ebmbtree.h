@@ -115,7 +115,7 @@ static forceinline struct ebmb_node *__ebmb_lookup(struct eb_root *root, const v
 {
 	struct ebmb_node *node;
 	eb_troot_t *troot;
-	int bit;
+	int bit, side;
 	int node_bit;
 
 	troot = root->b[EB_LEFT];
@@ -157,8 +157,10 @@ static forceinline struct ebmb_node *__ebmb_lookup(struct eb_root *root, const v
 		if (bit < node_bit)
 			return NULL; /* no more common bits */
 
-		troot = node->node.branches.b[(((unsigned char*)x)[node_bit >> 3] >>
-					       (~node_bit & 7)) & 1];
+		side = node_bit & 7;
+		side ^= 7;
+		side = (((unsigned char *)x)[node_bit >> 3] >> side) & 1;
+		troot = node->node.branches.b[side];
 	}
 }
 
@@ -253,7 +255,9 @@ __ebmb_insert(struct eb_root *root, struct ebmb_node *new, unsigned int len)
 
 		/* walk down */
 		root = &old->node.branches;
-		side = (new->key[old_node_bit >> 3] >> (~old_node_bit & 7)) & 1;
+		side = old_node_bit & 7;
+		side ^= 7;
+		side = (new->key[old_node_bit >> 3] >> side) & 1;
 		troot = root->b[side];
 	}
 
