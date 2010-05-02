@@ -115,22 +115,22 @@ static forceinline struct ebmb_node *__ebmb_lookup(struct eb_root *root, const v
 {
 	struct ebmb_node *node;
 	eb_troot_t *troot;
-	int bit, side;
+	int pos, side;
 	int node_bit;
 
 	troot = root->b[EB_LEFT];
 	if (unlikely(troot == NULL))
 		return NULL;
 
-	bit = 0;
+	pos = 0;
 	while (1) {
-		if ((eb_gettag(troot) == EB_LEAF)) {
+		if (eb_gettag(troot) == EB_LEAF) {
 			node = container_of(eb_untag(troot, EB_LEAF),
 					    struct ebmb_node, node.branches);
-			if (memcmp(node->key, x, len) == 0)
-				return node;
-			else
+			if (memcmp(node->key + pos, x, len - pos) != 0)
 				return NULL;
+			else
+				return node;
 		}
 		node = container_of(eb_untag(troot, EB_NODE),
 				    struct ebmb_node, node.branches);
@@ -141,7 +141,7 @@ static forceinline struct ebmb_node *__ebmb_lookup(struct eb_root *root, const v
 			 * value, and we walk down left, or it's a different
 			 * one and we don't have our key.
 			 */
-			if (memcmp(node->key, x, len) != 0)
+			if (memcmp(node->key + pos, x, len - pos) != 0)
 				return NULL;
 
 			troot = node->node.branches.b[EB_LEFT];
@@ -152,14 +152,36 @@ static forceinline struct ebmb_node *__ebmb_lookup(struct eb_root *root, const v
 			return node;
 		}
 
-		/* OK, normal data node, let's walk down */
-		bit = equal_bits(x, node->key, bit, node_bit);
-		if (bit < node_bit)
-			return NULL; /* no more common bits */
+		/* OK, normal data node, let's walk down. We check if all full
+		 * bytes are equal, and we start from the last one we did not
+		 * completely check. We stop as soon as we reach the last byte,
+		 * because we must decide to go left/right or abort.
+		 */
+		node_bit = ~node_bit + (pos << 3) + 8; // = (pos<<3) + (7 - node_bit)
+		if (node_bit < 0) {
+			/* This surprizing construction gives better performance
+			 * because gcc does not try to reorder the loop. Tested to
+			 * be fine with 2.95 to 4.2.
+			 */
+			while (1) {
+				x++; pos++;
+				if (node->key[pos-1] ^ *(unsigned char*)(x-1))
+					return NULL; /* more than one full byte is different */
+				node_bit += 8;
+				if (node_bit >= 0)
+					break;
+			}
+		}
 
-		side = node_bit & 7;
-		side ^= 7;
-		side = (((unsigned char *)x)[node_bit >> 3] >> side) & 1;
+		/* here we know that only the last byte differs, so node_bit < 8.
+		 * We have 2 possibilities :
+		 *   - more than the last bit differs => return NULL
+		 *   - walk down on side = (x[pos] >> node_bit) & 1
+		 */
+		side = *(unsigned char *)x >> node_bit;
+		if (((node->key[pos] >> node_bit) ^ side) > 1)
+			return NULL;
+		side &= 1;
 		troot = node->node.branches.b[side];
 	}
 }
