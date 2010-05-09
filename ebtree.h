@@ -269,7 +269,8 @@ static inline int flsnz8_generic(unsigned int x)
 /* Note: we never need to run fls on null keys, so we can optimize the fls
  * function by removing a conditional jump.
  */
-#if defined(__i386__)
+#if defined(__i386__) || defined(__x86_64__)
+/* this code is similar on 32 and 64 bit */
 static inline int flsnz(int x)
 {
 	int r;
