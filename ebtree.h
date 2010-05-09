@@ -749,6 +749,38 @@ static forceinline int equal_bits(const unsigned char *a,
 	return ignore;
 }
 
+/* check that the two blocks <a> and <b> are equal on <len> bits. If it is known
+ * they already are on some bytes, this number of equal bytes to be skipped may
+ * be passed in <skip>. It returns 0 if they match, otherwise non-zero.
+ */
+static forceinline int check_bits(const unsigned char *a,
+				  const unsigned char *b,
+				  int skip,
+				  int len)
+{
+	int bit, ret;
+
+	/* This uncommon construction gives the best performance on x86 because
+	 * it makes heavy use multiple-index addressing and parallel instructions,
+	 * and it prevents gcc from reordering the loop since it is already
+	 * properly oriented. Tested to be fine with 2.95 to 4.2.
+	 */
+	bit = ~len + (skip << 3) + 9; // = (skip << 3) + (8 - len)
+	ret = a[skip] ^ b[skip];
+	if (unlikely(bit >= 0))
+		return ret >> bit;
+	while (1) {
+		skip++;
+		if (ret)
+			return ret;
+		ret = a[skip] ^ b[skip];
+		bit += 8;
+		if (bit >= 0)
+			return ret >> bit;
+	}
+}
+
+
 /* Compare strings <a> and <b> byte-to-byte, from bit <ignore> to the last 0.
  * Return the number of equal bits between strings, assuming that the first
  * <ignore> bits are already identical. Note that parts or all of <ignore> bits
