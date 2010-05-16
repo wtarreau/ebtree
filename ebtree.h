@@ -519,6 +519,12 @@ __eb_insert_dup(struct eb_node *sub, struct eb_node *new)
  * Public functions, for the end-user *
 \**************************************/
 
+/* Return non-zero if the tree is empty, otherwise zero */
+static inline int eb_is_empty(struct eb_root *root)
+{
+	return !root->b[EB_LEFT];
+}
+
 /* Return the first leaf in the tree starting at <root>, or NULL if none */
 static inline struct eb_node *eb_first(struct eb_root *root)
 {
