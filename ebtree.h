@@ -1,6 +1,6 @@
 /*
  * Elastic Binary Trees - generic macros and structures.
- * Version 6.0
+ * Version 6.0.1
  * (C) 2002-2010 - Willy Tarreau <w@1wt.eu>
  *
  * This program is free software; you can redistribute it and/or modify
