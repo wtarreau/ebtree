@@ -1,9 +1,10 @@
 OBJS = ebtree.o eb32tree.o eb64tree.o ebmbtree.o ebsttree.o ebimtree.o ebistree.o
 CFLAGS = -O3 -W -Wall -Wdeclaration-after-statement
+EXAMPLES = $(basename $(wildcard examples/*.c))
 
 all: libebtree.a
 
-examples: examples/reduce
+examples: ${EXAMPLES}
 
 libebtree.a: $(OBJS)
 	$(AR) rv $@ $^
@@ -11,7 +12,7 @@ libebtree.a: $(OBJS)
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $^
 
-examples/reduce: examples/reduce.c libebtree.a
+examples/%: examples/%.c libebtree.a
 	$(CC) $(CFLAGS) -I. -o $@ $< -L. -lebtree
 
 test: test32 test64 testst
@@ -20,6 +21,6 @@ test%: test%.c libebtree.a
 	$(CC) $(CFLAGS) -o $@ $< -L. -lebtree
 
 clean:
-	-rm -fv libebtree.a $(OBJS) *~ *.rej core test32 test64 testst examples/reduce
+	-rm -fv libebtree.a $(OBJS) *~ *.rej core test32 test64 testst ${EXAMPLES}
 
 .PHONY: examples tests
