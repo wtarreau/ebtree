@@ -819,7 +819,7 @@ static forceinline int string_equal_bits(const unsigned char *a,
 		if (c)
 			break;
 		if (!d)
-			return (beg << 3) + 8; /* equal bytes + zero */
+			return (beg << 3); /* equal bytes + zero */
 	}
 	/* OK now we know that a and b differ at byte <beg>, or that both are zero.
 	 * We have to find what bit is differing and report it as the number of
