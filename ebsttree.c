@@ -37,21 +37,6 @@ REGPRM2 struct ebmb_node *ebst_lookup(struct eb_root *root, const char *x)
 	return __ebst_lookup(root, x);
 }
 
-/* Find the first occurence of a length <len> string <x> in the tree <root>.
- * It's the caller's reponsibility to use this function only on trees which
- * only contain zero-terminated strings, and that no null character is present
- * in string <x> in the first <len> chars. If none can be found, return NULL.
- */
-REGPRM3 struct ebmb_node *ebst_lookup_len(struct eb_root *root, const char *x, unsigned int len)
-{
-	struct ebmb_node *node;
-
-	node = ebmb_lookup(root, x, len);
-	if (!node || node->key[len] != 0)
-		return NULL;
-	return node;
-}
-
 /* Insert ebmb_node <new> into subtree starting at node root <root>. Only
  * new->key needs be set with the zero-terminated string key. The ebmb_node is
  * returned. If root->b[EB_RGHT]==1, the tree may only contain unique keys. The

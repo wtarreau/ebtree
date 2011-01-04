@@ -32,6 +32,7 @@
 #include <string.h>
 #include "ebtree.h"
 #include "ebpttree.h"
+#include "ebimtree.h"
 
 /* These functions and macros rely on Pointer nodes and use the <key> entry as
  * a pointer to an indirect key. Most operations are performed using ebpt_*.
@@ -41,8 +42,23 @@
  * in ebistree.c, which simply relies on their inline version.
  */
 REGPRM2 struct ebpt_node *ebis_lookup(struct eb_root *root, const char *x);
-REGPRM3 struct ebpt_node *ebis_lookup_len(struct eb_root *root, const char *x, unsigned int len);
 REGPRM2 struct ebpt_node *ebis_insert(struct eb_root *root, struct ebpt_node *new);
+
+/* Find the first occurence of a length <len> string <x> in the tree <root>.
+ * It's the caller's reponsibility to use this function only on trees which
+ * only contain zero-terminated strings, and that no null character is present
+ * in string <x> in the first <len> chars. If none can be found, return NULL.
+ */
+static forceinline struct ebpt_node *
+ebis_lookup_len(struct eb_root *root, const char *x, unsigned int len)
+{
+	struct ebpt_node *node;
+
+	node = ebim_lookup(root, x, len);
+	if (!node || ((const char *)node->key)[len] != 0)
+		return NULL;
+	return node;
+}
 
 /* Find the first occurence of a zero-terminated string <x> in the tree <root>.
  * It's the caller's reponsibility to use this function only on trees which
