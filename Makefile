@@ -23,4 +23,12 @@ test%: test%.c libebtree.a
 clean:
 	-rm -fv libebtree.a $(OBJS) *~ *.rej core test32 test64 testst ${EXAMPLES}
 
+ifeq ($(wildcard .git),.git)
+VERSION := $(shell [ -d .git/. ] && ref=`(git describe --tags --match 'v*') 2>/dev/null` && ref=$${ref%-g*} && echo "$${ref\#v}")
+SUBVERS := $(shell comms=`git log --no-merges v$(VERSION).. 2>/dev/null |grep -c ^commit `; [ $$comms -gt 0 ] && echo "-$$comms" )
+endif
+
+git-tar: .git
+	git archive --format=tar --prefix="ebtree-$(VERSION)/" HEAD | gzip -9 > ebtree-$(VERSION)$(SUBVERS).tar.gz
+
 .PHONY: examples tests
