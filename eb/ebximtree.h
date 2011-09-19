@@ -56,7 +56,7 @@ __ebxim_lookup(struct ebx_root *root, const void *x, unsigned int len)
 	int pos, side;
 	int node_bit;
 
-	troot = ebx_getroot(&root->b[EB_LEFT]);
+	troot = ebx_getroot_safe(&root->b[EB_LEFT]);
 	if (unlikely(troot == NULL))
 		goto ret_null;
 
@@ -151,7 +151,7 @@ __ebxim_insert(struct ebx_root *root, struct ebxpt_node *new, unsigned int len)
 	int old_node_bit;
 
 	side = EB_LEFT;
-	troot = ebx_getroot(&root->b[EB_LEFT]);
+	troot = ebx_getroot_safe(&root->b[EB_LEFT]);
 	root_right = ebx_getroot(&root->b[EB_RGHT]);
 	if (unlikely(troot == NULL)) {
 		/* Tree is empty, insert the leaf part below the left branch */

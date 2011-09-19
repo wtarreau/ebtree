@@ -141,7 +141,7 @@ static forceinline struct ebx32_node *__ebx32_lookup(struct ebx_root *root, u32 
 	u32 y;
 	int node_bit;
 
-	troot = ebx_getroot(&root->b[EB_LEFT]);
+	troot = ebx_getroot_safe(&root->b[EB_LEFT]);
 	if (unlikely(troot == NULL))
 		return NULL;
 
@@ -193,7 +193,7 @@ static forceinline struct ebx32_node *__ebx32i_lookup(struct ebx_root *root, s32
 	u32 y;
 	int node_bit;
 
-	troot = ebx_getroot(&root->b[EB_LEFT]);
+	troot = ebx_getroot_safe(&root->b[EB_LEFT]);
 	if (unlikely(troot == NULL))
 		return NULL;
 
@@ -251,7 +251,7 @@ __ebx32_insert(struct ebx_root *root, struct ebx32_node *new)
 	int old_node_bit;
 
 	side = EB_LEFT;
-	troot = ebx_getroot(&root->b[EB_LEFT]);
+	troot = ebx_getroot_safe(&root->b[EB_LEFT]);
 	root_right = ebx_getroot(&root->b[EB_RGHT]);
 	if (unlikely(troot == NULL)) {
 		/* Tree is empty, insert the leaf part below the left branch */
@@ -385,7 +385,7 @@ __ebx32i_insert(struct ebx_root *root, struct ebx32_node *new)
 	int old_node_bit;
 
 	side = EB_LEFT;
-	troot = ebx_getroot(&root->b[EB_LEFT]);
+	troot = ebx_getroot_safe(&root->b[EB_LEFT]);
 	root_right = ebx_getroot(&root->b[EB_RGHT]);
 	if (unlikely(troot == NULL)) {
 		/* Tree is empty, insert the leaf part below the left branch */
