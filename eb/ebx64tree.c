@@ -126,7 +126,7 @@ REGPRM2 struct ebx64_node *ebx64_lookup_le(struct ebx_root *root, u64 x)
 		/* Walking up from left branch. We must ensure that we never
 		 * walk beyond root.
 		 */
-		if (unlikely(ebx_clrtag(ebx_getroot_safe(&(ebx_untag(troot, EB_LEFT))->b[EB_RGHT])) == NULL))
+		if (unlikely(ebx_link_is_null(ebx_untag(troot, EB_LEFT)->b[EB_RGHT])))
 			return NULL;
 		troot = ebx_getroot(&(ebx_root_to_node(ebx_untag(troot, EB_LEFT)))->node_p);
 	}
@@ -215,10 +215,10 @@ REGPRM2 struct ebx64_node *ebx64_lookup_ge(struct ebx_root *root, u64 x)
 		troot = ebx_getroot(&(ebx_root_to_node(ebx_untag(troot, EB_RGHT)))->node_p);
 
 	/* Note that <troot> cannot be NULL at this stage */
-	troot = ebx_getroot_safe(&(ebx_untag(troot, EB_LEFT))->b[EB_RGHT]);
-	if (ebx_clrtag(troot) == NULL)
+	if (ebx_link_is_null(ebx_untag(troot, EB_LEFT)->b[EB_RGHT]))
 		return NULL;
 
+	troot = ebx_getroot(&(ebx_untag(troot, EB_LEFT))->b[EB_RGHT]);
 	node = ebx64_entry(ebx_walk_down(troot, EB_LEFT), struct ebx64_node, node);
 	return node;
 }

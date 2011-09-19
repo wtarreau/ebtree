@@ -515,6 +515,15 @@ static inline ebx_troot_t *ebx_getroot_safe(const ebx_link_t *src)
 {
 	return *src ? *src + (void *)src + 2 : NULL;
 }
+
+/* A relative offset is NULL if it's either 0 or 1 (tagged 0). The cast to
+ * unsigned long long does not affect smaller types (verified).
+ */
+static inline int ebx_link_is_null(ebx_link_t link)
+{
+	return (unsigned long long)link <= 1ULL;
+}
+
 #else
 /**** EB_SIZE = 0 : absolute pointer version ****/
 
@@ -525,6 +534,10 @@ static inline ebx_troot_t *ebx_getroot_safe(const ebx_link_t *src)
 /* Returns the pointer from a link */
 #define ebx_getroot(a) (*(a))
 #define ebx_getroot_safe(a) (*(a))
+
+/* an absolute pointer is NULL only when exactly NULL (no tag) */
+#define ebx_link_is_null(a) ((void *)a <= (void *)1)
+
 #endif
 
 /* Walks down starting at root pointer <start>, and always walking on side
@@ -636,7 +649,7 @@ static inline struct ebx_node *ebx_prev(struct ebx_node *node)
 		/* Walking up from left branch. We must ensure that we never
 		 * walk beyond root.
 		 */
-		if (unlikely(ebx_clrtag(ebx_getroot_safe(&(ebx_untag(t, EB_LEFT))->b[EB_RGHT])) == NULL))
+		if (unlikely(ebx_link_is_null(ebx_untag(t, EB_LEFT)->b[EB_RGHT])))
 			return NULL;
 		t = ebx_getroot(&(ebx_root_to_node(ebx_untag(t, EB_LEFT)))->node_p);
 	}
@@ -655,9 +668,10 @@ static inline struct ebx_node *ebx_next(struct ebx_node *node)
 		t = ebx_getroot(&(ebx_root_to_node(ebx_untag(t, EB_RGHT)))->node_p);
 
 	/* Note that <t> cannot be NULL at this stage */
-	t = ebx_getroot_safe(&(ebx_untag(t, EB_LEFT))->b[EB_RGHT]);
-	if (ebx_clrtag(t) == NULL)
+	if (ebx_link_is_null(ebx_untag(t, EB_LEFT)->b[EB_RGHT]))
 		return NULL;
+
+	t = ebx_getroot(&(ebx_untag(t, EB_LEFT))->b[EB_RGHT]);
 	return ebx_walk_down(t, EB_LEFT);
 }
 
@@ -670,7 +684,7 @@ static inline struct ebx_node *ebx_prev_dup(struct ebx_node *node)
 		/* Walking up from left branch. We must ensure that we never
 		 * walk beyond root.
 		 */
-		if (unlikely(ebx_clrtag(ebx_getroot_safe(&(ebx_untag(t, EB_LEFT))->b[EB_RGHT])) == NULL))
+		if (unlikely(ebx_link_is_null(ebx_untag(t, EB_LEFT)->b[EB_RGHT])))
 			return NULL;
 		/* if the current node leaves a dup tree, quit */
 		if ((ebx_root_to_node(ebx_untag(t, EB_LEFT)))->bit >= 0)
@@ -700,9 +714,11 @@ static inline struct ebx_node *ebx_next_dup(struct ebx_node *node)
 	/* Note that <t> cannot be NULL at this stage */
 	if ((ebx_root_to_node(ebx_untag(t, EB_LEFT)))->bit >= 0)
 		return NULL;
-	t = ebx_getroot_safe(&(ebx_untag(t, EB_LEFT))->b[EB_RGHT]);
-	if (ebx_clrtag(t) == NULL)
+
+	if (unlikely(ebx_link_is_null(ebx_untag(t, EB_LEFT)->b[EB_RGHT])))
 		return NULL;
+
+	t = ebx_getroot(&(ebx_untag(t, EB_LEFT))->b[EB_RGHT]);
 	return ebx_walk_down(t, EB_LEFT);
 }
 
@@ -724,7 +740,7 @@ static inline struct ebx_node *ebx_prev_unique(struct ebx_node *node)
 			/* Walking up from left branch. We must ensure that we never
 			 * walk beyond root.
 			 */
-			if (unlikely(ebx_clrtag(ebx_getroot(&(ebx_untag(t, EB_LEFT))->b[EB_RGHT])) == NULL))
+			if (unlikely(ebx_link_is_null(ebx_untag(t, EB_LEFT)->b[EB_RGHT])))
 				return NULL;
 			t = ebx_getroot(&(ebx_root_to_node(ebx_untag(t, EB_LEFT)))->node_p);
 		}
@@ -743,7 +759,7 @@ static inline struct ebx_node *ebx_next_unique(struct ebx_node *node)
 
 	while (1) {
 		if (ebx_gettag(t) == EB_LEFT) {
-			if (unlikely(ebx_clrtag(ebx_getroot_safe(&(ebx_untag(t, EB_LEFT))->b[EB_RGHT])) == NULL))
+			if (unlikely(ebx_link_is_null(ebx_untag(t, EB_LEFT)->b[EB_RGHT])))
 				return NULL;	/* we reached root */
 			node = ebx_root_to_node(ebx_untag(t, EB_LEFT));
 			/* if we're left and not in duplicates, stop here */
@@ -758,9 +774,10 @@ static inline struct ebx_node *ebx_next_unique(struct ebx_node *node)
 	}
 
 	/* Note that <t> cannot be NULL at this stage */
-	t = ebx_getroot(&(ebx_untag(t, EB_LEFT))->b[EB_RGHT]);
-	if (ebx_clrtag(t) == NULL)
+	if (unlikely(ebx_link_is_null(ebx_untag(t, EB_LEFT)->b[EB_RGHT])))
 		return NULL;
+
+	t = ebx_getroot(&(ebx_untag(t, EB_LEFT))->b[EB_RGHT]);
 	return ebx_walk_down(t, EB_LEFT);
 }
 
@@ -785,8 +802,7 @@ static forceinline void __ebx_delete(struct ebx_node *node)
 	 * in which case we only set our branch to NULL. Note that we can
 	 * only be attached to the root by its left branch.
 	 */
-
-	if (ebx_clrtag(ebx_getroot_safe(&parent->branches.b[EB_RGHT])) == NULL) {
+	if (ebx_link_is_null(parent->branches.b[EB_RGHT])) {
 		/* we're just below the root, it's trivial. */
 		parent->branches.b[EB_LEFT] = 0;
 		goto delete_unlink;
