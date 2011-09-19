@@ -41,7 +41,7 @@ REGPRM2 struct ebpt_node *ebpt_lookup_le(struct eb_root *root, void *x)
 	struct ebpt_node *node;
 	eb_troot_t *troot;
 
-	troot = root->b[EB_LEFT];
+	troot = get_troot(&root->b[EB_LEFT]);
 	if (unlikely(troot == NULL))
 		return NULL;
 
@@ -56,7 +56,7 @@ REGPRM2 struct ebpt_node *ebpt_lookup_le(struct eb_root *root, void *x)
 			if (node->key <= x)
 				return node;
 			/* return prev */
-			troot = node->node.leaf_p;
+			troot = get_troot(&node->node.leaf_p);
 			break;
 		}
 		node = container_of(eb_untag(troot, EB_NODE),
@@ -72,14 +72,14 @@ REGPRM2 struct ebpt_node *ebpt_lookup_le(struct eb_root *root, void *x)
 			 * tree.
 			 */
 			if (node->key <= x) {
-				troot = node->node.branches.b[EB_RGHT];
+				troot = get_troot(&node->node.branches.b[EB_RGHT]);
 				while (eb_gettag(troot) != EB_LEAF)
-					troot = (eb_untag(troot, EB_NODE))->b[EB_RGHT];
+					troot = get_troot(&(eb_untag(troot, EB_NODE))->b[EB_RGHT]);
 				return container_of(eb_untag(troot, EB_LEAF),
 						    struct ebpt_node, node.branches);
 			}
 			/* return prev */
-			troot = node->node.node_p;
+			troot = get_troot(&node->node.node_p);
 			break;
 		}
 
@@ -89,17 +89,17 @@ REGPRM2 struct ebpt_node *ebpt_lookup_le(struct eb_root *root, void *x)
 			 * too large, and we need to get the prev value.
 			 */
 			if (((ptr_t)node->key >> node->node.bit) < ((ptr_t)x >> node->node.bit)) {
-				troot = node->node.branches.b[EB_RGHT];
+				troot = get_troot(&node->node.branches.b[EB_RGHT]);
 				return ebpt_entry(eb_walk_down(troot, EB_RGHT), struct ebpt_node, node);
 			}
 
 			/* Further values will be too high here, so return the prev
 			 * unique node (if it exists).
 			 */
-			troot = node->node.node_p;
+			troot = get_troot(&node->node.node_p);
 			break;
 		}
-		troot = node->node.branches.b[((ptr_t)x >> node->node.bit) & EB_NODE_BRANCH_MASK];
+		troot = get_troot(&node->node.branches.b[((ptr_t)x >> node->node.bit) & EB_NODE_BRANCH_MASK]);
 	}
 
 	/* If we get here, it means we want to report previous node before the
@@ -110,12 +110,12 @@ REGPRM2 struct ebpt_node *ebpt_lookup_le(struct eb_root *root, void *x)
 		/* Walking up from left branch. We must ensure that we never
 		 * walk beyond root.
 		 */
-		if (unlikely(eb_clrtag((eb_untag(troot, EB_LEFT))->b[EB_RGHT]) == NULL))
+		if (unlikely(eb_clrtag(get_troot(&(eb_untag(troot, EB_LEFT))->b[EB_RGHT])) == NULL))
 			return NULL;
-		troot = (eb_root_to_node(eb_untag(troot, EB_LEFT)))->node_p;
+		troot = get_troot(&(eb_root_to_node(eb_untag(troot, EB_LEFT)))->node_p);
 	}
 	/* Note that <troot> cannot be NULL at this stage */
-	troot = (eb_untag(troot, EB_RGHT))->b[EB_LEFT];
+	troot = get_troot(&(eb_untag(troot, EB_RGHT))->b[EB_LEFT]);
 	node = ebpt_entry(eb_walk_down(troot, EB_RGHT), struct ebpt_node, node);
 	return node;
 }
@@ -129,7 +129,7 @@ REGPRM2 struct ebpt_node *ebpt_lookup_ge(struct eb_root *root, void *x)
 	struct ebpt_node *node;
 	eb_troot_t *troot;
 
-	troot = root->b[EB_LEFT];
+	troot = get_troot(&root->b[EB_LEFT]);
 	if (unlikely(troot == NULL))
 		return NULL;
 
@@ -144,7 +144,7 @@ REGPRM2 struct ebpt_node *ebpt_lookup_ge(struct eb_root *root, void *x)
 			if (node->key >= x)
 				return node;
 			/* return next */
-			troot = node->node.leaf_p;
+			troot = get_troot(&node->node.leaf_p);
 			break;
 		}
 		node = container_of(eb_untag(troot, EB_NODE),
@@ -160,14 +160,14 @@ REGPRM2 struct ebpt_node *ebpt_lookup_ge(struct eb_root *root, void *x)
 			 * tree.
 			 */
 			if (node->key >= x) {
-				troot = node->node.branches.b[EB_LEFT];
+				troot = get_troot(&node->node.branches.b[EB_LEFT]);
 				while (eb_gettag(troot) != EB_LEAF)
-					troot = (eb_untag(troot, EB_NODE))->b[EB_LEFT];
+					troot = get_troot(&(eb_untag(troot, EB_NODE))->b[EB_LEFT]);
 				return container_of(eb_untag(troot, EB_LEAF),
 						    struct ebpt_node, node.branches);
 			}
 			/* return next */
-			troot = node->node.node_p;
+			troot = get_troot(&node->node.node_p);
 			break;
 		}
 
@@ -177,17 +177,17 @@ REGPRM2 struct ebpt_node *ebpt_lookup_ge(struct eb_root *root, void *x)
 			 * small, and we need to get the next value.
 			 */
 			if (((ptr_t)node->key >> node->node.bit) > ((ptr_t)x >> node->node.bit)) {
-				troot = node->node.branches.b[EB_LEFT];
+				troot = get_troot(&node->node.branches.b[EB_LEFT]);
 				return ebpt_entry(eb_walk_down(troot, EB_LEFT), struct ebpt_node, node);
 			}
 
 			/* Further values will be too low here, so return the next
 			 * unique node (if it exists).
 			 */
-			troot = node->node.node_p;
+			troot = get_troot(&node->node.node_p);
 			break;
 		}
-		troot = node->node.branches.b[((ptr_t)x >> node->node.bit) & EB_NODE_BRANCH_MASK];
+		troot = get_troot(&node->node.branches.b[((ptr_t)x >> node->node.bit) & EB_NODE_BRANCH_MASK]);
 	}
 
 	/* If we get here, it means we want to report next node after the
@@ -196,10 +196,10 @@ REGPRM2 struct ebpt_node *ebpt_lookup_ge(struct eb_root *root, void *x)
 	 */
 	while (eb_gettag(troot) != EB_LEFT)
 		/* Walking up from right branch, so we cannot be below root */
-		troot = (eb_root_to_node(eb_untag(troot, EB_RGHT)))->node_p;
+		troot = get_troot(&(eb_root_to_node(eb_untag(troot, EB_RGHT)))->node_p);
 
 	/* Note that <troot> cannot be NULL at this stage */
-	troot = (eb_untag(troot, EB_LEFT))->b[EB_RGHT];
+	troot = get_troot(&(eb_untag(troot, EB_LEFT))->b[EB_RGHT]);
 	if (eb_clrtag(troot) == NULL)
 		return NULL;
 

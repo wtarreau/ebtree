@@ -127,7 +127,7 @@ static forceinline struct eb32_node *__eb32_lookup(struct eb_root *root, u32 x)
 	u32 y;
 	int node_bit;
 
-	troot = root->b[EB_LEFT];
+	troot = get_troot(&root->b[EB_LEFT]);
 	if (unlikely(troot == NULL))
 		return NULL;
 
@@ -151,9 +151,9 @@ static forceinline struct eb32_node *__eb32_lookup(struct eb_root *root, u32 x)
 			 * walk it down left to get the first entry.
 			 */
 			if (node_bit < 0) {
-				troot = node->node.branches.b[EB_LEFT];
+				troot = get_troot(&node->node.branches.b[EB_LEFT]);
 				while (eb_gettag(troot) != EB_LEAF)
-					troot = (eb_untag(troot, EB_NODE))->b[EB_LEFT];
+					troot = get_troot(&(eb_untag(troot, EB_NODE))->b[EB_LEFT]);
 				node = container_of(eb_untag(troot, EB_LEAF),
 						    struct eb32_node, node.branches);
 			}
@@ -163,7 +163,7 @@ static forceinline struct eb32_node *__eb32_lookup(struct eb_root *root, u32 x)
 		if ((y >> node_bit) >= EB_NODE_BRANCHES)
 			return NULL; /* no more common bits */
 
-		troot = node->node.branches.b[(x >> node_bit) & EB_NODE_BRANCH_MASK];
+		troot = get_troot(&node->node.branches.b[(x >> node_bit) & EB_NODE_BRANCH_MASK]);
 	}
 }
 
@@ -179,7 +179,7 @@ static forceinline struct eb32_node *__eb32i_lookup(struct eb_root *root, s32 x)
 	u32 y;
 	int node_bit;
 
-	troot = root->b[EB_LEFT];
+	troot = get_troot(&root->b[EB_LEFT]);
 	if (unlikely(troot == NULL))
 		return NULL;
 
@@ -203,9 +203,9 @@ static forceinline struct eb32_node *__eb32i_lookup(struct eb_root *root, s32 x)
 			 * walk it down left to get the first entry.
 			 */
 			if (node_bit < 0) {
-				troot = node->node.branches.b[EB_LEFT];
+				troot = get_troot(&node->node.branches.b[EB_LEFT]);
 				while (eb_gettag(troot) != EB_LEAF)
-					troot = (eb_untag(troot, EB_NODE))->b[EB_LEFT];
+					troot = get_troot(&(eb_untag(troot, EB_NODE))->b[EB_LEFT]);
 				node = container_of(eb_untag(troot, EB_LEAF),
 						    struct eb32_node, node.branches);
 			}
@@ -215,7 +215,7 @@ static forceinline struct eb32_node *__eb32i_lookup(struct eb_root *root, s32 x)
 		if ((y >> node_bit) >= EB_NODE_BRANCHES)
 			return NULL; /* no more common bits */
 
-		troot = node->node.branches.b[(key >> node_bit) & EB_NODE_BRANCH_MASK];
+		troot = get_troot(&node->node.branches.b[(key >> node_bit) & EB_NODE_BRANCH_MASK]);
 	}
 }
 
@@ -224,10 +224,12 @@ static forceinline struct eb32_node *__eb32i_lookup(struct eb_root *root, s32 x)
  * If root->b[EB_RGHT]==1, the tree may only contain unique keys.
  */
 static forceinline struct eb32_node *
-__eb32_insert(struct eb_root *root, struct eb32_node *new) {
+__eb32_insert(struct eb_root *root, struct eb32_node *new)
+{
 	struct eb32_node *old;
 	unsigned int side;
-	eb_troot_t *troot, **up_ptr;
+	eb_troot_t *troot;
+	eb_ofs_t *up_ptr;
 	u32 newkey; /* caching the key saves approximately one cycle */
 	eb_troot_t *root_right;
 	eb_troot_t *new_left, *new_rght;
@@ -235,13 +237,13 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
 	int old_node_bit;
 
 	side = EB_LEFT;
-	troot = root->b[EB_LEFT];
-	root_right = root->b[EB_RGHT];
+	troot = get_troot(&root->b[EB_LEFT]);
+	root_right = get_troot(&root->b[EB_RGHT]);
 	if (unlikely(troot == NULL)) {
 		/* Tree is empty, insert the leaf part below the left branch */
-		root->b[EB_LEFT] = eb_dotag(&new->node.branches, EB_LEAF);
-		new->node.leaf_p = eb_dotag(root, EB_LEFT);
-		new->node.node_p = NULL; /* node part unused */
+		set_ofs(&root->b[EB_LEFT], eb_dotag(&new->node.branches, EB_LEAF));
+		set_ofs(&new->node.leaf_p, eb_dotag(root, EB_LEFT));
+		new->node.node_p = 0; /* node part unused */
 		return new;
 	}
 
@@ -263,7 +265,7 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
 			/* insert above a leaf */
 			old = container_of(eb_untag(troot, EB_LEAF),
 					    struct eb32_node, node.branches);
-			new->node.node_p = old->node.leaf_p;
+			set_ofs(&new->node.node_p, get_troot(&old->node.leaf_p));
 			up_ptr = &old->node.leaf_p;
 			break;
 		}
@@ -284,7 +286,7 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
 			 * <old>, and set ->bit to designate the lowest bit position in <new>
 			 * which applies to ->branches.b[].
 			 */
-			new->node.node_p = old->node.node_p;
+			set_ofs(&new->node.node_p, get_troot(&old->node.node_p));
 			up_ptr = &old->node.node_p;
 			break;
 		}
@@ -292,7 +294,7 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
 		/* walk down */
 		root = &old->node.branches;
 		side = (newkey >> old_node_bit) & EB_NODE_BRANCH_MASK;
-		troot = root->b[side];
+		troot = get_troot(&root->b[side]);
 	}
 
 	new_left = eb_dotag(&new->node.branches, EB_LEFT);
@@ -329,16 +331,16 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
 	}
 
 	if (new->key >= old->key) {
-		new->node.branches.b[EB_LEFT] = troot;
-		new->node.branches.b[EB_RGHT] = new_leaf;
-		new->node.leaf_p = new_rght;
-		*up_ptr = new_left;
+		set_ofs(&new->node.branches.b[EB_LEFT], troot);
+		set_ofs(&new->node.branches.b[EB_RGHT], new_leaf);
+		set_ofs(&new->node.leaf_p, new_rght);
+		set_ofs(up_ptr, new_left);
 	}
 	else {
-		new->node.branches.b[EB_LEFT] = new_leaf;
-		new->node.branches.b[EB_RGHT] = troot;
-		new->node.leaf_p = new_left;
-		*up_ptr = new_rght;
+		set_ofs(&new->node.branches.b[EB_LEFT], new_leaf);
+		set_ofs(&new->node.branches.b[EB_RGHT], troot);
+		set_ofs(&new->node.leaf_p, new_left);
+		set_ofs(up_ptr, new_rght);
 	}
 
 	/* Ok, now we are inserting <new> between <root> and <old>. <old>'s
@@ -347,7 +349,7 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
 	 * find the side by checking the side of new->node.node_p.
 	 */
 
-	root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
+	set_ofs(&root->b[side], eb_dotag(&new->node.branches, EB_NODE));
 	return new;
 }
 
@@ -356,10 +358,12 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
  * is returned. If root->b[EB_RGHT]==1, the tree may only contain unique keys.
  */
 static forceinline struct eb32_node *
-__eb32i_insert(struct eb_root *root, struct eb32_node *new) {
+__eb32i_insert(struct eb_root *root, struct eb32_node *new)
+{
 	struct eb32_node *old;
 	unsigned int side;
-	eb_troot_t *troot, **up_ptr;
+	eb_troot_t *troot;
+	eb_ofs_t *up_ptr;
 	int newkey; /* caching the key saves approximately one cycle */
 	eb_troot_t *root_right;
 	eb_troot_t *new_left, *new_rght;
@@ -367,13 +371,13 @@ __eb32i_insert(struct eb_root *root, struct eb32_node *new) {
 	int old_node_bit;
 
 	side = EB_LEFT;
-	troot = root->b[EB_LEFT];
-	root_right = root->b[EB_RGHT];
+	troot = get_troot(&root->b[EB_LEFT]);
+	root_right = get_troot(&root->b[EB_RGHT]);
 	if (unlikely(troot == NULL)) {
 		/* Tree is empty, insert the leaf part below the left branch */
-		root->b[EB_LEFT] = eb_dotag(&new->node.branches, EB_LEAF);
-		new->node.leaf_p = eb_dotag(root, EB_LEFT);
-		new->node.node_p = NULL; /* node part unused */
+		set_ofs(&root->b[EB_LEFT], eb_dotag(&new->node.branches, EB_LEAF));
+		set_ofs(&new->node.leaf_p, eb_dotag(root, EB_LEFT));
+		new->node.node_p = 0; /* node part unused */
 		return new;
 	}
 
@@ -396,7 +400,7 @@ __eb32i_insert(struct eb_root *root, struct eb32_node *new) {
 		if (eb_gettag(troot) == EB_LEAF) {
 			old = container_of(eb_untag(troot, EB_LEAF),
 					    struct eb32_node, node.branches);
-			new->node.node_p = old->node.leaf_p;
+			set_ofs(&new->node.node_p, get_troot(&old->node.leaf_p));
 			up_ptr = &old->node.leaf_p;
 			break;
 		}
@@ -417,7 +421,7 @@ __eb32i_insert(struct eb_root *root, struct eb32_node *new) {
 			 * <old>, and set ->bit to designate the lowest bit position in <new>
 			 * which applies to ->branches.b[].
 			 */
-			new->node.node_p = old->node.node_p;
+			set_ofs(&new->node.node_p, get_troot(&old->node.node_p));
 			up_ptr = &old->node.node_p;
 			break;
 		}
@@ -425,7 +429,7 @@ __eb32i_insert(struct eb_root *root, struct eb32_node *new) {
 		/* walk down */
 		root = &old->node.branches;
 		side = (newkey >> old_node_bit) & EB_NODE_BRANCH_MASK;
-		troot = root->b[side];
+		troot = get_troot(&root->b[side]);
 	}
 
 	new_left = eb_dotag(&new->node.branches, EB_LEFT);
@@ -462,16 +466,16 @@ __eb32i_insert(struct eb_root *root, struct eb32_node *new) {
 	}
 
 	if ((s32)new->key >= (s32)old->key) {
-		new->node.branches.b[EB_LEFT] = troot;
-		new->node.branches.b[EB_RGHT] = new_leaf;
-		new->node.leaf_p = new_rght;
-		*up_ptr = new_left;
+		set_ofs(&new->node.branches.b[EB_LEFT], troot);
+		set_ofs(&new->node.branches.b[EB_RGHT], new_leaf);
+		set_ofs(&new->node.leaf_p, new_rght);
+		set_ofs(up_ptr, new_left);
 	}
 	else {
-		new->node.branches.b[EB_LEFT] = new_leaf;
-		new->node.branches.b[EB_RGHT] = troot;
-		new->node.leaf_p = new_left;
-		*up_ptr = new_rght;
+		set_ofs(&new->node.branches.b[EB_LEFT], new_leaf);
+		set_ofs(&new->node.branches.b[EB_RGHT], troot);
+		set_ofs(&new->node.leaf_p, new_left);
+		set_ofs(up_ptr, new_rght);
 	}
 
 	/* Ok, now we are inserting <new> between <root> and <old>. <old>'s
@@ -480,7 +484,7 @@ __eb32i_insert(struct eb_root *root, struct eb32_node *new) {
 	 * find the side by checking the side of new->node.node_p.
 	 */
 
-	root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
+	set_ofs(&root->b[side], eb_dotag(&new->node.branches, EB_NODE));
 	return new;
 }
 

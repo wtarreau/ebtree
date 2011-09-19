@@ -346,14 +346,15 @@ static inline int fls64(unsigned long long x)
  *  - 0=left, 1=right to designate the parent's branch for leaf_p/node_p
  *  - 0=link, 1=leaf  to designate the branch's type for branch[]
  */
-typedef void eb_troot_t;
+typedef signed long eb_ofs_t;
+typedef void *eb_troot_t;
 
 /* The eb_root connects the node which contains it, to two nodes below it, one
  * of which may be the same node. At the top of the tree, we use an eb_root
  * too, which always has its right branch NULL (+/1 low-order bits).
  */
 struct eb_root {
-	eb_troot_t    *b[EB_NODE_BRANCHES]; /* left and right branches */
+	eb_ofs_t       b[EB_NODE_BRANCHES]; /* left and right branches */
 };
 
 /* The eb_node contains the two parts, one for the leaf, which always exists,
@@ -363,9 +364,9 @@ struct eb_root {
  */
 struct eb_node {
 	struct eb_root branches; /* branches, must be at the beginning */
-	eb_troot_t    *node_p;  /* link node's parent */
-	eb_troot_t    *leaf_p;  /* leaf node's parent */
-	short int      bit;     /* link's bit position. */
+	eb_ofs_t       node_p;  /* link node's parent */
+	eb_ofs_t       leaf_p;  /* leaf node's parent */
+	short int       bit;     /* link's bit position. */
 	short unsigned int pfx; /* data prefix length, always related to leaf */
 };
 
@@ -376,14 +377,14 @@ struct eb_node {
  * During its life, only the left pointer will change. The right one will
  * always remain NULL, which is the way we detect it.
  */
-#define EB_ROOT						\
+#define EB_ROOT					\
 	(struct eb_root) {				\
-		.b = {[0] = NULL, [1] = NULL },		\
+		.b = {[0] = 0, [1] = 0 },		\
 	}
 
 #define EB_ROOT_UNIQUE					\
 	(struct eb_root) {				\
-		.b = {[0] = NULL, [1] = (void *)1 },	\
+		.b = {[0] = 0, [1] = 1 },		\
 	}
 
 #define EB_TREE_HEAD(name)				\
@@ -427,10 +428,24 @@ static inline struct eb_root *eb_clrtag(const eb_troot_t *troot)
 	return (struct eb_root *)((unsigned long)troot & ~1UL);
 }
 
-/* Returns a pointer to the eb_node holding <root> */
+/* Returns a pointer to the eb_node holding <root>, where <root> is stored at <base> */
 static inline struct eb_node *eb_root_to_node(struct eb_root *root)
 {
 	return container_of(root, struct eb_node, branches);
+}
+
+/* NOTE: We store the pointer as a relative offset of 2 so that it can never
+ * match a valid pointer.
+ */
+static inline void set_ofs(eb_ofs_t *dest, const eb_troot_t *troot)
+{
+	*dest = troot ? (void *)troot - (void *)dest - 2 : 0;
+}
+ 
+
+static inline eb_troot_t *get_troot(const eb_ofs_t *src)
+{
+	return *src ? *src + (void *)src + 2 : NULL;
 }
 
 /* Walks down starting at root pointer <start>, and always walking on side
@@ -442,7 +457,7 @@ static inline struct eb_node *eb_walk_down(eb_troot_t *start, unsigned int side)
 {
 	/* A NULL pointer on an empty tree root will be returned as-is */
 	while (eb_gettag(start) == EB_NODE)
-		start = (eb_untag(start, EB_NODE))->b[side];
+		start = get_troot(&(eb_untag(start, EB_NODE))->b[side]);
 	/* NULL is left untouched (root==eb_node, EB_LEAF==0) */
 	return eb_root_to_node(eb_untag(start, EB_LEAF));
 }
@@ -461,9 +476,9 @@ __eb_insert_dup(struct eb_node *sub, struct eb_node *new)
 	eb_troot_t *new_leaf = eb_dotag(&new->branches, EB_LEAF);
 
 	/* first, identify the deepest hole on the right branch */
-	while (eb_gettag(head->branches.b[EB_RGHT]) != EB_LEAF) {
+	while (eb_gettag(get_troot(&head->branches.b[EB_RGHT])) != EB_LEAF) {
 		struct eb_node *last = head;
-		head = container_of(eb_untag(head->branches.b[EB_RGHT], EB_NODE),
+		head = container_of(eb_untag(get_troot(&head->branches.b[EB_RGHT]), EB_NODE),
 				    struct eb_node, branches);
 		if (head->bit > last->bit + 1)
 			sub = head;     /* there's a hole here */
@@ -473,15 +488,15 @@ __eb_insert_dup(struct eb_node *sub, struct eb_node *new)
 	if (head->bit < -1) {
 		/* A hole exists just before the leaf, we insert there */
 		new->bit = -1;
-		sub = container_of(eb_untag(head->branches.b[EB_RGHT], EB_LEAF),
+		sub = container_of(eb_untag(get_troot(&head->branches.b[EB_RGHT]), EB_LEAF),
 				   struct eb_node, branches);
-		head->branches.b[EB_RGHT] = eb_dotag(&new->branches, EB_NODE);
+		set_ofs(&head->branches.b[EB_RGHT], eb_dotag(&new->branches, EB_NODE));
 
-		new->node_p = sub->leaf_p;
-		new->leaf_p = new_rght;
-		sub->leaf_p = new_left;
-		new->branches.b[EB_LEFT] = eb_dotag(&sub->branches, EB_LEAF);
-		new->branches.b[EB_RGHT] = new_leaf;
+		set_ofs(&new->node_p, get_troot(&sub->leaf_p));
+		set_ofs(&new->leaf_p, new_rght);
+		set_ofs(&sub->leaf_p, new_left);
+		set_ofs(&new->branches.b[EB_LEFT], eb_dotag(&sub->branches, EB_LEAF));
+		set_ofs(&new->branches.b[EB_RGHT], new_leaf);
 		return new;
 	} else {
 		int side;
@@ -491,15 +506,15 @@ __eb_insert_dup(struct eb_node *sub, struct eb_node *new)
 		 * is inside the dup tree, not at the head.
 		 */
 		new->bit = sub->bit - 1; /* install at the lowest level */
-		side = eb_gettag(sub->node_p);
-		head = container_of(eb_untag(sub->node_p, side), struct eb_node, branches);
-		head->branches.b[side] = eb_dotag(&new->branches, EB_NODE);
+		side = eb_gettag(get_troot(&sub->node_p));
+		head = container_of(eb_untag(get_troot(&sub->node_p), side), struct eb_node, branches);
+		set_ofs(&head->branches.b[side], eb_dotag(&new->branches, EB_NODE));
 					
-		new->node_p = sub->node_p;
-		new->leaf_p = new_rght;
-		sub->node_p = new_left;
-		new->branches.b[EB_LEFT] = eb_dotag(&sub->branches, EB_NODE);
-		new->branches.b[EB_RGHT] = new_leaf;
+		set_ofs(&new->node_p, get_troot(&sub->node_p));
+		set_ofs(&new->leaf_p, new_rght);
+		set_ofs(&sub->node_p, new_left);
+		set_ofs(&new->branches.b[EB_LEFT], eb_dotag(&sub->branches, EB_NODE));
+		set_ofs(&new->branches.b[EB_RGHT], new_leaf);
 		return new;
 	}
 }
@@ -518,44 +533,44 @@ static inline int eb_is_empty(struct eb_root *root)
 /* Return the first leaf in the tree starting at <root>, or NULL if none */
 static inline struct eb_node *eb_first(struct eb_root *root)
 {
-	return eb_walk_down(root->b[0], EB_LEFT);
+	return eb_walk_down(get_troot(&root->b[0]), EB_LEFT);
 }
 
 /* Return the last leaf in the tree starting at <root>, or NULL if none */
 static inline struct eb_node *eb_last(struct eb_root *root)
 {
-	return eb_walk_down(root->b[0], EB_RGHT);
+	return eb_walk_down(get_troot(&root->b[0]), EB_RGHT);
 }
 
 /* Return previous leaf node before an existing leaf node, or NULL if none. */
 static inline struct eb_node *eb_prev(struct eb_node *node)
 {
-	eb_troot_t *t = node->leaf_p;
+	eb_troot_t *t = get_troot(&node->leaf_p);
 
 	while (eb_gettag(t) == EB_LEFT) {
 		/* Walking up from left branch. We must ensure that we never
 		 * walk beyond root.
 		 */
-		if (unlikely(eb_clrtag((eb_untag(t, EB_LEFT))->b[EB_RGHT]) == NULL))
+		if (unlikely(eb_clrtag(get_troot(&(eb_untag(t, EB_LEFT))->b[EB_RGHT])) == NULL))
 			return NULL;
-		t = (eb_root_to_node(eb_untag(t, EB_LEFT)))->node_p;
+		t = get_troot(&(eb_root_to_node(eb_untag(t, EB_LEFT)))->node_p);
 	}
 	/* Note that <t> cannot be NULL at this stage */
-	t = (eb_untag(t, EB_RGHT))->b[EB_LEFT];
+	t = get_troot(&(eb_untag(t, EB_RGHT))->b[EB_LEFT]);
 	return eb_walk_down(t, EB_RGHT);
 }
 
 /* Return next leaf node after an existing leaf node, or NULL if none. */
 static inline struct eb_node *eb_next(struct eb_node *node)
 {
-	eb_troot_t *t = node->leaf_p;
+	eb_troot_t *t = get_troot(&node->leaf_p);
 
 	while (eb_gettag(t) != EB_LEFT)
 		/* Walking up from right branch, so we cannot be below root */
-		t = (eb_root_to_node(eb_untag(t, EB_RGHT)))->node_p;
+		t = get_troot(&(eb_root_to_node(eb_untag(t, EB_RGHT)))->node_p);
 
 	/* Note that <t> cannot be NULL at this stage */
-	t = (eb_untag(t, EB_LEFT))->b[EB_RGHT];
+	t = get_troot(&(eb_untag(t, EB_LEFT))->b[EB_RGHT]);
 	if (eb_clrtag(t) == NULL)
 		return NULL;
 	return eb_walk_down(t, EB_LEFT);
@@ -565,7 +580,7 @@ static inline struct eb_node *eb_next(struct eb_node *node)
  * or NULL if none. */
 static inline struct eb_node *eb_prev_unique(struct eb_node *node)
 {
-	eb_troot_t *t = node->leaf_p;
+	eb_troot_t *t = get_troot(&node->leaf_p);
 
 	while (1) {
 		if (eb_gettag(t) != EB_LEFT) {
@@ -573,19 +588,19 @@ static inline struct eb_node *eb_prev_unique(struct eb_node *node)
 			/* if we're right and not in duplicates, stop here */
 			if (node->bit >= 0)
 				break;
-			t = node->node_p;
+			t = get_troot(&node->node_p);
 		}
 		else {
 			/* Walking up from left branch. We must ensure that we never
 			 * walk beyond root.
 			 */
-			if (unlikely(eb_clrtag((eb_untag(t, EB_LEFT))->b[EB_RGHT]) == NULL))
+			if (unlikely(eb_clrtag(get_troot(&(eb_untag(t, EB_LEFT))->b[EB_RGHT])) == NULL))
 				return NULL;
-			t = (eb_root_to_node(eb_untag(t, EB_LEFT)))->node_p;
+			t = get_troot(&(eb_root_to_node(eb_untag(t, EB_LEFT)))->node_p);
 		}
 	}
 	/* Note that <t> cannot be NULL at this stage */
-	t = (eb_untag(t, EB_RGHT))->b[EB_LEFT];
+	t = get_troot(&(eb_untag(t, EB_RGHT))->b[EB_LEFT]);
 	return eb_walk_down(t, EB_RGHT);
 }
 
@@ -594,26 +609,26 @@ static inline struct eb_node *eb_prev_unique(struct eb_node *node)
  */
 static inline struct eb_node *eb_next_unique(struct eb_node *node)
 {
-	eb_troot_t *t = node->leaf_p;
+	eb_troot_t *t = get_troot(&node->leaf_p);
 
 	while (1) {
 		if (eb_gettag(t) == EB_LEFT) {
-			if (unlikely(eb_clrtag((eb_untag(t, EB_LEFT))->b[EB_RGHT]) == NULL))
+			if (unlikely(eb_clrtag(get_troot(&(eb_untag(t, EB_LEFT))->b[EB_RGHT])) == NULL))
 				return NULL;	/* we reached root */
 			node = eb_root_to_node(eb_untag(t, EB_LEFT));
 			/* if we're left and not in duplicates, stop here */
 			if (node->bit >= 0)
 				break;
-			t = node->node_p;
+			t = get_troot(&node->node_p);
 		}
 		else {
 			/* Walking up from right branch, so we cannot be below root */
-			t = (eb_root_to_node(eb_untag(t, EB_RGHT)))->node_p;
+			t = get_troot(&(eb_root_to_node(eb_untag(t, EB_RGHT)))->node_p);
 		}
 	}
 
 	/* Note that <t> cannot be NULL at this stage */
-	t = (eb_untag(t, EB_LEFT))->b[EB_RGHT];
+	t = get_troot(&(eb_untag(t, EB_LEFT))->b[EB_RGHT]);
 	if (eb_clrtag(t) == NULL)
 		return NULL;
 	return eb_walk_down(t, EB_LEFT);
@@ -634,17 +649,17 @@ static forceinline void __eb_delete(struct eb_node *node)
 		return;
 
 	/* we need the parent, our side, and the grand parent */
-	pside = eb_gettag(node->leaf_p);
-	parent = eb_root_to_node(eb_untag(node->leaf_p, pside));
+	pside = eb_gettag(get_troot(&node->leaf_p));
+	parent = eb_root_to_node(eb_untag(get_troot(&node->leaf_p), pside));
 
 	/* We likely have to release the parent link, unless it's the root,
 	 * in which case we only set our branch to NULL. Note that we can
 	 * only be attached to the root by its left branch.
 	 */
 
-	if (eb_clrtag(parent->branches.b[EB_RGHT]) == NULL) {
+	if (eb_clrtag(get_troot(&parent->branches.b[EB_RGHT])) == NULL) {
 		/* we're just below the root, it's trivial. */
-		parent->branches.b[EB_LEFT] = NULL;
+		parent->branches.b[EB_LEFT] = 0;
 		goto delete_unlink;
 	}
 
@@ -653,25 +668,23 @@ static forceinline void __eb_delete(struct eb_node *node)
 	 * either be a link or a leaf.
 	 */
 
-	gpside = eb_gettag(parent->node_p);
-	gparent = eb_untag(parent->node_p, gpside);
+	gpside = eb_gettag(get_troot(&parent->node_p));
+	gparent = eb_untag(get_troot(&parent->node_p), gpside);
 
-	gparent->b[gpside] = parent->branches.b[!pside];
-	sibtype = eb_gettag(gparent->b[gpside]);
+	set_ofs(&gparent->b[gpside], get_troot(&parent->branches.b[!pside]));
+	sibtype = eb_gettag(get_troot(&gparent->b[gpside]));
 
 	if (sibtype == EB_LEAF) {
-		eb_root_to_node(eb_untag(gparent->b[gpside], EB_LEAF))->leaf_p =
-			eb_dotag(gparent, gpside);
+		set_ofs(&eb_root_to_node(eb_untag(get_troot(&gparent->b[gpside]), EB_LEAF))->leaf_p, eb_dotag(gparent, gpside));
 	} else {
-		eb_root_to_node(eb_untag(gparent->b[gpside], EB_NODE))->node_p =
-			eb_dotag(gparent, gpside);
+		set_ofs(&eb_root_to_node(eb_untag(get_troot(&gparent->b[gpside]), EB_NODE))->node_p, eb_dotag(gparent, gpside));
 	}
 	/* Mark the parent unused. Note that we do not check if the parent is
 	 * our own node, but that's not a problem because if it is, it will be
 	 * marked unused at the same time, which we'll use below to know we can
 	 * safely remove it.
 	 */
-	parent->node_p = NULL;
+	parent->node_p = 0;
 
 	/* The parent node has been detached, and is currently unused. It may
 	 * belong to another node, so we cannot remove it that way. Also, our
@@ -688,28 +701,29 @@ static forceinline void __eb_delete(struct eb_node *node)
 	 * below <node>, so keeping its key for the bit string is OK.
 	 */
 
-	parent->node_p = node->node_p;
-	parent->branches = node->branches;
+	set_ofs(&parent->node_p, get_troot(&node->node_p));
+	set_ofs(&parent->branches.b[EB_LEFT], get_troot(&node->branches.b[EB_LEFT]));
+	set_ofs(&parent->branches.b[EB_RGHT], get_troot(&node->branches.b[EB_RGHT]));
 	parent->bit = node->bit;
 
 	/* We must now update the new node's parent... */
-	gpside = eb_gettag(parent->node_p);
-	gparent = eb_untag(parent->node_p, gpside);
-	gparent->b[gpside] = eb_dotag(&parent->branches, EB_NODE);
+	gpside = eb_gettag(get_troot(&parent->node_p));
+	gparent = eb_untag(get_troot(&parent->node_p), gpside);
+	set_ofs(&gparent->b[gpside], eb_dotag(&parent->branches, EB_NODE));
 
 	/* ... and its branches */
 	for (pside = 0; pside <= 1; pside++) {
-		if (eb_gettag(parent->branches.b[pside]) == EB_NODE) {
-			eb_root_to_node(eb_untag(parent->branches.b[pside], EB_NODE))->node_p =
-				eb_dotag(&parent->branches, pside);
+		if (eb_gettag(get_troot(&parent->branches.b[pside])) == EB_NODE) {
+			set_ofs(&eb_root_to_node(eb_untag(get_troot(&parent->branches.b[pside]), EB_NODE))->node_p,
+				eb_dotag(&parent->branches, pside));
 		} else {
-			eb_root_to_node(eb_untag(parent->branches.b[pside], EB_LEAF))->leaf_p =
-				eb_dotag(&parent->branches, pside);
+			set_ofs(&eb_root_to_node(eb_untag(get_troot(&parent->branches.b[pside]), EB_LEAF))->leaf_p,
+				eb_dotag(&parent->branches, pside));
 		}
 	}
  delete_unlink:
 	/* Now the node has been completely unlinked */
-	node->leaf_p = NULL;
+	node->leaf_p = 0;
 	return; /* tree is not empty yet */
 }
 
