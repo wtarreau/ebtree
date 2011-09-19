@@ -71,7 +71,7 @@ static forceinline struct ebpt_node *__ebis_lookup(struct ebx_root *root, const 
 	int bit;
 	int node_bit;
 
-	troot = root->b[EB_LEFT];
+	troot = ebx_getroot(&root->b[EB_LEFT]);
 	if (unlikely(troot == NULL))
 		return NULL;
 
@@ -97,9 +97,9 @@ static forceinline struct ebpt_node *__ebis_lookup(struct ebx_root *root, const 
 			if (strcmp(node->key, x) != 0)
 				return NULL;
 
-			troot = node->node.branches.b[EB_LEFT];
+			troot = ebx_getroot(&node->node.branches.b[EB_LEFT]);
 			while (eb_gettag(troot) != EB_LEAF)
-				troot = (eb_untag(troot, EB_NODE))->b[EB_LEFT];
+				troot = ebx_getroot(&(eb_untag(troot, EB_NODE))->b[EB_LEFT]);
 			node = container_of(eb_untag(troot, EB_LEAF),
 					    struct ebpt_node, node.branches);
 			return node;
@@ -119,7 +119,7 @@ static forceinline struct ebpt_node *__ebis_lookup(struct ebx_root *root, const 
 				 * this node. Otherwise we have to walk it down
 				 * and stop comparing bits.
 				 */
-				if (eb_gettag(root->b[EB_RGHT]))
+				if (eb_gettag(ebx_getroot(&root->b[EB_RGHT])))
 					return node;
 			}
 			/* if the bit is larger than the node's, we must bound it
@@ -132,8 +132,8 @@ static forceinline struct ebpt_node *__ebis_lookup(struct ebx_root *root, const 
 				bit = node_bit;
 		}
 
-		troot = node->node.branches.b[(((unsigned char*)x)[node_bit >> 3] >>
-					       (~node_bit & 7)) & 1];
+		troot = ebx_getroot(&node->node.branches.b[(((unsigned char*)x)[node_bit >> 3] >>
+							  (~node_bit & 7)) & 1]);
 	}
 }
 
@@ -154,13 +154,13 @@ __ebis_insert(struct ebx_root *root, struct ebpt_node *new)
 	int old_node_bit;
 
 	side = EB_LEFT;
-	troot = root->b[EB_LEFT];
-	root_right = root->b[EB_RGHT];
+	troot = ebx_getroot(&root->b[EB_LEFT]);
+	root_right = ebx_getroot(&root->b[EB_RGHT]);
 	if (unlikely(troot == NULL)) {
 		/* Tree is empty, insert the leaf part below the left branch */
-		root->b[EB_LEFT] = eb_dotag(&new->node.branches, EB_LEAF);
-		new->node.leaf_p = eb_dotag(root, EB_LEFT);
-		new->node.node_p = NULL; /* node part unused */
+		ebx_setlink(&root->b[EB_LEFT], eb_dotag(&new->node.branches, EB_LEAF));
+		ebx_setlink(&new->node.leaf_p, eb_dotag(root, EB_LEFT));
+		new->node.node_p = 0; /* node part unused */
 		return new;
 	}
 
@@ -190,7 +190,7 @@ __ebis_insert(struct ebx_root *root, struct ebpt_node *new)
 			new_leaf = eb_dotag(&new->node.branches, EB_LEAF);
 			old_leaf = eb_dotag(&old->node.branches, EB_LEAF);
 
-			new->node.node_p = old->node.leaf_p;
+			ebx_setlink(&new->node.node_p, ebx_getroot(&old->node.leaf_p));
 
 			/* Right here, we have 3 possibilities :
 			 * - the tree does not contain the key, and we have
@@ -220,28 +220,28 @@ __ebis_insert(struct ebx_root *root, struct ebpt_node *new)
 					return old;
 
 				/* new arbitrarily goes to the right and tops the dup tree */
-				old->node.leaf_p = new_left;
-				new->node.leaf_p = new_rght;
-				new->node.branches.b[EB_LEFT] = old_leaf;
-				new->node.branches.b[EB_RGHT] = new_leaf;
+				ebx_setlink(&old->node.leaf_p, new_left);
+				ebx_setlink(&new->node.leaf_p, new_rght);
+				ebx_setlink(&new->node.branches.b[EB_LEFT], old_leaf);
+				ebx_setlink(&new->node.branches.b[EB_RGHT], new_leaf);
 				new->node.bit = -1;
-				root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
+				ebx_setlink(&root->b[side], eb_dotag(&new->node.branches, EB_NODE));
 				return new;
 			}
 
 			diff = cmp_bits(new->key, old->key, bit);
 			if (diff < 0) {
 				/* new->key < old->key, new takes the left */
-				new->node.leaf_p = new_left;
-				old->node.leaf_p = new_rght;
-				new->node.branches.b[EB_LEFT] = new_leaf;
-				new->node.branches.b[EB_RGHT] = old_leaf;
+				ebx_setlink(&new->node.leaf_p, new_left);
+				ebx_setlink(&old->node.leaf_p, new_rght);
+				ebx_setlink(&new->node.branches.b[EB_LEFT], new_leaf);
+				ebx_setlink(&new->node.branches.b[EB_RGHT], old_leaf);
 			} else {
 				/* new->key > old->key, new takes the right */
-				old->node.leaf_p = new_left;
-				new->node.leaf_p = new_rght;
-				new->node.branches.b[EB_LEFT] = old_leaf;
-				new->node.branches.b[EB_RGHT] = new_leaf;
+				ebx_setlink(&old->node.leaf_p, new_left);
+				ebx_setlink(&new->node.leaf_p, new_rght);
+				ebx_setlink(&new->node.branches.b[EB_LEFT], old_leaf);
+				ebx_setlink(&new->node.branches.b[EB_RGHT], new_leaf);
 			}
 			break;
 		}
@@ -292,21 +292,21 @@ __ebis_insert(struct ebx_root *root, struct ebpt_node *new)
 			new_leaf = eb_dotag(&new->node.branches, EB_LEAF);
 			old_node = eb_dotag(&old->node.branches, EB_NODE);
 
-			new->node.node_p = old->node.node_p;
+			ebx_setlink(&new->node.node_p, ebx_getroot(&old->node.node_p));
 
 			/* we can never match all bits here */
 			diff = cmp_bits(new->key, old->key, bit);
 			if (diff < 0) {
-				new->node.leaf_p = new_left;
-				old->node.node_p = new_rght;
-				new->node.branches.b[EB_LEFT] = new_leaf;
-				new->node.branches.b[EB_RGHT] = old_node;
+				ebx_setlink(&new->node.leaf_p, new_left);
+				ebx_setlink(&old->node.node_p, new_rght);
+				ebx_setlink(&new->node.branches.b[EB_LEFT], new_leaf);
+				ebx_setlink(&new->node.branches.b[EB_RGHT], old_node);
 			}
 			else {
-				old->node.node_p = new_left;
-				new->node.leaf_p = new_rght;
-				new->node.branches.b[EB_LEFT] = old_node;
-				new->node.branches.b[EB_RGHT] = new_leaf;
+				ebx_setlink(&old->node.node_p, new_left);
+				ebx_setlink(&new->node.leaf_p, new_rght);
+				ebx_setlink(&new->node.branches.b[EB_LEFT], old_node);
+				ebx_setlink(&new->node.branches.b[EB_RGHT], new_leaf);
 			}
 			break;
 		}
@@ -314,7 +314,7 @@ __ebis_insert(struct ebx_root *root, struct ebpt_node *new)
 		/* walk down */
 		root = &old->node.branches;
 		side = (((unsigned char *)new->key)[old_node_bit >> 3] >> (~old_node_bit & 7)) & 1;
-		troot = root->b[side];
+		troot = ebx_getroot(&root->b[side]);
 	}
 
 	/* Ok, now we are inserting <new> between <root> and <old>. <old>'s
@@ -328,7 +328,7 @@ __ebis_insert(struct ebx_root *root, struct ebpt_node *new)
 	 * NOTE: we can't get here whit bit < 0 since we found a dup !
 	 */
 	new->node.bit = bit;
-	root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
+	ebx_setlink(&root->b[side], eb_dotag(&new->node.branches, EB_NODE));
 	return new;
 }
 

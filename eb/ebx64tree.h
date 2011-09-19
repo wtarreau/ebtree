@@ -144,7 +144,7 @@ static forceinline struct ebx64_node *__eb64_lookup(struct ebx_root *root, u64 x
 	ebx_troot_t *troot;
 	u64 y;
 
-	troot = root->b[EB_LEFT];
+	troot = ebx_getroot(&root->b[EB_LEFT]);
 	if (unlikely(troot == NULL))
 		return NULL;
 
@@ -167,9 +167,9 @@ static forceinline struct ebx64_node *__eb64_lookup(struct ebx_root *root, u64 x
 			 * walk it down left to get the first entry.
 			 */
 			if (node->node.bit < 0) {
-				troot = node->node.branches.b[EB_LEFT];
+				troot = ebx_getroot(&node->node.branches.b[EB_LEFT]);
 				while (eb_gettag(troot) != EB_LEAF)
-					troot = (eb_untag(troot, EB_NODE))->b[EB_LEFT];
+					troot = ebx_getroot(&(eb_untag(troot, EB_NODE))->b[EB_LEFT]);
 				node = container_of(eb_untag(troot, EB_LEAF),
 						    struct ebx64_node, node.branches);
 			}
@@ -179,7 +179,7 @@ static forceinline struct ebx64_node *__eb64_lookup(struct ebx_root *root, u64 x
 		if ((y >> node->node.bit) >= EB_NODE_BRANCHES)
 			return NULL; /* no more common bits */
 
-		troot = node->node.branches.b[(x >> node->node.bit) & EB_NODE_BRANCH_MASK];
+		troot = ebx_getroot(&node->node.branches.b[(x >> node->node.bit) & EB_NODE_BRANCH_MASK]);
 	}
 }
 
@@ -194,7 +194,7 @@ static forceinline struct ebx64_node *__eb64i_lookup(struct ebx_root *root, s64 
 	u64 key = x ^ (1ULL << 63);
 	u64 y;
 
-	troot = root->b[EB_LEFT];
+	troot = ebx_getroot(&root->b[EB_LEFT]);
 	if (unlikely(troot == NULL))
 		return NULL;
 
@@ -217,9 +217,9 @@ static forceinline struct ebx64_node *__eb64i_lookup(struct ebx_root *root, s64 
 			 * walk it down left to get the first entry.
 			 */
 			if (node->node.bit < 0) {
-				troot = node->node.branches.b[EB_LEFT];
+				troot = ebx_getroot(&node->node.branches.b[EB_LEFT]);
 				while (eb_gettag(troot) != EB_LEAF)
-					troot = (eb_untag(troot, EB_NODE))->b[EB_LEFT];
+					troot = ebx_getroot(&(eb_untag(troot, EB_NODE))->b[EB_LEFT]);
 				node = container_of(eb_untag(troot, EB_LEAF),
 						    struct ebx64_node, node.branches);
 			}
@@ -229,7 +229,7 @@ static forceinline struct ebx64_node *__eb64i_lookup(struct ebx_root *root, s64 
 		if ((y >> node->node.bit) >= EB_NODE_BRANCHES)
 			return NULL; /* no more common bits */
 
-		troot = node->node.branches.b[(key >> node->node.bit) & EB_NODE_BRANCH_MASK];
+		troot = ebx_getroot(&node->node.branches.b[(key >> node->node.bit) & EB_NODE_BRANCH_MASK]);
 	}
 }
 
@@ -247,13 +247,13 @@ __eb64_insert(struct ebx_root *root, struct ebx64_node *new) {
 	int old_node_bit;
 
 	side = EB_LEFT;
-	troot = root->b[EB_LEFT];
-	root_right = root->b[EB_RGHT];
+	troot = ebx_getroot(&root->b[EB_LEFT]);
+	root_right = ebx_getroot(&root->b[EB_RGHT]);
 	if (unlikely(troot == NULL)) {
 		/* Tree is empty, insert the leaf part below the left branch */
-		root->b[EB_LEFT] = eb_dotag(&new->node.branches, EB_LEAF);
-		new->node.leaf_p = eb_dotag(root, EB_LEFT);
-		new->node.node_p = NULL; /* node part unused */
+		ebx_setlink(&root->b[EB_LEFT], eb_dotag(&new->node.branches, EB_LEAF));
+		ebx_setlink(&new->node.leaf_p, eb_dotag(root, EB_LEFT));
+		new->node.node_p = 0; /* node part unused */
 		return new;
 	}
 
@@ -283,7 +283,7 @@ __eb64_insert(struct ebx_root *root, struct ebx64_node *new) {
 			new_leaf = eb_dotag(&new->node.branches, EB_LEAF);
 			old_leaf = eb_dotag(&old->node.branches, EB_LEAF);
 
-			new->node.node_p = old->node.leaf_p;
+			ebx_setlink(&new->node.node_p, ebx_getroot(&old->node.leaf_p));
 
 			/* Right here, we have 3 possibilities :
 			   - the tree does not contain the key, and we have
@@ -302,10 +302,10 @@ __eb64_insert(struct ebx_root *root, struct ebx64_node *new) {
 			*/
 			 
 			if (new->key < old->key) {
-				new->node.leaf_p = new_left;
-				old->node.leaf_p = new_rght;
-				new->node.branches.b[EB_LEFT] = new_leaf;
-				new->node.branches.b[EB_RGHT] = old_leaf;
+				ebx_setlink(&new->node.leaf_p, new_left);
+				ebx_setlink(&old->node.leaf_p, new_rght);
+				ebx_setlink(&new->node.branches.b[EB_LEFT], new_leaf);
+				ebx_setlink(&new->node.branches.b[EB_RGHT], old_leaf);
 			} else {
 				/* we may refuse to duplicate this key if the tree is
 				 * tagged as containing only unique keys.
@@ -314,14 +314,14 @@ __eb64_insert(struct ebx_root *root, struct ebx64_node *new) {
 					return old;
 
 				/* new->key >= old->key, new goes the right */
-				old->node.leaf_p = new_left;
-				new->node.leaf_p = new_rght;
-				new->node.branches.b[EB_LEFT] = old_leaf;
-				new->node.branches.b[EB_RGHT] = new_leaf;
+				ebx_setlink(&old->node.leaf_p, new_left);
+				ebx_setlink(&new->node.leaf_p, new_rght);
+				ebx_setlink(&new->node.branches.b[EB_LEFT], old_leaf);
+				ebx_setlink(&new->node.branches.b[EB_RGHT], new_leaf);
 
 				if (new->key == old->key) {
 					new->node.bit = -1;
-					root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
+					ebx_setlink(&root->b[side], eb_dotag(&new->node.branches, EB_NODE));
 					return new;
 				}
 			}
@@ -352,19 +352,19 @@ __eb64_insert(struct ebx_root *root, struct ebx64_node *new) {
 			new_leaf = eb_dotag(&new->node.branches, EB_LEAF);
 			old_node = eb_dotag(&old->node.branches, EB_NODE);
 
-			new->node.node_p = old->node.node_p;
+			ebx_setlink(&new->node.node_p, ebx_getroot(&old->node.node_p));
 
 			if (new->key < old->key) {
-				new->node.leaf_p = new_left;
-				old->node.node_p = new_rght;
-				new->node.branches.b[EB_LEFT] = new_leaf;
-				new->node.branches.b[EB_RGHT] = old_node;
+				ebx_setlink(&new->node.leaf_p, new_left);
+				ebx_setlink(&old->node.node_p, new_rght);
+				ebx_setlink(&new->node.branches.b[EB_LEFT], new_leaf);
+				ebx_setlink(&new->node.branches.b[EB_RGHT], old_node);
 			}
 			else if (new->key > old->key) {
-				old->node.node_p = new_left;
-				new->node.leaf_p = new_rght;
-				new->node.branches.b[EB_LEFT] = old_node;
-				new->node.branches.b[EB_RGHT] = new_leaf;
+				ebx_setlink(&old->node.node_p, new_left);
+				ebx_setlink(&new->node.leaf_p, new_rght);
+				ebx_setlink(&new->node.branches.b[EB_LEFT], old_node);
+				ebx_setlink(&new->node.branches.b[EB_RGHT], new_leaf);
 			}
 			else {
 				struct ebx_node *ret;
@@ -387,7 +387,7 @@ __eb64_insert(struct ebx_root *root, struct ebx64_node *new) {
 		}
 		side &= EB_NODE_BRANCH_MASK;
 #endif
-		troot = root->b[side];
+		troot = ebx_getroot(&root->b[side]);
 	}
 
 	/* Ok, now we are inserting <new> between <root> and <old>. <old>'s
@@ -404,7 +404,7 @@ __eb64_insert(struct ebx_root *root, struct ebx64_node *new) {
 	 */
 	/* note that if EB_NODE_BITS > 1, we should check that it's still >= 0 */
 	new->node.bit = fls64(new->key ^ old->key) - EB_NODE_BITS;
-	root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
+	ebx_setlink(&root->b[side], eb_dotag(&new->node.branches, EB_NODE));
 
 	return new;
 }
@@ -423,13 +423,13 @@ __eb64i_insert(struct ebx_root *root, struct ebx64_node *new) {
 	int old_node_bit;
 
 	side = EB_LEFT;
-	troot = root->b[EB_LEFT];
-	root_right = root->b[EB_RGHT];
+	troot = ebx_getroot(&root->b[EB_LEFT]);
+	root_right = ebx_getroot(&root->b[EB_RGHT]);
 	if (unlikely(troot == NULL)) {
 		/* Tree is empty, insert the leaf part below the left branch */
-		root->b[EB_LEFT] = eb_dotag(&new->node.branches, EB_LEAF);
-		new->node.leaf_p = eb_dotag(root, EB_LEFT);
-		new->node.node_p = NULL; /* node part unused */
+		ebx_setlink(&root->b[EB_LEFT], eb_dotag(&new->node.branches, EB_LEAF));
+		ebx_setlink(&new->node.leaf_p, eb_dotag(root, EB_LEFT));
+		new->node.node_p = 0; /* node part unused */
 		return new;
 	}
 
@@ -461,7 +461,7 @@ __eb64i_insert(struct ebx_root *root, struct ebx64_node *new) {
 			new_leaf = eb_dotag(&new->node.branches, EB_LEAF);
 			old_leaf = eb_dotag(&old->node.branches, EB_LEAF);
 
-			new->node.node_p = old->node.leaf_p;
+			ebx_setlink(&new->node.node_p, ebx_getroot(&old->node.leaf_p));
 
 			/* Right here, we have 3 possibilities :
 			   - the tree does not contain the key, and we have
@@ -480,10 +480,10 @@ __eb64i_insert(struct ebx_root *root, struct ebx64_node *new) {
 			*/
 			 
 			if ((s64)new->key < (s64)old->key) {
-				new->node.leaf_p = new_left;
-				old->node.leaf_p = new_rght;
-				new->node.branches.b[EB_LEFT] = new_leaf;
-				new->node.branches.b[EB_RGHT] = old_leaf;
+				ebx_setlink(&new->node.leaf_p, new_left);
+				ebx_setlink(&old->node.leaf_p, new_rght);
+				ebx_setlink(&new->node.branches.b[EB_LEFT], new_leaf);
+				ebx_setlink(&new->node.branches.b[EB_RGHT], old_leaf);
 			} else {
 				/* we may refuse to duplicate this key if the tree is
 				 * tagged as containing only unique keys.
@@ -492,14 +492,14 @@ __eb64i_insert(struct ebx_root *root, struct ebx64_node *new) {
 					return old;
 
 				/* new->key >= old->key, new goes the right */
-				old->node.leaf_p = new_left;
-				new->node.leaf_p = new_rght;
-				new->node.branches.b[EB_LEFT] = old_leaf;
-				new->node.branches.b[EB_RGHT] = new_leaf;
+				ebx_setlink(&old->node.leaf_p, new_left);
+				ebx_setlink(&new->node.leaf_p, new_rght);
+				ebx_setlink(&new->node.branches.b[EB_LEFT], old_leaf);
+				ebx_setlink(&new->node.branches.b[EB_RGHT], new_leaf);
 
 				if (new->key == old->key) {
 					new->node.bit = -1;
-					root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
+					ebx_setlink(&root->b[side], eb_dotag(&new->node.branches, EB_NODE));
 					return new;
 				}
 			}
@@ -530,19 +530,19 @@ __eb64i_insert(struct ebx_root *root, struct ebx64_node *new) {
 			new_leaf = eb_dotag(&new->node.branches, EB_LEAF);
 			old_node = eb_dotag(&old->node.branches, EB_NODE);
 
-			new->node.node_p = old->node.node_p;
+			ebx_setlink(&new->node.node_p, ebx_getroot(&old->node.node_p));
 
 			if ((s64)new->key < (s64)old->key) {
-				new->node.leaf_p = new_left;
-				old->node.node_p = new_rght;
-				new->node.branches.b[EB_LEFT] = new_leaf;
-				new->node.branches.b[EB_RGHT] = old_node;
+				ebx_setlink(&new->node.leaf_p, new_left);
+				ebx_setlink(&old->node.node_p, new_rght);
+				ebx_setlink(&new->node.branches.b[EB_LEFT], new_leaf);
+				ebx_setlink(&new->node.branches.b[EB_RGHT], old_node);
 			}
 			else if ((s64)new->key > (s64)old->key) {
-				old->node.node_p = new_left;
-				new->node.leaf_p = new_rght;
-				new->node.branches.b[EB_LEFT] = old_node;
-				new->node.branches.b[EB_RGHT] = new_leaf;
+				ebx_setlink(&old->node.node_p, new_left);
+				ebx_setlink(&new->node.leaf_p, new_rght);
+				ebx_setlink(&new->node.branches.b[EB_LEFT], old_node);
+				ebx_setlink(&new->node.branches.b[EB_RGHT], new_leaf);
 			}
 			else {
 				struct ebx_node *ret;
@@ -565,7 +565,7 @@ __eb64i_insert(struct ebx_root *root, struct ebx64_node *new) {
 		}
 		side &= EB_NODE_BRANCH_MASK;
 #endif
-		troot = root->b[side];
+		troot = ebx_getroot(&root->b[side]);
 	}
 
 	/* Ok, now we are inserting <new> between <root> and <old>. <old>'s
@@ -582,7 +582,7 @@ __eb64i_insert(struct ebx_root *root, struct ebx64_node *new) {
 	 */
 	/* note that if EB_NODE_BITS > 1, we should check that it's still >= 0 */
 	new->node.bit = fls64(new->key ^ old->key) - EB_NODE_BITS;
-	root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
+	ebx_setlink(&root->b[side], eb_dotag(&new->node.branches, EB_NODE));
 
 	return new;
 }

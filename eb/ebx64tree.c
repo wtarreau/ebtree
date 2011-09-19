@@ -57,7 +57,7 @@ REGPRM2 struct ebx64_node *eb64_lookup_le(struct ebx_root *root, u64 x)
 	struct ebx64_node *node;
 	ebx_troot_t *troot;
 
-	troot = root->b[EB_LEFT];
+	troot = ebx_getroot(&root->b[EB_LEFT]);
 	if (unlikely(troot == NULL))
 		return NULL;
 
@@ -72,7 +72,7 @@ REGPRM2 struct ebx64_node *eb64_lookup_le(struct ebx_root *root, u64 x)
 			if (node->key <= x)
 				return node;
 			/* return prev */
-			troot = node->node.leaf_p;
+			troot = ebx_getroot(&node->node.leaf_p);
 			break;
 		}
 		node = container_of(eb_untag(troot, EB_NODE),
@@ -88,14 +88,14 @@ REGPRM2 struct ebx64_node *eb64_lookup_le(struct ebx_root *root, u64 x)
 			 * tree.
 			 */
 			if (node->key <= x) {
-				troot = node->node.branches.b[EB_RGHT];
+				troot = ebx_getroot(&node->node.branches.b[EB_RGHT]);
 				while (eb_gettag(troot) != EB_LEAF)
-					troot = (eb_untag(troot, EB_NODE))->b[EB_RGHT];
+					troot = ebx_getroot(&(eb_untag(troot, EB_NODE))->b[EB_RGHT]);
 				return container_of(eb_untag(troot, EB_LEAF),
 						    struct ebx64_node, node.branches);
 			}
 			/* return prev */
-			troot = node->node.node_p;
+			troot = ebx_getroot(&node->node.node_p);
 			break;
 		}
 
@@ -105,17 +105,17 @@ REGPRM2 struct ebx64_node *eb64_lookup_le(struct ebx_root *root, u64 x)
 			 * too large, and we need to get the prev value.
 			 */
 			if ((node->key >> node->node.bit) < (x >> node->node.bit)) {
-				troot = node->node.branches.b[EB_RGHT];
+				troot = ebx_getroot(&node->node.branches.b[EB_RGHT]);
 				return eb64_entry(eb_walk_down(troot, EB_RGHT), struct ebx64_node, node);
 			}
 
 			/* Further values will be too high here, so return the prev
 			 * unique node (if it exists).
 			 */
-			troot = node->node.node_p;
+			troot = ebx_getroot(&node->node.node_p);
 			break;
 		}
-		troot = node->node.branches.b[(x >> node->node.bit) & EB_NODE_BRANCH_MASK];
+		troot = ebx_getroot(&node->node.branches.b[(x >> node->node.bit) & EB_NODE_BRANCH_MASK]);
 	}
 
 	/* If we get here, it means we want to report previous node before the
@@ -126,12 +126,12 @@ REGPRM2 struct ebx64_node *eb64_lookup_le(struct ebx_root *root, u64 x)
 		/* Walking up from left branch. We must ensure that we never
 		 * walk beyond root.
 		 */
-		if (unlikely(eb_clrtag((eb_untag(troot, EB_LEFT))->b[EB_RGHT]) == NULL))
+		if (unlikely(eb_clrtag(ebx_getroot(&(eb_untag(troot, EB_LEFT))->b[EB_RGHT])) == NULL))
 			return NULL;
-		troot = (ebx_root_to_node(eb_untag(troot, EB_LEFT)))->node_p;
+		troot = ebx_getroot(&(ebx_root_to_node(eb_untag(troot, EB_LEFT)))->node_p);
 	}
 	/* Note that <troot> cannot be NULL at this stage */
-	troot = (eb_untag(troot, EB_RGHT))->b[EB_LEFT];
+	troot = ebx_getroot(&(eb_untag(troot, EB_RGHT))->b[EB_LEFT]);
 	node = eb64_entry(eb_walk_down(troot, EB_RGHT), struct ebx64_node, node);
 	return node;
 }
@@ -145,7 +145,7 @@ REGPRM2 struct ebx64_node *eb64_lookup_ge(struct ebx_root *root, u64 x)
 	struct ebx64_node *node;
 	ebx_troot_t *troot;
 
-	troot = root->b[EB_LEFT];
+	troot = ebx_getroot(&root->b[EB_LEFT]);
 	if (unlikely(troot == NULL))
 		return NULL;
 
@@ -160,7 +160,7 @@ REGPRM2 struct ebx64_node *eb64_lookup_ge(struct ebx_root *root, u64 x)
 			if (node->key >= x)
 				return node;
 			/* return next */
-			troot = node->node.leaf_p;
+			troot = ebx_getroot(&node->node.leaf_p);
 			break;
 		}
 		node = container_of(eb_untag(troot, EB_NODE),
@@ -176,14 +176,14 @@ REGPRM2 struct ebx64_node *eb64_lookup_ge(struct ebx_root *root, u64 x)
 			 * tree.
 			 */
 			if (node->key >= x) {
-				troot = node->node.branches.b[EB_LEFT];
+				troot = ebx_getroot(&node->node.branches.b[EB_LEFT]);
 				while (eb_gettag(troot) != EB_LEAF)
-					troot = (eb_untag(troot, EB_NODE))->b[EB_LEFT];
+					troot = ebx_getroot(&(eb_untag(troot, EB_NODE))->b[EB_LEFT]);
 				return container_of(eb_untag(troot, EB_LEAF),
 						    struct ebx64_node, node.branches);
 			}
 			/* return next */
-			troot = node->node.node_p;
+			troot = ebx_getroot(&node->node.node_p);
 			break;
 		}
 
@@ -193,17 +193,17 @@ REGPRM2 struct ebx64_node *eb64_lookup_ge(struct ebx_root *root, u64 x)
 			 * small, and we need to get the next value.
 			 */
 			if ((node->key >> node->node.bit) > (x >> node->node.bit)) {
-				troot = node->node.branches.b[EB_LEFT];
+				troot = ebx_getroot(&node->node.branches.b[EB_LEFT]);
 				return eb64_entry(eb_walk_down(troot, EB_LEFT), struct ebx64_node, node);
 			}
 
 			/* Further values will be too low here, so return the next
 			 * unique node (if it exists).
 			 */
-			troot = node->node.node_p;
+			troot = ebx_getroot(&node->node.node_p);
 			break;
 		}
-		troot = node->node.branches.b[(x >> node->node.bit) & EB_NODE_BRANCH_MASK];
+		troot = ebx_getroot(&node->node.branches.b[(x >> node->node.bit) & EB_NODE_BRANCH_MASK]);
 	}
 
 	/* If we get here, it means we want to report next node after the
@@ -212,10 +212,10 @@ REGPRM2 struct ebx64_node *eb64_lookup_ge(struct ebx_root *root, u64 x)
 	 */
 	while (eb_gettag(troot) != EB_LEFT)
 		/* Walking up from right branch, so we cannot be below root */
-		troot = (ebx_root_to_node(eb_untag(troot, EB_RGHT)))->node_p;
+		troot = ebx_getroot(&(ebx_root_to_node(eb_untag(troot, EB_RGHT)))->node_p);
 
 	/* Note that <troot> cannot be NULL at this stage */
-	troot = (eb_untag(troot, EB_LEFT))->b[EB_RGHT];
+	troot = ebx_getroot(&(eb_untag(troot, EB_LEFT))->b[EB_RGHT]);
 	if (eb_clrtag(troot) == NULL)
 		return NULL;
 

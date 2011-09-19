@@ -14,6 +14,8 @@
 #define ebx_troot_t eb_troot_t
 #undef ebx_node
 #define ebx_node eb_node
+#undef ebx_link_t
+#define ebx_link_t eb_link_t
 
 #include "ebxtree.h"
 
