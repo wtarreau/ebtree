@@ -459,6 +459,14 @@ static inline eb_troot_t *get_troot_safe(const eb_ofs_t *src)
 	return *src ? *src + (void *)src + 2 : NULL;
 }
 
+/* A relative offset is NULL if it's either 0 or 1 (tagged 0). The cast to
+ * unsigned long long does not affect smaller types (verified).
+ */
+static inline int ofs_is_null(eb_ofs_t ofs)
+{
+	return (unsigned long long)ofs <= 1ULL;
+}
+
 /* Walks down starting at root pointer <start>, and always walking on side
  * <side>. It either returns the node hosting the first leaf on that side,
  * or NULL if no leaf is found. <start> may either be NULL or a branch pointer.
@@ -562,7 +570,7 @@ static inline struct eb_node *eb_prev(struct eb_node *node)
 		/* Walking up from left branch. We must ensure that we never
 		 * walk beyond root.
 		 */
-		if (unlikely(eb_clrtag(get_troot_safe(&(eb_untag(t, EB_LEFT))->b[EB_RGHT])) == NULL))
+		if (unlikely(ofs_is_null(eb_untag(t, EB_LEFT)->b[EB_RGHT])))
 			return NULL;
 		t = get_troot(&(eb_root_to_node(eb_untag(t, EB_LEFT)))->node_p);
 	}
@@ -581,9 +589,10 @@ static inline struct eb_node *eb_next(struct eb_node *node)
 		t = get_troot(&(eb_root_to_node(eb_untag(t, EB_RGHT)))->node_p);
 
 	/* Note that <t> cannot be NULL at this stage */
-	t = get_troot_safe(&(eb_untag(t, EB_LEFT))->b[EB_RGHT]);
-	if (eb_clrtag(t) == NULL)
+	if (ofs_is_null(eb_untag(t, EB_LEFT)->b[EB_RGHT]))
 		return NULL;
+
+	t = get_troot(&(eb_untag(t, EB_LEFT))->b[EB_RGHT]);
 	return eb_walk_down(t, EB_LEFT);
 }
 
@@ -667,8 +676,7 @@ static forceinline void __eb_delete(struct eb_node *node)
 	 * in which case we only set our branch to NULL. Note that we can
 	 * only be attached to the root by its left branch.
 	 */
-
-	if (eb_clrtag(get_troot_safe(&parent->branches.b[EB_RGHT])) == NULL) {
+	if (ofs_is_null(parent->branches.b[EB_RGHT])) {
 		/* we're just below the root, it's trivial. */
 		parent->branches.b[EB_LEFT] = 0;
 		goto delete_unlink;

@@ -120,7 +120,7 @@ REGPRM2 struct eb32_node *eb32_lookup_le(struct eb_root *root, u32 x)
 		/* Walking up from left branch. We must ensure that we never
 		 * walk beyond root.
 		 */
-		if (unlikely(eb_clrtag(get_troot_safe(&(eb_untag(troot, EB_LEFT))->b[EB_RGHT])) == NULL))
+		if (unlikely(ofs_is_null(eb_untag(troot, EB_LEFT)->b[EB_RGHT])))
 			return NULL;
 		troot = get_troot(&(eb_root_to_node(eb_untag(troot, EB_LEFT)))->node_p);
 	}
@@ -209,10 +209,10 @@ REGPRM2 struct eb32_node *eb32_lookup_ge(struct eb_root *root, u32 x)
 		troot = get_troot(&(eb_root_to_node(eb_untag(troot, EB_RGHT)))->node_p);
 
 	/* Note that <troot> cannot be NULL at this stage */
-	troot = get_troot_safe(&(eb_untag(troot, EB_LEFT))->b[EB_RGHT]);
-	if (eb_clrtag(troot) == NULL)
+	if (ofs_is_null(eb_untag(troot, EB_LEFT)->b[EB_RGHT]))
 		return NULL;
 
+	troot = get_troot(&(eb_untag(troot, EB_LEFT))->b[EB_RGHT]);
 	node = eb32_entry(eb_walk_down(troot, EB_LEFT), struct eb32_node, node);
 	return node;
 }
