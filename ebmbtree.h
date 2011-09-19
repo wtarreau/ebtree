@@ -125,7 +125,7 @@ static forceinline struct ebmb_node *__ebmb_lookup(struct eb_root *root, const v
 	int pos, side;
 	int node_bit;
 
-	troot = get_troot(&root->b[EB_LEFT]);
+	troot = get_troot_safe(&root->b[EB_LEFT]);
 	if (unlikely(troot == NULL))
 		goto ret_null;
 
@@ -225,7 +225,7 @@ __ebmb_insert(struct eb_root *root, struct ebmb_node *new, unsigned int len)
 	int old_node_bit;
 
 	side = EB_LEFT;
-	troot = get_troot(&root->b[EB_LEFT]);
+	troot = get_troot_safe(&root->b[EB_LEFT]);
 	root_right = get_troot(&root->b[EB_RGHT]);
 	if (unlikely(troot == NULL)) {
 		/* Tree is empty, insert the leaf part below the left branch */
@@ -371,7 +371,7 @@ static forceinline struct ebmb_node *__ebmb_lookup_longest(struct eb_root *root,
 	int pos, side;
 	int node_bit;
 
-	troot = get_troot(&root->b[EB_LEFT]);
+	troot = get_troot_safe(&root->b[EB_LEFT]);
 	if (unlikely(troot == NULL))
 		return NULL;
 
@@ -463,7 +463,7 @@ static forceinline struct ebmb_node *__ebmb_lookup_prefix(struct eb_root *root, 
 	int pos, side;
 	int node_bit;
 
-	troot = get_troot(&root->b[EB_LEFT]);
+	troot = get_troot_safe(&root->b[EB_LEFT]);
 	if (unlikely(troot == NULL))
 		return NULL;
 
@@ -568,7 +568,7 @@ __ebmb_insert_prefix(struct eb_root *root, struct ebmb_node *new, unsigned int l
 	int old_node_bit;
 
 	side = EB_LEFT;
-	troot = get_troot(&root->b[EB_LEFT]);
+	troot = get_troot_safe(&root->b[EB_LEFT]);
 	root_right = get_troot(&root->b[EB_RGHT]);
 	if (unlikely(troot == NULL)) {
 		/* Tree is empty, insert the leaf part below the left branch */

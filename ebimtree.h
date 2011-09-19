@@ -47,7 +47,7 @@ __ebim_lookup(struct eb_root *root, const void *x, unsigned int len)
 	int pos, side;
 	int node_bit;
 
-	troot = get_troot(&root->b[EB_LEFT]);
+	troot = get_troot_safe(&root->b[EB_LEFT]);
 	if (unlikely(troot == NULL))
 		goto ret_null;
 
@@ -142,7 +142,7 @@ __ebim_insert(struct eb_root *root, struct ebpt_node *new, unsigned int len)
 	int old_node_bit;
 
 	side = EB_LEFT;
-	troot = get_troot(&root->b[EB_LEFT]);
+	troot = get_troot_safe(&root->b[EB_LEFT]);
 	root_right = get_troot(&root->b[EB_RGHT]);
 	if (unlikely(troot == NULL)) {
 		/* Tree is empty, insert the leaf part below the left branch */

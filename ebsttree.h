@@ -59,7 +59,7 @@ static forceinline struct ebmb_node *__ebst_lookup(struct eb_root *root, const v
 	int bit;
 	int node_bit;
 
-	troot = get_troot(&root->b[EB_LEFT]);
+	troot = get_troot_safe(&root->b[EB_LEFT]);
 	if (unlikely(troot == NULL))
 		return NULL;
 
@@ -142,7 +142,7 @@ __ebst_insert(struct eb_root *root, struct ebmb_node *new)
 	int old_node_bit;
 
 	side = EB_LEFT;
-	troot = get_troot(&root->b[EB_LEFT]);
+	troot = get_troot_safe(&root->b[EB_LEFT]);
 	root_right = get_troot(&root->b[EB_RGHT]);
 	if (unlikely(troot == NULL)) {
 		/* Tree is empty, insert the leaf part below the left branch */

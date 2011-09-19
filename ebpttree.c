@@ -41,7 +41,7 @@ REGPRM2 struct ebpt_node *ebpt_lookup_le(struct eb_root *root, void *x)
 	struct ebpt_node *node;
 	eb_troot_t *troot;
 
-	troot = get_troot(&root->b[EB_LEFT]);
+	troot = get_troot_safe(&root->b[EB_LEFT]);
 	if (unlikely(troot == NULL))
 		return NULL;
 
@@ -110,7 +110,7 @@ REGPRM2 struct ebpt_node *ebpt_lookup_le(struct eb_root *root, void *x)
 		/* Walking up from left branch. We must ensure that we never
 		 * walk beyond root.
 		 */
-		if (unlikely(eb_clrtag(get_troot(&(eb_untag(troot, EB_LEFT))->b[EB_RGHT])) == NULL))
+		if (unlikely(eb_clrtag(get_troot_safe(&(eb_untag(troot, EB_LEFT))->b[EB_RGHT])) == NULL))
 			return NULL;
 		troot = get_troot(&(eb_root_to_node(eb_untag(troot, EB_LEFT)))->node_p);
 	}
@@ -129,7 +129,7 @@ REGPRM2 struct ebpt_node *ebpt_lookup_ge(struct eb_root *root, void *x)
 	struct ebpt_node *node;
 	eb_troot_t *troot;
 
-	troot = get_troot(&root->b[EB_LEFT]);
+	troot = get_troot_safe(&root->b[EB_LEFT]);
 	if (unlikely(troot == NULL))
 		return NULL;
 
@@ -199,7 +199,7 @@ REGPRM2 struct ebpt_node *ebpt_lookup_ge(struct eb_root *root, void *x)
 		troot = get_troot(&(eb_root_to_node(eb_untag(troot, EB_RGHT)))->node_p);
 
 	/* Note that <troot> cannot be NULL at this stage */
-	troot = get_troot(&(eb_untag(troot, EB_LEFT))->b[EB_RGHT]);
+	troot = get_troot_safe(&(eb_untag(troot, EB_LEFT))->b[EB_RGHT]);
 	if (eb_clrtag(troot) == NULL)
 		return NULL;
 

@@ -435,15 +435,26 @@ static inline struct eb_node *eb_root_to_node(struct eb_root *root)
 }
 
 /* NOTE: We store the pointer as a relative offset of 2 so that it can never
- * match a valid pointer.
+ * match a valid pointer. The default implementation does not consider NULL
+ * pointers because they almost never appear in the trees. For situations where
+ * a NULL is possible, please use the _safe variants below.
  */
 static inline void set_ofs(eb_ofs_t *dest, const eb_troot_t *troot)
+{
+	*dest = (void *)troot - (void *)dest - 2;
+}
+ 
+static inline eb_troot_t *get_troot(const eb_ofs_t *src)
+{
+	return *src + (void *)src + 2;
+}
+
+static inline void set_ofs_safe(eb_ofs_t *dest, const eb_troot_t *troot)
 {
 	*dest = troot ? (void *)troot - (void *)dest - 2 : 0;
 }
  
-
-static inline eb_troot_t *get_troot(const eb_ofs_t *src)
+static inline eb_troot_t *get_troot_safe(const eb_ofs_t *src)
 {
 	return *src ? *src + (void *)src + 2 : NULL;
 }
@@ -533,13 +544,13 @@ static inline int eb_is_empty(struct eb_root *root)
 /* Return the first leaf in the tree starting at <root>, or NULL if none */
 static inline struct eb_node *eb_first(struct eb_root *root)
 {
-	return eb_walk_down(get_troot(&root->b[0]), EB_LEFT);
+	return eb_walk_down(get_troot_safe(&root->b[0]), EB_LEFT);
 }
 
 /* Return the last leaf in the tree starting at <root>, or NULL if none */
 static inline struct eb_node *eb_last(struct eb_root *root)
 {
-	return eb_walk_down(get_troot(&root->b[0]), EB_RGHT);
+	return eb_walk_down(get_troot_safe(&root->b[0]), EB_RGHT);
 }
 
 /* Return previous leaf node before an existing leaf node, or NULL if none. */
@@ -551,7 +562,7 @@ static inline struct eb_node *eb_prev(struct eb_node *node)
 		/* Walking up from left branch. We must ensure that we never
 		 * walk beyond root.
 		 */
-		if (unlikely(eb_clrtag(get_troot(&(eb_untag(t, EB_LEFT))->b[EB_RGHT])) == NULL))
+		if (unlikely(eb_clrtag(get_troot_safe(&(eb_untag(t, EB_LEFT))->b[EB_RGHT])) == NULL))
 			return NULL;
 		t = get_troot(&(eb_root_to_node(eb_untag(t, EB_LEFT)))->node_p);
 	}
@@ -570,7 +581,7 @@ static inline struct eb_node *eb_next(struct eb_node *node)
 		t = get_troot(&(eb_root_to_node(eb_untag(t, EB_RGHT)))->node_p);
 
 	/* Note that <t> cannot be NULL at this stage */
-	t = get_troot(&(eb_untag(t, EB_LEFT))->b[EB_RGHT]);
+	t = get_troot_safe(&(eb_untag(t, EB_LEFT))->b[EB_RGHT]);
 	if (eb_clrtag(t) == NULL)
 		return NULL;
 	return eb_walk_down(t, EB_LEFT);
@@ -657,7 +668,7 @@ static forceinline void __eb_delete(struct eb_node *node)
 	 * only be attached to the root by its left branch.
 	 */
 
-	if (eb_clrtag(get_troot(&parent->branches.b[EB_RGHT])) == NULL) {
+	if (eb_clrtag(get_troot_safe(&parent->branches.b[EB_RGHT])) == NULL) {
 		/* we're just below the root, it's trivial. */
 		parent->branches.b[EB_LEFT] = 0;
 		goto delete_unlink;
