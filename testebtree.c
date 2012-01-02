@@ -4,6 +4,7 @@
 #include <sys/time.h>
 
 #include "ebtree.h"
+#include "eb32tree.h"
 
 #define rdtscll(val) \
      __asm__ __volatile__("rdtsc" : "=A" (val))
@@ -25,21 +26,7 @@ static inline unsigned long tv_ms_elapsed(const struct timeval *tv1, const struc
 static unsigned long long start, calibrate, end, cycles;
 
 
-EB32_TREE_HEAD(root);
-
-struct eb32_node *eb32_insert(struct eb32_node *root, struct eb32_node *new) {
-    return __eb32_insert(root, new);
-}
-
-int eb32_delete(struct eb32_node *node) {
-    return __eb_delete((struct eb_node *)node);
-}
-
-struct eb32_node *eb32_lookup(struct eb32_node *root, unsigned long x) {
-    return __eb32_lookup(root, x);
-}
-
-
+struct eb_root root = EB_ROOT;
 unsigned long total_jumps = 0;
 
 static unsigned long rev32(unsigned long x) {
@@ -75,7 +62,7 @@ int main(int argc, char **argv) {
 	    x = atoll(buffer);
 	    total++;
 	    node = (struct eb32_node *)malloc(sizeof(*node));
-	    node->val = x;
+	    node->key = x;
 
 	    eb32_insert(&root, node);
 	}
@@ -109,7 +96,7 @@ int main(int argc, char **argv) {
 	    //x = (x >> 16) ^ (x << 16);
 	    //x = i;
 	    node = (struct eb32_node *)calloc(1,sizeof(*node));
-	    node->val = x;//*x;//total-i-1;//*/(x>>10)&65535;//i&65535;//(x>>8)&65535;//rev32(i);//i&32767;//x;//i ^ (long)lastnode;
+	    node->key = x;//*x;//total-i-1;//*/(x>>10)&65535;//i&65535;//(x>>8)&65535;//rev32(i);//i&32767;//x;//i ^ (long)lastnode;
 	    node->node.leaf_p = (void *)lastnode;
 	    lastnode = node;
 	}
@@ -142,8 +129,8 @@ int main(int argc, char **argv) {
 	rdtscll(start); rdtscll(calibrate); // account for the time spent calling rdtsc too !
 	node = eb32_lookup(&root, x);
 	rdtscll(end); cycles += (end - calibrate) - (calibrate - start);
-	if (node && (node->val != (int)x)) {
-	    printf("node = %p, wanted = %d, returned = %d\n", node, (int)x, node->val);
+	if (node && (node->key != (int)x)) {
+	    printf("node = %p, wanted = %d, returned = %d\n", node, (int)x, node->key);
 	}
 	//if (!node)
 	//    printf("wanted = %d\n", (int)x);
@@ -154,25 +141,25 @@ int main(int argc, char **argv) {
     printf("Walking forwards %d entries... ", total);
 
     cycles = 0;
-    node = eb_first(&root);
+    node = eb32_first(&root);
     while (node) {
-	//printf("node = %p, node->val = 0x%08x, link_p=%p, leaf_p=%p, bit=%d, leaf_p->bit=%d\n",
-	//       node, node->val, node->node.link_p, node->node.leaf_p, node->node.bit,
+	//printf("node = %p, node->key = 0x%08x, link_p=%p, leaf_p=%p, bit=%d, leaf_p->bit=%d\n",
+	//       node, node->key, node->node.link_p, node->node.leaf_p, node->node.bit,
 	//       node->node.leaf_p ? node->node.leaf_p->bit : -1);
 	rdtscll(start); rdtscll(calibrate); // account for the time spent calling rdtsc too !
-	node = eb_next(node);
+	node = eb32_next(node);
 	rdtscll(end); cycles += (end - calibrate) - (calibrate - start);
     }
     printf("%llu cycles/ent\n", cycles/total);
 
     printf("Walking backwards %d entries... ", total);
     rdtscll(start);
-    node = eb_last(&root);
+    node = eb32_last(&root);
     while (node) {
-	//printf("node = %p, node->val = 0x%08x, link_p=%p, leaf_p=%p, bit=%d, leaf_p->bit=%d\n",
-	//       node, node->val, node->node.link_p, node->node.leaf_p, node->node.bit,
+	//printf("node = %p, node->key = 0x%08x, link_p=%p, leaf_p=%p, bit=%d, leaf_p->bit=%d\n",
+	//       node, node->key, node->node.link_p, node->node.leaf_p, node->node.bit,
 	//       node->node.leaf_p ? node->node.leaf_p->bit : -1);
-	node = eb_prev(node);
+	node = eb32_prev(node);
     }
     rdtscll(end);
     tv_now(&t_walk);
@@ -186,15 +173,15 @@ int main(int argc, char **argv) {
 	struct eb32_node *next;
 
 	if (!node)
-	    node = eb_first(&root);
+	    node = eb32_first(&root);
 	    
-	next = eb_next(node);
-	//printf("moving node = %p, node->val = 0x%08x, link_p=%p, leaf_p=%p, bit=%d, leaf_p->bit=%d\n",
-	//       node, node->val, node->node.link_p, node->node.leaf_p, node->node.bit,
+	next = eb32_next(node);
+	//printf("moving node = %p, node->key = 0x%08x, link_p=%p, leaf_p=%p, bit=%d, leaf_p->bit=%d\n",
+	//       node, node->key, node->node.link_p, node->node.leaf_p, node->node.bit,
 	//       node->node.leaf_p ? node->node.leaf_p->bit : -1);
 	    
 	eb32_delete(node);
-	node->val += 1000000; // jump in the future
+	node->key += 1000000; // jump in the future
 	eb32_insert(&root, node);
 	node = next;
     }
@@ -204,15 +191,15 @@ int main(int argc, char **argv) {
 
 
     printf("Deleting %d entries... ", total);
-    node = eb_first(&root);
+    node = eb32_first(&root);
 
     rdtscll(start);
     while (node) {
 	struct eb32_node *next;
 
-	next = eb_next(node);
-	//printf("deleting node = %p, node->val = 0x%08x, link_p=%p, leaf_p=%p, bit=%d, leaf_p->bit=%d\n",
-	//       node, node->val, node->node.link_p, node->node.leaf_p, node->node.bit,
+	next = eb32_next(node);
+	//printf("deleting node = %p, node->key = 0x%08x, link_p=%p, leaf_p=%p, bit=%d, leaf_p->bit=%d\n",
+	//       node, node->key, node->node.link_p, node->node.leaf_p, node->node.bit,
 	//       node->node.leaf_p ? node->node.leaf_p->bit : -1);
 
 	eb32_delete(node);
@@ -226,8 +213,8 @@ int main(int argc, char **argv) {
 
 
 
-    node = eb_first(&root);
-    printf("eb_first now returns %p\n", node);
+    node = eb32_first(&root);
+    printf("eb32_first now returns %p\n", node);
 
     printf("total=%u, links=%lu, neighbours=%lu entries, total_jumps=%lu\n", total, links_used, neighbours, total_jumps);
     printf("random+malloc =%lu ms\n", tv_ms_elapsed(&t_start, &t_random));
