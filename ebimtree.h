@@ -59,7 +59,7 @@ __ebim_lookup(struct eb_root *root, const void *x, unsigned int len)
 		if (eb_gettag(troot) == EB_LEAF) {
 			node = container_of(eb_untag(troot, EB_LEAF),
 					    struct ebpt_node, node.branches);
-			if (memcmp(node->key + pos, x, len) != 0)
+			if (memcmp((unsigned char *)node->key + pos, (unsigned char *)x, len) != 0)
 				goto ret_null;
 			else
 				goto ret_node;
@@ -73,7 +73,7 @@ __ebim_lookup(struct eb_root *root, const void *x, unsigned int len)
 			 * value, and we walk down left, or it's a different
 			 * one and we don't have our key.
 			 */
-			if (memcmp(node->key + pos, x, len) != 0)
+			if (memcmp((unsigned char *)node->key + pos, (unsigned char *)x, len) != 0)
 				goto ret_null;
 			else
 				goto walk_left;
@@ -91,7 +91,7 @@ __ebim_lookup(struct eb_root *root, const void *x, unsigned int len)
 			 * be fine with 2.95 to 4.2.
 			 */
 			while (1) {
-				if (*(unsigned char*)(node->key + pos++) ^ *(unsigned char*)(x++))
+				if (*((unsigned char*)node->key + pos++) ^ *(unsigned char*)(x++))
 					goto ret_null; /* more than one full byte is different */
 				if (--len == 0)
 					goto walk_left; /* return first node if all bytes matched */
@@ -107,7 +107,7 @@ __ebim_lookup(struct eb_root *root, const void *x, unsigned int len)
 		 *   - walk down on side = (x[pos] >> node_bit) & 1
 		 */
 		side = *(unsigned char *)x >> node_bit;
-		if (((*(unsigned char*)(node->key + pos) >> node_bit) ^ side) > 1)
+		if (((*((unsigned char*)node->key + pos) >> node_bit) ^ side) > 1)
 			goto ret_null;
 		side &= 1;
 		troot = node->node.branches.b[side];

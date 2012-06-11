@@ -380,7 +380,7 @@ static forceinline struct ebmb_node *__ebmb_lookup_longest(struct eb_root *root,
 		if ((eb_gettag(troot) == EB_LEAF)) {
 			node = container_of(eb_untag(troot, EB_LEAF),
 					    struct ebmb_node, node.branches);
-			if (check_bits(x - pos, node->key, pos, node->node.pfx))
+			if (check_bits((unsigned char *)x - pos, node->key, pos, node->node.pfx))
 				goto not_found;
 
 			return node;
@@ -394,7 +394,7 @@ static forceinline struct ebmb_node *__ebmb_lookup_longest(struct eb_root *root,
 			 * value, and we walk down left, or it's a different
 			 * one and we don't have our key.
 			 */
-			if (check_bits(x - pos, node->key, pos, node->node.pfx))
+			if (check_bits((unsigned char *)x - pos, node->key, pos, node->node.pfx))
 				goto not_found;
 
 			troot = node->node.branches.b[EB_LEFT];
@@ -414,7 +414,7 @@ static forceinline struct ebmb_node *__ebmb_lookup_longest(struct eb_root *root,
 			 */
 			while (1) {
 				x++; pos++;
-				if (node->key[pos-1] ^ *(unsigned char*)(x-1))
+				if (node->key[pos-1] ^ *((unsigned char*)x - 1))
 					goto not_found; /* more than one full byte is different */
 				node_bit += 8;
 				if (node_bit >= 0)
@@ -473,7 +473,7 @@ static forceinline struct ebmb_node *__ebmb_lookup_prefix(struct eb_root *root, 
 					    struct ebmb_node, node.branches);
 			if (node->node.pfx != pfx)
 				return NULL;
-			if (check_bits(x - pos, node->key, pos, node->node.pfx))
+			if (check_bits((unsigned char *)x - pos, node->key, pos, node->node.pfx))
 				return NULL;
 			return node;
 		}
@@ -488,7 +488,7 @@ static forceinline struct ebmb_node *__ebmb_lookup_prefix(struct eb_root *root, 
 			 */
 			if (node->node.pfx != pfx)
 				return NULL;
-			if (check_bits(x - pos, node->key, pos, node->node.pfx))
+			if (check_bits((unsigned char *)x - pos, node->key, pos, node->node.pfx))
 				return NULL;
 
 			troot = node->node.branches.b[EB_LEFT];
@@ -508,7 +508,7 @@ static forceinline struct ebmb_node *__ebmb_lookup_prefix(struct eb_root *root, 
 			 */
 			while (1) {
 				x++; pos++;
-				if (node->key[pos-1] ^ *(unsigned char*)(x-1))
+				if (node->key[pos-1] ^ *((unsigned char*)x - 1))
 					return NULL; /* more than one full byte is different */
 				node_bit += 8;
 				if (node_bit >= 0)
