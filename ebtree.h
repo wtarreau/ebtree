@@ -324,7 +324,7 @@ static inline int fls64(unsigned long long x)
  * <type> which has its member <name> stored at address <ptr>.
  */
 #ifndef container_of
-#define container_of(ptr, type, name) ((type *)(((void *)(ptr)) - ((long)&((type *)0)->name)))
+#define container_of(ptr, type, name) ((type *)(((char *)(ptr)) - ((long)&((type *)0)->name)))
 #endif
 
 /* Number of bits per node, and number of leaves per node */
@@ -406,7 +406,7 @@ struct eb_node {
  */
 static inline eb_troot_t *eb_dotag(const struct eb_root *root, const int tag)
 {
-	return (eb_troot_t *)((void *)root + tag);
+	return (eb_troot_t *)((char *)root + tag);
 }
 
 /* Converts an eb_troot_t pointer pointer to its equivalent eb_root pointer,
@@ -416,7 +416,7 @@ static inline eb_troot_t *eb_dotag(const struct eb_root *root, const int tag)
  */
 static inline struct eb_root *eb_untag(const eb_troot_t *troot, const int tag)
 {
-	return (struct eb_root *)((void *)troot - tag);
+	return (struct eb_root *)((char *)troot - tag);
 }
 
 /* returns the tag associated with an eb_troot_t pointer */
