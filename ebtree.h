@@ -363,9 +363,9 @@ struct eb_root {
  * not change the order, benchmarks have shown that it's optimal this way.
  */
 struct eb_node {
-	struct eb_root branches; /* branches, must be at the beginning */
 	eb_ofs_t       node_p;  /* link node's parent */
 	eb_ofs_t       leaf_p;  /* leaf node's parent */
+	struct eb_root branches; /* branches, must be at the beginning */
 	short int       bit;     /* link's bit position. */
 	short unsigned int pfx; /* data prefix length, always related to leaf */
 };
@@ -441,22 +441,22 @@ static inline struct eb_node *eb_root_to_node(struct eb_root *root)
  */
 static inline void set_ofs(eb_ofs_t *dest, const eb_troot_t *troot)
 {
-	*dest = (void *)troot - (void *)dest - 2;
+	*dest = (void *)troot - (void *)dest;
 }
  
 static inline eb_troot_t *get_troot(const eb_ofs_t *src)
 {
-	return *src + (void *)src + 2;
+	return *src + (void *)src;
 }
 
 static inline void set_ofs_safe(eb_ofs_t *dest, const eb_troot_t *troot)
 {
-	*dest = troot ? (void *)troot - (void *)dest - 2 : 0;
+	*dest = (troot ? (void *)troot : (void *)dest) - (void *)dest;
 }
  
 static inline eb_troot_t *get_troot_safe(const eb_ofs_t *src)
 {
-	return *src ? *src + (void *)src + 2 : NULL;
+	return *src ? *src + (void *)src : NULL;
 }
 
 /* A relative offset is NULL if it's either 0 or 1 (tagged 0). The cast to
@@ -464,7 +464,7 @@ static inline eb_troot_t *get_troot_safe(const eb_ofs_t *src)
  */
 static inline int ofs_is_null(eb_ofs_t ofs)
 {
-	return (unsigned long long)ofs <= 1ULL;
+	return !ofs;
 }
 
 /* Walks down starting at root pointer <start>, and always walking on side
