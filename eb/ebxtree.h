@@ -414,6 +414,18 @@ struct ebx_root {
  * into the tree. This structure is 20 bytes per node on 32-bit machines. Do
  * not change the order, benchmarks have shown that it's optimal this way.
  */
+
+#if EB_SIZE > 0
+/* relative pointer mode, we must never have branches[] at position zero */
+struct ebx_node {
+	ebx_link_t       node_p;  /* link node's parent */
+	ebx_link_t       leaf_p;  /* leaf node's parent */
+	struct ebx_root branches; /* branches, must be at the beginning */
+	short int       bit;     /* link's bit position. */
+	short unsigned int pfx; /* data prefix length, always related to leaf */
+} __attribute__((packed));
+#else
+/* absolute pointer mode : optimal with branches first */
 struct ebx_node {
 	struct ebx_root branches; /* branches, must be at the beginning */
 	ebx_link_t       node_p;  /* link node's parent */
@@ -421,6 +433,7 @@ struct ebx_node {
 	short int       bit;     /* link's bit position. */
 	short unsigned int pfx; /* data prefix length, always related to leaf */
 } __attribute__((packed));
+#endif
 
 /* Return the structure of type <type> whose member <member> points to <ptr> */
 #define ebx_entry(ptr, type, member) container_of(ptr, type, member)
@@ -497,23 +510,23 @@ static inline struct ebx_node *ebx_root_to_node(struct ebx_root *root)
  */
 static inline void ebx_setlink(ebx_link_t *dest, const ebx_troot_t *troot)
 {
-	*dest = (void *)troot - (void *)dest - 2;
+	*dest = (void *)troot - (void *)dest;
 }
 
 static inline void ebx_setlink_safe(ebx_link_t *dest, const ebx_troot_t *troot)
 {
-	*dest = troot ? (void *)troot - (void *)dest - 2 : 0;
+	*dest = (troot ? (void *)troot : (void *)dest) - (void *)dest;
 }
 
 /* Returns the pointer from a link */
 static inline ebx_troot_t *ebx_getroot(const ebx_link_t *src)
 {
-	return *src + (void *)src + 2;
+	return *src + (void *)src;
 }
 
 static inline ebx_troot_t *ebx_getroot_safe(const ebx_link_t *src)
 {
-	return *src ? *src + (void *)src + 2 : NULL;
+	return *src ? *src + (void *)src : NULL;
 }
 
 /* A relative offset is NULL if it's either 0 or 1 (tagged 0). The cast to
@@ -521,7 +534,7 @@ static inline ebx_troot_t *ebx_getroot_safe(const ebx_link_t *src)
  */
 static inline int ebx_link_is_null(ebx_link_t link)
 {
-	return (unsigned long long)link <= 1ULL;
+	return link <= 1;
 }
 
 #else
