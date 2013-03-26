@@ -436,8 +436,7 @@ static inline struct eb_node *eb_root_to_node(struct eb_root *root)
 
 /* NOTE: We store the pointer as a relative offset of 2 so that it can never
  * match a valid pointer. The default implementation does not consider NULL
- * pointers because they almost never appear in the trees. For situations where
- * a NULL is possible, please use the _safe variants below.
+ * pointers because they almost never appear in the trees.
  */
 static inline void set_ofs(eb_ofs_t *dest, const eb_troot_t *troot)
 {
@@ -447,16 +446,6 @@ static inline void set_ofs(eb_ofs_t *dest, const eb_troot_t *troot)
 static inline eb_troot_t *get_troot(const eb_ofs_t *src)
 {
 	return *src + (void *)src;
-}
-
-static inline void set_ofs_safe(eb_ofs_t *dest, const eb_troot_t *troot)
-{
-	*dest = (troot ? (void *)troot : (void *)dest) - (void *)dest;
-}
- 
-static inline eb_troot_t *get_troot_safe(const eb_ofs_t *src)
-{
-	return *src ? *src + (void *)src : NULL;
 }
 
 /* A relative offset is NULL if it's either 0 or 1 (tagged 0). The cast to
@@ -552,13 +541,17 @@ static inline int eb_is_empty(struct eb_root *root)
 /* Return the first leaf in the tree starting at <root>, or NULL if none */
 static inline struct eb_node *eb_first(struct eb_root *root)
 {
-	return eb_walk_down(get_troot_safe(&root->b[0]), EB_LEFT);
+	if (root->b[0] == 0)
+		return NULL;
+	return eb_walk_down(get_troot(&root->b[0]), EB_LEFT);
 }
 
 /* Return the last leaf in the tree starting at <root>, or NULL if none */
 static inline struct eb_node *eb_last(struct eb_root *root)
 {
-	return eb_walk_down(get_troot_safe(&root->b[0]), EB_RGHT);
+	if (root->b[0] == 0)
+		return NULL;
+	return eb_walk_down(get_troot(&root->b[0]), EB_RGHT);
 }
 
 /* Return previous leaf node before an existing leaf node, or NULL if none. */

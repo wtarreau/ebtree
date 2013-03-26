@@ -127,9 +127,10 @@ static forceinline struct eb32_node *__eb32_lookup(struct eb_root *root, u32 x)
 	u32 y;
 	int node_bit;
 
-	troot = get_troot_safe(&root->b[EB_LEFT]);
-	if (unlikely(troot == NULL))
+	if (unlikely(root->b[EB_LEFT] == 0))
 		return NULL;
+
+	troot = get_troot(&root->b[EB_LEFT]);
 
 	while (1) {
 		if ((eb_gettag(troot) == EB_LEAF)) {
@@ -179,9 +180,10 @@ static forceinline struct eb32_node *__eb32i_lookup(struct eb_root *root, s32 x)
 	u32 y;
 	int node_bit;
 
-	troot = get_troot_safe(&root->b[EB_LEFT]);
-	if (unlikely(troot == NULL))
+	if (unlikely(root->b[EB_LEFT] == 0))
 		return NULL;
+
+	troot = get_troot(&root->b[EB_LEFT]);
 
 	while (1) {
 		if ((eb_gettag(troot) == EB_LEAF)) {
@@ -237,15 +239,15 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new)
 	int old_node_bit;
 
 	side = EB_LEFT;
-	troot = get_troot_safe(&root->b[EB_LEFT]);
 	root_right = get_troot(&root->b[EB_RGHT]);
-	if (unlikely(troot == NULL)) {
+	if (unlikely(root->b[EB_LEFT] == 0)) {
 		/* Tree is empty, insert the leaf part below the left branch */
 		set_ofs(&root->b[EB_LEFT], eb_dotag(&new->node.branches, EB_LEAF));
 		set_ofs(&new->node.leaf_p, eb_dotag(root, EB_LEFT));
 		new->node.node_p = 0; /* node part unused */
 		return new;
 	}
+	troot = get_troot(&root->b[EB_LEFT]);
 
 	/* The tree descent is fairly easy :
 	 *  - first, check if we have reached a leaf node
@@ -371,15 +373,15 @@ __eb32i_insert(struct eb_root *root, struct eb32_node *new)
 	int old_node_bit;
 
 	side = EB_LEFT;
-	troot = get_troot_safe(&root->b[EB_LEFT]);
 	root_right = get_troot(&root->b[EB_RGHT]);
-	if (unlikely(troot == NULL)) {
+	if (unlikely(root->b[EB_LEFT] == 0)) {
 		/* Tree is empty, insert the leaf part below the left branch */
 		set_ofs(&root->b[EB_LEFT], eb_dotag(&new->node.branches, EB_LEAF));
 		set_ofs(&new->node.leaf_p, eb_dotag(root, EB_LEFT));
 		new->node.node_p = 0; /* node part unused */
 		return new;
 	}
+	troot = get_troot(&root->b[EB_LEFT]);
 
 	/* The tree descent is fairly easy :
 	 *  - first, check if we have reached a leaf node

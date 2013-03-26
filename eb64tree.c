@@ -51,9 +51,10 @@ REGPRM2 struct eb64_node *eb64_lookup_le(struct eb_root *root, u64 x)
 	struct eb64_node *node;
 	eb_troot_t *troot;
 
-	troot = get_troot_safe(&root->b[EB_LEFT]);
-	if (unlikely(troot == NULL))
+	if (unlikely(root->b[EB_LEFT] == 0))
 		return NULL;
+
+	troot = get_troot(&root->b[EB_LEFT]);
 
 	while (1) {
 		if ((eb_gettag(troot) == EB_LEAF)) {
@@ -139,9 +140,10 @@ REGPRM2 struct eb64_node *eb64_lookup_ge(struct eb_root *root, u64 x)
 	struct eb64_node *node;
 	eb_troot_t *troot;
 
-	troot = get_troot_safe(&root->b[EB_LEFT]);
-	if (unlikely(troot == NULL))
+	if (unlikely(root->b[EB_LEFT] == 0))
 		return NULL;
+
+	troot = get_troot(&root->b[EB_LEFT]);
 
 	while (1) {
 		if ((eb_gettag(troot) == EB_LEAF)) {

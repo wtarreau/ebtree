@@ -62,9 +62,10 @@ static forceinline struct ebpt_node *__ebis_lookup(struct eb_root *root, const v
 	int bit;
 	int node_bit;
 
-	troot = get_troot_safe(&root->b[EB_LEFT]);
-	if (unlikely(troot == NULL))
+	if (unlikely(root->b[EB_LEFT] == 0))
 		return NULL;
+
+	troot = get_troot(&root->b[EB_LEFT]);
 
 	bit = 0;
 	while (1) {
@@ -145,15 +146,15 @@ __ebis_insert(struct eb_root *root, struct ebpt_node *new)
 	int old_node_bit;
 
 	side = EB_LEFT;
-	troot = get_troot_safe(&root->b[EB_LEFT]);
 	root_right = get_troot(&root->b[EB_RGHT]);
-	if (unlikely(troot == NULL)) {
+	if (unlikely(root->b[EB_LEFT] == 0)) {
 		/* Tree is empty, insert the leaf part below the left branch */
 		set_ofs(&root->b[EB_LEFT], eb_dotag(&new->node.branches, EB_LEAF));
 		set_ofs(&new->node.leaf_p, eb_dotag(root, EB_LEFT));
 		new->node.node_p = 0; /* node part unused */
 		return new;
 	}
+	troot = get_troot(&root->b[EB_LEFT]);
 
 	/* The tree descent is fairly easy :
 	 *  - first, check if we have reached a leaf node
