@@ -143,9 +143,10 @@ static forceinline struct ebxmb_node *__ebxmb_lookup(struct ebx_root *root, cons
 	int pos, side;
 	int node_bit;
 
-	troot = ebx_getroot_safe(&root->b[EB_LEFT]);
-	if (unlikely(troot == NULL))
+	if (unlikely(ebx_link_is_null(root->b[EB_LEFT])))
 		goto ret_null;
+
+	troot = ebx_getroot(&root->b[EB_LEFT]);
 
 	if (unlikely(len == 0))
 		goto walk_down;
@@ -243,15 +244,15 @@ __ebxmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 	int old_node_bit;
 
 	side = EB_LEFT;
-	troot = ebx_getroot_safe(&root->b[EB_LEFT]);
 	root_right = ebx_getroot(&root->b[EB_RGHT]);
-	if (unlikely(troot == NULL)) {
+	if (unlikely(ebx_link_is_null(root->b[EB_LEFT]))) {
 		/* Tree is empty, insert the leaf part below the left branch */
 		ebx_setlink(&root->b[EB_LEFT], ebx_dotag(&new->node.branches, EB_LEAF));
 		ebx_setlink(&new->node.leaf_p, ebx_dotag(root, EB_LEFT));
 		new->node.node_p = 0; /* node part unused */
 		return new;
 	}
+	troot = ebx_getroot(&root->b[EB_LEFT]);
 
 	/* The tree descent is fairly easy :
 	 *  - first, check if we have reached a leaf node
@@ -391,9 +392,10 @@ static forceinline struct ebxmb_node *__ebxmb_lookup_longest(struct ebx_root *ro
 	int pos, side;
 	int node_bit;
 
-	troot = ebx_getroot_safe(&root->b[EB_LEFT]);
-	if (unlikely(troot == NULL))
+	if (unlikely(ebx_link_is_null(root->b[EB_LEFT])))
 		return NULL;
+
+	troot = ebx_getroot(&root->b[EB_LEFT]);
 
 	cover = NULL;
 	pos = 0;
@@ -485,9 +487,10 @@ static forceinline struct ebxmb_node *__ebxmb_lookup_prefix(struct ebx_root *roo
 	int pos, side;
 	int node_bit;
 
-	troot = ebx_getroot_safe(&root->b[EB_LEFT]);
-	if (unlikely(troot == NULL))
+	if (unlikely(ebx_link_is_null(root->b[EB_LEFT])))
 		return NULL;
+
+	troot = ebx_getroot(&root->b[EB_LEFT]);
 
 	pos = 0;
 	while (1) {
@@ -590,16 +593,15 @@ __ebxmb_insert_prefix(struct ebx_root *root, struct ebxmb_node *new, unsigned in
 	int old_node_bit;
 
 	side = EB_LEFT;
-	troot = ebx_getroot_safe(&root->b[EB_LEFT]);
 	root_right = ebx_getroot(&root->b[EB_RGHT]);
-	if (unlikely(troot == NULL)) {
+	if (unlikely(ebx_link_is_null(root->b[EB_LEFT]))) {
 		/* Tree is empty, insert the leaf part below the left branch */
 		ebx_setlink(&root->b[EB_LEFT], ebx_dotag(&new->node.branches, EB_LEAF));
 		ebx_setlink(&new->node.leaf_p, ebx_dotag(root, EB_LEFT));
 		new->node.node_p = 0; /* node part unused */
 		return new;
 	}
-
+	troot = ebx_getroot(&root->b[EB_LEFT]);
 	len <<= 3;
 	if (len > new->node.pfx)
 		len = new->node.pfx;

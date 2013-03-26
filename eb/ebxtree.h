@@ -505,28 +505,17 @@ static inline struct ebx_node *ebx_root_to_node(struct ebx_root *root)
 /* Assigns a pointer to a link.
  * NOTE: We store the pointer as a relative offset of 2 so that it can never
  * match a valid pointer. The default implementation does not consider NULL
- * pointers because they almost never appear in the trees. For situations where
- * a NULL is possible, please use the _safe variants below.
+ * pointers because they almost never appear in the trees.
  */
 static inline void ebx_setlink(ebx_link_t *dest, const ebx_troot_t *troot)
 {
 	*dest = (void *)troot - (void *)dest;
 }
 
-static inline void ebx_setlink_safe(ebx_link_t *dest, const ebx_troot_t *troot)
-{
-	*dest = (troot ? (void *)troot : (void *)dest) - (void *)dest;
-}
-
 /* Returns the pointer from a link */
 static inline ebx_troot_t *ebx_getroot(const ebx_link_t *src)
 {
 	return *src + (void *)src;
-}
-
-static inline ebx_troot_t *ebx_getroot_safe(const ebx_link_t *src)
-{
-	return *src ? *src + (void *)src : NULL;
 }
 
 /* A relative offset is NULL if it's either 0 or 1 (tagged 0). The cast to
@@ -542,11 +531,9 @@ static inline int ebx_link_is_null(ebx_link_t link)
 
 /* Assigns a pointer to a link */
 #define ebx_setlink(dest, troot) do { *(dest) = (troot); } while (0)
-#define ebx_setlink_safe(dest, troot) do { *(dest) = (troot); } while (0)
 
 /* Returns the pointer from a link */
 #define ebx_getroot(a) (*(a))
-#define ebx_getroot_safe(a) (*(a))
 
 /* an absolute pointer is NULL only when exactly NULL (no tag) */
 #define ebx_link_is_null(a) ((void *)a <= (void *)1)
@@ -644,13 +631,17 @@ static inline int ebx_is_dup(struct ebx_node *node)
 /* Return the first leaf in the tree starting at <root>, or NULL if none */
 static inline struct ebx_node *ebx_first(struct ebx_root *root)
 {
-	return ebx_walk_down(ebx_getroot_safe(&root->b[0]), EB_LEFT);
+	if (ebx_link_is_null(root->b[EB_LEFT]))
+		return NULL;
+	return ebx_walk_down(ebx_getroot(&root->b[0]), EB_LEFT);
 }
 
 /* Return the last leaf in the tree starting at <root>, or NULL if none */
 static inline struct ebx_node *ebx_last(struct ebx_root *root)
 {
-	return ebx_walk_down(ebx_getroot_safe(&root->b[0]), EB_RGHT);
+	if (ebx_link_is_null(root->b[EB_LEFT]))
+		return NULL;
+	return ebx_walk_down(ebx_getroot(&root->b[0]), EB_RGHT);
 }
 
 /* Return previous leaf node before an existing leaf node, or NULL if none. */

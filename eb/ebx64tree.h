@@ -140,9 +140,10 @@ static forceinline struct ebx64_node *__ebx64_lookup(struct ebx_root *root, u64 
 	ebx_troot_t *troot;
 	u64 y;
 
-	troot = ebx_getroot_safe(&root->b[EB_LEFT]);
-	if (unlikely(troot == NULL))
+	if (unlikely(ebx_link_is_null(root->b[EB_LEFT])))
 		return NULL;
+
+	troot = ebx_getroot(&root->b[EB_LEFT]);
 
 	while (1) {
 		if ((ebx_gettag(troot) == EB_LEAF)) {
@@ -190,9 +191,10 @@ static forceinline struct ebx64_node *__ebx64i_lookup(struct ebx_root *root, s64
 	u64 key = x ^ (1ULL << 63);
 	u64 y;
 
-	troot = ebx_getroot_safe(&root->b[EB_LEFT]);
-	if (unlikely(troot == NULL))
+	if (unlikely(ebx_link_is_null(root->b[EB_LEFT])))
 		return NULL;
+
+	troot = ebx_getroot(&root->b[EB_LEFT]);
 
 	while (1) {
 		if ((ebx_gettag(troot) == EB_LEAF)) {
@@ -243,15 +245,15 @@ __ebx64_insert(struct ebx_root *root, struct ebx64_node *new) {
 	int old_node_bit;
 
 	side = EB_LEFT;
-	troot = ebx_getroot_safe(&root->b[EB_LEFT]);
 	root_right = ebx_getroot(&root->b[EB_RGHT]);
-	if (unlikely(troot == NULL)) {
+	if (unlikely(ebx_link_is_null(root->b[EB_LEFT]))) {
 		/* Tree is empty, insert the leaf part below the left branch */
 		ebx_setlink(&root->b[EB_LEFT], ebx_dotag(&new->node.branches, EB_LEAF));
 		ebx_setlink(&new->node.leaf_p, ebx_dotag(root, EB_LEFT));
 		new->node.node_p = 0; /* node part unused */
 		return new;
 	}
+	troot = ebx_getroot(&root->b[EB_LEFT]);
 
 	/* The tree descent is fairly easy :
 	 *  - first, check if we have reached a leaf node
@@ -419,15 +421,15 @@ __ebx64i_insert(struct ebx_root *root, struct ebx64_node *new) {
 	int old_node_bit;
 
 	side = EB_LEFT;
-	troot = ebx_getroot_safe(&root->b[EB_LEFT]);
 	root_right = ebx_getroot(&root->b[EB_RGHT]);
-	if (unlikely(troot == NULL)) {
+	if (unlikely(ebx_link_is_null(root->b[EB_LEFT]))) {
 		/* Tree is empty, insert the leaf part below the left branch */
 		ebx_setlink(&root->b[EB_LEFT], ebx_dotag(&new->node.branches, EB_LEAF));
 		ebx_setlink(&new->node.leaf_p, ebx_dotag(root, EB_LEFT));
 		new->node.node_p = 0; /* node part unused */
 		return new;
 	}
+	troot = ebx_getroot(&root->b[EB_LEFT]);
 
 	/* The tree descent is fairly easy :
 	 *  - first, check if we have reached a leaf node

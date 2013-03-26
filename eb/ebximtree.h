@@ -56,9 +56,10 @@ __ebxim_lookup(struct ebx_root *root, const void *x, unsigned int len)
 	int pos, side;
 	int node_bit;
 
-	troot = ebx_getroot_safe(&root->b[EB_LEFT]);
-	if (unlikely(troot == NULL))
+	if (unlikely(ebx_link_is_null(root->b[EB_LEFT])))
 		goto ret_null;
+
+	troot = ebx_getroot(&root->b[EB_LEFT]);
 
 	if (unlikely(len == 0))
 		goto walk_down;
@@ -151,16 +152,15 @@ __ebxim_insert(struct ebx_root *root, struct ebxpt_node *new, unsigned int len)
 	int old_node_bit;
 
 	side = EB_LEFT;
-	troot = ebx_getroot_safe(&root->b[EB_LEFT]);
 	root_right = ebx_getroot(&root->b[EB_RGHT]);
-	if (unlikely(troot == NULL)) {
+	if (unlikely(ebx_link_is_null(root->b[EB_LEFT]))) {
 		/* Tree is empty, insert the leaf part below the left branch */
 		ebx_setlink(&root->b[EB_LEFT], ebx_dotag(&new->node.branches, EB_LEAF));
 		ebx_setlink(&new->node.leaf_p, ebx_dotag(root, EB_LEFT));
 		new->node.node_p = 0; /* node part unused */
 		return new;
 	}
-
+	troot = ebx_getroot(&root->b[EB_LEFT]);
 	len <<= 3;
 
 	/* The tree descent is fairly easy :

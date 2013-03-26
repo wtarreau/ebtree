@@ -57,9 +57,10 @@ REGPRM2 struct ebx32_node *ebx32_lookup_le(struct ebx_root *root, u32 x)
 	struct ebx32_node *node;
 	ebx_troot_t *troot;
 
-	troot = ebx_getroot_safe(&root->b[EB_LEFT]);
-	if (unlikely(troot == NULL))
+	if (unlikely(ebx_link_is_null(root->b[EB_LEFT])))
 		return NULL;
+
+	troot = ebx_getroot(&root->b[EB_LEFT]);
 
 	while (1) {
 		if ((ebx_gettag(troot) == EB_LEAF)) {
@@ -145,9 +146,10 @@ REGPRM2 struct ebx32_node *ebx32_lookup_ge(struct ebx_root *root, u32 x)
 	struct ebx32_node *node;
 	ebx_troot_t *troot;
 
-	troot = ebx_getroot_safe(&root->b[EB_LEFT]);
-	if (unlikely(troot == NULL))
+	if (unlikely(ebx_link_is_null(root->b[EB_LEFT])))
 		return NULL;
+
+	troot = ebx_getroot(&root->b[EB_LEFT]);
 
 	while (1) {
 		if ((ebx_gettag(troot) == EB_LEAF)) {
