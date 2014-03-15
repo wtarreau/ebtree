@@ -26,6 +26,9 @@
 
 /* These functions and macros rely on Multi-Byte nodes */
 
+#ifndef _EBISTREE_H
+#define _EBISTREE_H
+
 #include <string.h>
 #include "ebtree.h"
 #include "ebpttree.h"
@@ -272,3 +275,4 @@ __ebis_insert(struct eb_root *root, struct ebpt_node *new)
 	return new;
 }
 
+#endif /* _EBISTREE_H */

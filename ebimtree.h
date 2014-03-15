@@ -24,6 +24,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#ifndef _EBIMTREE_H
+#define _EBIMTREE_H
+
 #include <string.h>
 #include "ebtree.h"
 #include "ebpttree.h"
@@ -271,3 +274,5 @@ __ebim_insert(struct eb_root *root, struct ebpt_node *new, unsigned int len)
 	root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
 	return new;
 }
+
+#endif /* _EBIMTREE_H */
