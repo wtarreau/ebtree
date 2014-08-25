@@ -1,6 +1,15 @@
-OBJS = ebtree.o eb32tree.o eb64tree.o ebmbtree.o ebsttree.o ebimtree.o ebistree.o
 CFLAGS = -O3 -W -Wall -Wdeclaration-after-statement
 EXAMPLES = $(basename $(wildcard examples/*.c))
+
+COMMON_DIR = common
+
+EB_DIR = eb
+EB_OBJ = $(addprefix $(EB_DIR)/,ebtree.o eb32tree.o eb64tree.o ebmbtree.o ebsttree.o ebimtree.o ebistree.o)
+
+OBJS = $(EB_OBJ)
+
+TEST_DIR = tests
+TEST_BIN = $(addprefix $(TEST_DIR),test32 test64 testst)
 
 all: libebtree.a
 
@@ -10,18 +19,18 @@ libebtree.a: $(OBJS)
 	$(AR) rv $@ $^
 
 %.o: %.c
-	$(CC) $(CFLAGS) -o $@ -c $^
+	$(CC) $(CFLAGS) -I$(COMMON_DIR) -o $@ -c $^
 
 examples/%: examples/%.c libebtree.a
-	$(CC) $(CFLAGS) -I. -o $@ $< -L. -lebtree
+	$(CC) $(CFLAGS) -I$(COMMON_DIR) -I$(EB_DIR) -o $@ $< -L. -lebtree
 
-test: test32 test64 testst
+test: $(TEST_BIN)
 
 test%: test%.c libebtree.a
-	$(CC) $(CFLAGS) -o $@ $< -L. -lebtree
+	$(CC) $(CFLAGS) -I$(COMMON_DIR) -I$(EB_DIR) -o $@ $< -L. -lebtree
 
 clean:
-	-rm -fv libebtree.a $(OBJS) *~ *.rej core test32 test64 testst ${EXAMPLES}
+	-rm -fv libebtree.a $(OBJS) *~ *.rej core $(TEST_BIN) ${EXAMPLES}
 
 ifeq ($(wildcard .git),.git)
 VERSION := $(shell [ -d .git/. ] && ref=`(git describe --tags --match 'v*') 2>/dev/null` && ref=$${ref%-g*} && echo "$${ref\#v}")
