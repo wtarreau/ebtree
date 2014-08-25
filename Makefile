@@ -4,7 +4,8 @@ EXAMPLES = $(basename $(wildcard examples/*.c))
 COMMON_DIR = common
 
 EB_DIR = eb
-EB_OBJ = $(addprefix $(EB_DIR)/,ebtree.o eb32tree.o eb64tree.o ebmbtree.o ebsttree.o ebimtree.o ebistree.o)
+EB_SRC = $(wildcard $(EB_DIR)/*.c)
+EB_OBJ = $(EB_SRC:%.c=%.o)
 
 OBJS = $(EB_OBJ)
 
