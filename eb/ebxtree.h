@@ -255,6 +255,57 @@
 #include <stdlib.h>
 #include "compiler.h"
 
+/*****************************************************************************\
+ * a few types we need below. Some of these may sometimes already be defined *
+\*****************************************************************************/
+
+typedef unsigned short u16;
+typedef   signed short s16;
+
+typedef unsigned int u32;
+typedef   signed int s32;
+
+typedef unsigned long long u64;
+typedef   signed long long s64;
+
+/* link between nodes. The lower bit embeds a tag which can be manipulated with
+ * ebx_dotag()/ebx_untag()/ebx_gettag(). This tag has two meanings :
+ *  - 0=left, 1=right to designate the parent's branch for leaf_p/node_p
+ *  - 0=link, 1=leaf  to designate the branch's type for branch[]
+ */
+typedef void *ebx_link_t;
+typedef ebx_link_t *ebx_troot_t;
+
+
+/**************************************\
+ * a few constants we need everywhere *
+\**************************************/
+
+/* Number of bits per node, and number of leaves per node */
+#define EB_NODE_BITS          1
+#define EB_NODE_BRANCHES      (1 << EB_NODE_BITS)
+#define EB_NODE_BRANCH_MASK   (EB_NODE_BRANCHES - 1)
+
+/* Be careful not to tweak those values. The walking code is optimized for NULL
+ * detection on the assumption that the following values are intact.
+ */
+#define EB_LEFT     0
+#define EB_RGHT     1
+#define EB_LEAF     0
+#define EB_NODE     1
+
+/* Tags to set in root->b[EB_RGHT] :
+ * - EB_NORMAL is a normal tree which stores duplicate keys.
+ * - EB_UNIQUE is a tree which stores unique keys.
+ */
+#define EB_NORMAL   0
+#define EB_UNIQUE   1
+
+
+/******************************\
+ * bit manipulation functions *
+\******************************/
+
 static inline int flsnz8_generic(unsigned int x)
 {
 	int ret = 0;
@@ -336,34 +387,6 @@ static inline int fls64(unsigned long long x)
 		__p ? (type *)(__p - ((long)&((type *)0)->name)) : (type *)0; \
 	})
 #endif
-
-/* Number of bits per node, and number of leaves per node */
-#define EB_NODE_BITS          1
-#define EB_NODE_BRANCHES      (1 << EB_NODE_BITS)
-#define EB_NODE_BRANCH_MASK   (EB_NODE_BRANCHES - 1)
-
-/* Be careful not to tweak those values. The walking code is optimized for NULL
- * detection on the assumption that the following values are intact.
- */
-#define EB_LEFT     0
-#define EB_RGHT     1
-#define EB_LEAF     0
-#define EB_NODE     1
-
-/* Tags to set in root->b[EB_RGHT] :
- * - EB_NORMAL is a normal tree which stores duplicate keys.
- * - EB_UNIQUE is a tree which stores unique keys.
- */
-#define EB_NORMAL   0
-#define EB_UNIQUE   1
-
-/* This is the same as an ebx_node pointer, except that the lower bit embeds
- * a tag. See ebx_dotag()/ebx_untag()/ebx_gettag(). This tag has two meanings :
- *  - 0=left, 1=right to designate the parent's branch for leaf_p/node_p
- *  - 0=link, 1=leaf  to designate the branch's type for branch[]
- */
-typedef void *ebx_link_t;
-typedef ebx_link_t *ebx_troot_t;
 
 /* The ebx_root connects the node which contains it, to two nodes below it, one
  * of which may be the same node. At the top of the tree, we use an ebx_root
