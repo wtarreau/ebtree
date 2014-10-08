@@ -272,8 +272,21 @@ typedef   signed long long s64;
  * ebx_dotag()/ebx_untag()/ebx_gettag(). This tag has two meanings :
  *  - 0=left, 1=right to designate the parent's branch for leaf_p/node_p
  *  - 0=link, 1=leaf  to designate the branch's type for branch[]
+ *
+ * The link type is either a signed int when EB_SIZE is set to any size > 0, or
+ * a void * if EB_SIZE is unset or null.
  */
+
+#if EB_SIZE == 64
+typedef s64 ebx_link_t;
+#elif EB_SIZE == 32
+typedef s32 ebx_link_t;
+#elif EB_SIZE == 16
+typedef s16 ebx_link_t;
+#else
 typedef void *ebx_link_t;
+#endif
+
 typedef ebx_link_t *ebx_troot_t;
 
 
@@ -473,11 +486,29 @@ static inline struct ebx_node *ebx_root_to_node(struct ebx_root *root)
 	return container_of(root, struct ebx_node, branches);
 }
 
+#if EB_SIZE > 0
+/**** this is the relative pointer version ****/
+
+/* Assigns a pointer to a link */
+static inline void ebx_setlink(ebx_link_t *dest, const ebx_troot_t *troot)
+{
+	*dest = troot ? (void *)troot - (void *)dest - 2 : 0;
+}
+
+/* Returns the pointer from a link */
+static inline ebx_troot_t *ebx_getroot(const ebx_link_t *src)
+{
+	return *src ? *src + (void *)src + 2 : NULL;
+}
+#else
+/**** EB_SIZE = 0 : absolute pointer version ****/
+
 /* Assigns a pointer to a link */
 #define ebx_setlink(dest, troot) do { *(dest) = (troot); } while (0)
 
 /* Returns the pointer from a link */
 #define ebx_getroot(a) (*(a))
+#endif
 
 /* Walks down starting at root pointer <start>, and always walking on side
  * <side>. It either returns the node hosting the first leaf on that side,
