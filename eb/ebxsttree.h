@@ -264,7 +264,7 @@ __ebst_insert(struct ebx_root *root, struct ebxmb_node *new)
 				 * we can perform the dup insertion and return.
 				 */
 				struct ebx_node *ret;
-				ret = eb_insert_dup(&old->node, &new->node);
+				ret = ebx_insert_dup(&old->node, &new->node);
 				return container_of(ret, struct ebxmb_node, node);
 			}
 			/* OK so let's walk down */

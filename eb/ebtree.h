@@ -55,6 +55,12 @@
 #undef __ebx_insert_dup
 #define __ebx_insert_dup __eb_insert_dup
 
+/* these ones are exported functions */
+#undef ebx_delete
+#define ebx_delete eb_delete
+#undef ebx_insert_dup
+#define ebx_insert_dup eb_insert_dup
+
 #include "ebxtree.h"
 
 #endif

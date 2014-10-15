@@ -105,11 +105,11 @@ static inline struct ebx32_node *eb32_prev_unique(struct ebx32_node *eb32)
 }
 
 /* Delete node from the tree if it was linked in. Mark the node unused. Note
- * that this function relies on a non-inlined generic function: eb_delete.
+ * that this function relies on a non-inlined generic function: ebx_delete.
  */
 static inline void eb32_delete(struct ebx32_node *eb32)
 {
-	eb_delete(&eb32->node);
+	ebx_delete(&eb32->node);
 }
 
 /*
@@ -342,7 +342,7 @@ __eb32_insert(struct ebx_root *root, struct ebx32_node *new)
 		if (ebx_gettag(troot) != EB_LEAF) {
 			/* there was already a dup tree below */
 			struct ebx_node *ret;
-			ret = eb_insert_dup(&old->node, &new->node);
+			ret = ebx_insert_dup(&old->node, &new->node);
 			return container_of(ret, struct ebx32_node, node);
 		}
 		/* otherwise fall through */
@@ -477,7 +477,7 @@ __eb32i_insert(struct ebx_root *root, struct ebx32_node *new)
 		if (ebx_gettag(troot) != EB_LEAF) {
 			/* there was already a dup tree below */
 			struct ebx_node *ret;
-			ret = eb_insert_dup(&old->node, &new->node);
+			ret = ebx_insert_dup(&old->node, &new->node);
 			return container_of(ret, struct ebx32_node, node);
 		}
 		/* otherwise fall through */

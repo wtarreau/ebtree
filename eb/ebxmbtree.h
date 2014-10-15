@@ -103,11 +103,11 @@ static forceinline struct ebxmb_node *ebmb_prev_unique(struct ebxmb_node *ebmb)
 }
 
 /* Delete node from the tree if it was linked in. Mark the node unused. Note
- * that this function relies on a non-inlined generic function: eb_delete.
+ * that this function relies on a non-inlined generic function: ebx_delete.
  */
 static forceinline void ebmb_delete(struct ebxmb_node *ebmb)
 {
-	eb_delete(&ebmb->node);
+	ebx_delete(&ebmb->node);
 }
 
 /* The following functions are not inlined by default. They are declared
@@ -348,7 +348,7 @@ __ebmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 		if (ebx_gettag(troot) != EB_LEAF) {
 			/* there was already a dup tree below */
 			struct ebx_node *ret;
-			ret = eb_insert_dup(&old->node, &new->node);
+			ret = ebx_insert_dup(&old->node, &new->node);
 			return container_of(ret, struct ebxmb_node, node);
 		}
 		/* otherwise fall through */
@@ -779,7 +779,7 @@ __ebmb_insert_prefix(struct ebx_root *root, struct ebxmb_node *new, unsigned int
 			if (ebx_gettag(troot) != EB_LEAF) {
 				/* there was already a dup tree below */
 				struct ebx_node *ret;
-				ret = eb_insert_dup(&old->node, &new->node);
+				ret = ebx_insert_dup(&old->node, &new->node);
 				return container_of(ret, struct ebxmb_node, node);
 			}
 			/* otherwise fall through to insert first duplicate */

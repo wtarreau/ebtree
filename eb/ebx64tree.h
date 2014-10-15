@@ -105,11 +105,11 @@ static inline struct ebx64_node *eb64_prev_unique(struct ebx64_node *eb64)
 }
 
 /* Delete node from the tree if it was linked in. Mark the node unused. Note
- * that this function relies on a non-inlined generic function: eb_delete.
+ * that this function relies on a non-inlined generic function: ebx_delete.
  */
 static inline void eb64_delete(struct ebx64_node *eb64)
 {
-	eb_delete(&eb64->node);
+	ebx_delete(&eb64->node);
 }
 
 /*
@@ -368,7 +368,7 @@ __eb64_insert(struct ebx_root *root, struct ebx64_node *new) {
 			}
 			else {
 				struct ebx_node *ret;
-				ret = eb_insert_dup(&old->node, &new->node);
+				ret = ebx_insert_dup(&old->node, &new->node);
 				return container_of(ret, struct ebx64_node, node);
 			}
 			break;
@@ -546,7 +546,7 @@ __eb64i_insert(struct ebx_root *root, struct ebx64_node *new) {
 			}
 			else {
 				struct ebx_node *ret;
-				ret = eb_insert_dup(&old->node, &new->node);
+				ret = ebx_insert_dup(&old->node, &new->node);
 				return container_of(ret, struct ebx64_node, node);
 			}
 			break;

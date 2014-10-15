@@ -301,7 +301,7 @@ __ebim_insert(struct ebx_root *root, struct ebxpt_node *new, unsigned int len)
 			}
 			else {
 				struct ebx_node *ret;
-				ret = eb_insert_dup(&old->node, &new->node);
+				ret = ebx_insert_dup(&old->node, &new->node);
 				return container_of(ret, struct ebxpt_node, node);
 			}
 			break;

@@ -915,8 +915,8 @@ static forceinline int get_bit(const unsigned char *a, unsigned int pos)
 }
 
 /* These functions are declared in ebxtree.c */
-void eb_delete(struct ebx_node *node);
-REGPRM1 struct ebx_node *eb_insert_dup(struct ebx_node *sub, struct ebx_node *new);
+void ebx_delete(struct ebx_node *node);
+REGPRM1 struct ebx_node *ebx_insert_dup(struct ebx_node *sub, struct ebx_node *new);
 
 #endif /* _EBX_TREE_H */
 

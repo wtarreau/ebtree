@@ -111,11 +111,11 @@ static forceinline struct ebxpt_node *ebpt_prev_unique(struct ebxpt_node *ebpt)
 }
 
 /* Delete node from the tree if it was linked in. Mark the node unused. Note
- * that this function relies on a non-inlined generic function: eb_delete.
+ * that this function relies on a non-inlined generic function: ebx_delete.
  */
 static forceinline void ebpt_delete(struct ebxpt_node *ebpt)
 {
-	eb_delete(&ebpt->node);
+	ebx_delete(&ebpt->node);
 }
 
 /*
