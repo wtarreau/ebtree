@@ -124,7 +124,7 @@ static forceinline void ebpt_delete(struct ebxpt_node *ebpt)
 static forceinline struct ebxpt_node *ebpt_lookup(struct ebx_root *root, void *x)
 {
 	if (sizeof(void *) == 4)
-		return (struct ebxpt_node *)eb32_lookup(root, (u32)(PTR_INT_TYPE)x);
+		return (struct ebxpt_node *)ebx32_lookup(root, (u32)(PTR_INT_TYPE)x);
 	else
 		return (struct ebxpt_node *)eb64_lookup(root, (u64)(PTR_INT_TYPE)x);
 }
@@ -132,7 +132,7 @@ static forceinline struct ebxpt_node *ebpt_lookup(struct ebx_root *root, void *x
 static forceinline struct ebxpt_node *ebpt_lookup_le(struct ebx_root *root, void *x)
 {
 	if (sizeof(void *) == 4)
-		return (struct ebxpt_node *)eb32_lookup_le(root, (u32)(PTR_INT_TYPE)x);
+		return (struct ebxpt_node *)ebx32_lookup_le(root, (u32)(PTR_INT_TYPE)x);
 	else
 		return (struct ebxpt_node *)eb64_lookup_le(root, (u64)(PTR_INT_TYPE)x);
 }
@@ -140,7 +140,7 @@ static forceinline struct ebxpt_node *ebpt_lookup_le(struct ebx_root *root, void
 static forceinline struct ebxpt_node *ebpt_lookup_ge(struct ebx_root *root, void *x)
 {
 	if (sizeof(void *) == 4)
-		return (struct ebxpt_node *)eb32_lookup_ge(root, (u32)(PTR_INT_TYPE)x);
+		return (struct ebxpt_node *)ebx32_lookup_ge(root, (u32)(PTR_INT_TYPE)x);
 	else
 		return (struct ebxpt_node *)eb64_lookup_ge(root, (u64)(PTR_INT_TYPE)x);
 }
@@ -148,7 +148,7 @@ static forceinline struct ebxpt_node *ebpt_lookup_ge(struct ebx_root *root, void
 static forceinline struct ebxpt_node *ebpt_insert(struct ebx_root *root, struct ebxpt_node *new)
 {
 	if (sizeof(void *) == 4)
-		return (struct ebxpt_node *)eb32_insert(root, (struct ebx32_node *)new);
+		return (struct ebxpt_node *)ebx32_insert(root, (struct ebx32_node *)new);
 	else
 		return (struct ebxpt_node *)eb64_insert(root, (struct ebx64_node *)new);
 }

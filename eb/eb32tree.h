@@ -39,6 +39,22 @@
 #undef __ebx32i_insert
 #define __ebx32i_insert __eb32i_insert
 
+/* exported functions below */
+#undef ebx32_delete
+#define ebx32_delete eb32_delete
+#undef ebx32_lookup
+#define ebx32_lookup eb32_lookup
+#undef ebx32i_lookup
+#define ebx32i_lookup eb32i_lookup
+#undef ebx32_insert
+#define ebx32_insert eb32_insert
+#undef ebx32i_insert
+#define ebx32i_insert eb32i_insert
+#undef ebx32_lookup_le
+#define ebx32_lookup_le eb32_lookup_le
+#undef ebx32_lookup_ge
+#define ebx32_lookup_ge eb32_lookup_ge
+
 #include "ebtree.h"
 #include "ebx32tree.h"
 

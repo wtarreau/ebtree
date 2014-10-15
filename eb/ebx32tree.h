@@ -107,7 +107,7 @@ static inline struct ebx32_node *ebx32_prev_unique(struct ebx32_node *eb32)
 /* Delete node from the tree if it was linked in. Mark the node unused. Note
  * that this function relies on a non-inlined generic function: ebx_delete.
  */
-static inline void eb32_delete(struct ebx32_node *eb32)
+static inline void ebx32_delete(struct ebx32_node *eb32)
 {
 	ebx_delete(&eb32->node);
 }
@@ -116,12 +116,12 @@ static inline void eb32_delete(struct ebx32_node *eb32)
  * The following functions are not inlined by default. They are declared
  * in eb32tree.c, which simply relies on their inline version.
  */
-REGPRM2 struct ebx32_node *eb32_lookup(struct ebx_root *root, u32 x);
-REGPRM2 struct ebx32_node *eb32i_lookup(struct ebx_root *root, s32 x);
-REGPRM2 struct ebx32_node *eb32_lookup_le(struct ebx_root *root, u32 x);
-REGPRM2 struct ebx32_node *eb32_lookup_ge(struct ebx_root *root, u32 x);
-REGPRM2 struct ebx32_node *eb32_insert(struct ebx_root *root, struct ebx32_node *new);
-REGPRM2 struct ebx32_node *eb32i_insert(struct ebx_root *root, struct ebx32_node *new);
+REGPRM2 struct ebx32_node *ebx32_lookup(struct ebx_root *root, u32 x);
+REGPRM2 struct ebx32_node *ebx32i_lookup(struct ebx_root *root, s32 x);
+REGPRM2 struct ebx32_node *ebx32_lookup_le(struct ebx_root *root, u32 x);
+REGPRM2 struct ebx32_node *ebx32_lookup_ge(struct ebx_root *root, u32 x);
+REGPRM2 struct ebx32_node *ebx32_insert(struct ebx_root *root, struct ebx32_node *new);
+REGPRM2 struct ebx32_node *ebx32i_insert(struct ebx_root *root, struct ebx32_node *new);
 
 /*
  * The following functions are less likely to be used directly, because their
