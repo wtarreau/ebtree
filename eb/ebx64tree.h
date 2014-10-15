@@ -41,12 +41,12 @@ typedef unsigned long long u64;
 typedef   signed long long s64;
 
 /* This structure carries a node, a leaf, and a key. It must start with the
- * eb_node so that it can be cast into an eb_node. We could also have put some
+ * ebx_node so that it can be cast into an ebx_node. We could also have put some
  * sort of transparent union here to reduce the indirection level, but the fact
  * is, the end user is not meant to manipulate internals, so this is pointless.
  */
 struct eb64_node {
-	struct eb_node node; /* the tree node, must be at the beginning */
+	struct ebx_node node; /* the tree node, must be at the beginning */
 	u64 key;
 };
 
@@ -367,7 +367,7 @@ __eb64_insert(struct ebx_root *root, struct eb64_node *new) {
 				new->node.branches.b[EB_RGHT] = new_leaf;
 			}
 			else {
-				struct eb_node *ret;
+				struct ebx_node *ret;
 				ret = eb_insert_dup(&old->node, &new->node);
 				return container_of(ret, struct eb64_node, node);
 			}
@@ -545,7 +545,7 @@ __eb64i_insert(struct ebx_root *root, struct eb64_node *new) {
 				new->node.branches.b[EB_RGHT] = new_leaf;
 			}
 			else {
-				struct eb_node *ret;
+				struct ebx_node *ret;
 				ret = eb_insert_dup(&old->node, &new->node);
 				return container_of(ret, struct eb64_node, node);
 			}

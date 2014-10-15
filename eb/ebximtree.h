@@ -300,7 +300,7 @@ __ebim_insert(struct ebx_root *root, struct ebpt_node *new, unsigned int len)
 				new->node.branches.b[EB_RGHT] = new_leaf;
 			}
 			else {
-				struct eb_node *ret;
+				struct ebx_node *ret;
 				ret = eb_insert_dup(&old->node, &new->node);
 				return container_of(ret, struct ebpt_node, node);
 			}

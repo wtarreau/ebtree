@@ -10,6 +10,8 @@
 /* redefine entries for mapping */
 #undef ebx_root
 #define ebx_root eb_root
+#undef ebx_node
+#define ebx_node eb_node
 
 #include "ebxtree.h"
 

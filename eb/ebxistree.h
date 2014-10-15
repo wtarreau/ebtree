@@ -269,7 +269,7 @@ __ebis_insert(struct ebx_root *root, struct ebpt_node *new)
 				 * bits and that we're on top of a dup tree, then
 				 * we can perform the dup insertion and return.
 				 */
-				struct eb_node *ret;
+				struct ebx_node *ret;
 				ret = eb_insert_dup(&old->node, &new->node);
 				return container_of(ret, struct ebpt_node, node);
 			}

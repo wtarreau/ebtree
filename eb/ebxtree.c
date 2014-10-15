@@ -26,13 +26,13 @@
 
 #include "ebxtree.h"
 
-void eb_delete(struct eb_node *node)
+void eb_delete(struct ebx_node *node)
 {
 	__eb_delete(node);
 }
 
 /* used by insertion primitives */
-REGPRM1 struct eb_node *eb_insert_dup(struct eb_node *sub, struct eb_node *new)
+REGPRM1 struct ebx_node *eb_insert_dup(struct ebx_node *sub, struct ebx_node *new)
 {
 	return __eb_insert_dup(sub, new);
 }

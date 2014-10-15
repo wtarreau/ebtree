@@ -46,13 +46,13 @@
 typedef PTR_INT_TYPE ptr_t;
 
 /* This structure carries a node, a leaf, and a key. It must start with the
- * eb_node so that it can be cast into an eb_node. We could also have put some
+ * ebx_node so that it can be cast into an ebx_node. We could also have put some
  * sort of transparent union here to reduce the indirection level, but the fact
  * is, the end user is not meant to manipulate internals, so this is pointless.
  * Internally, it is automatically cast as an eb32_node or eb64_node.
  */
 struct ebpt_node {
-	struct eb_node node; /* the tree node, must be at the beginning */
+	struct ebx_node node; /* the tree node, must be at the beginning */
 	void *key;
 };
 

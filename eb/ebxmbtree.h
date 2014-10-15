@@ -37,14 +37,14 @@
 #define EBMB_TREE_HEAD	EB_TREE_HEAD
 
 /* This structure carries a node, a leaf, and a key. It must start with the
- * eb_node so that it can be cast into an eb_node. We could also have put some
+ * ebx_node so that it can be cast into an ebx_node. We could also have put some
  * sort of transparent union here to reduce the indirection level, but the fact
  * is, the end user is not meant to manipulate internals, so this is pointless.
  * The 'node.bit' value here works differently from scalar types, as it contains
  * the number of identical bits between the two branches.
  */
 struct ebmb_node {
-	struct eb_node node; /* the tree node, must be at the beginning */
+	struct ebx_node node; /* the tree node, must be at the beginning */
 	unsigned char key[0]; /* the key, its size depends on the application */
 };
 
@@ -346,7 +346,7 @@ __ebmb_insert(struct ebx_root *root, struct ebmb_node *new, unsigned int len)
 
 		if (eb_gettag(troot) != EB_LEAF) {
 			/* there was already a dup tree below */
-			struct eb_node *ret;
+			struct ebx_node *ret;
 			ret = eb_insert_dup(&old->node, &new->node);
 			return container_of(ret, struct ebmb_node, node);
 		}
@@ -776,7 +776,7 @@ __ebmb_insert_prefix(struct ebx_root *root, struct ebmb_node *new, unsigned int 
 
 			if (eb_gettag(troot) != EB_LEAF) {
 				/* there was already a dup tree below */
-				struct eb_node *ret;
+				struct ebx_node *ret;
 				ret = eb_insert_dup(&old->node, &new->node);
 				return container_of(ret, struct ebmb_node, node);
 			}
