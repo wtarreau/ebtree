@@ -31,7 +31,7 @@
 
 
 /* Return the structure of type <type> whose member <member> points to <ptr> */
-#define eb64_entry(ptr, type, member) container_of(ptr, type, member)
+#define ebx64_entry(ptr, type, member) container_of(ptr, type, member)
 
 #define EB64_ROOT	EB_ROOT
 #define EB64_TREE_HEAD	EB_TREE_HEAD
@@ -57,51 +57,51 @@ struct ebx64_node {
  */
 
 /* Return leftmost node in the tree, or NULL if none */
-static inline struct ebx64_node *eb64_first(struct ebx_root *root)
+static inline struct ebx64_node *ebx64_first(struct ebx_root *root)
 {
-	return eb64_entry(ebx_first(root), struct ebx64_node, node);
+	return ebx64_entry(ebx_first(root), struct ebx64_node, node);
 }
 
 /* Return rightmost node in the tree, or NULL if none */
-static inline struct ebx64_node *eb64_last(struct ebx_root *root)
+static inline struct ebx64_node *ebx64_last(struct ebx_root *root)
 {
-	return eb64_entry(ebx_last(root), struct ebx64_node, node);
+	return ebx64_entry(ebx_last(root), struct ebx64_node, node);
 }
 
 /* Return next node in the tree, or NULL if none */
-static inline struct ebx64_node *eb64_next(struct ebx64_node *eb64)
+static inline struct ebx64_node *ebx64_next(struct ebx64_node *eb64)
 {
-	return eb64_entry(ebx_next(&eb64->node), struct ebx64_node, node);
+	return ebx64_entry(ebx_next(&eb64->node), struct ebx64_node, node);
 }
 
 /* Return previous node in the tree, or NULL if none */
-static inline struct ebx64_node *eb64_prev(struct ebx64_node *eb64)
+static inline struct ebx64_node *ebx64_prev(struct ebx64_node *eb64)
 {
-	return eb64_entry(ebx_prev(&eb64->node), struct ebx64_node, node);
+	return ebx64_entry(ebx_prev(&eb64->node), struct ebx64_node, node);
 }
 
 /* Return next leaf node within a duplicate sub-tree, or NULL if none. */
-static inline struct ebx64_node *eb64_next_dup(struct ebx64_node *eb64)
+static inline struct ebx64_node *ebx64_next_dup(struct ebx64_node *eb64)
 {
-	return eb64_entry(ebx_next_dup(&eb64->node), struct ebx64_node, node);
+	return ebx64_entry(ebx_next_dup(&eb64->node), struct ebx64_node, node);
 }
 
 /* Return previous leaf node within a duplicate sub-tree, or NULL if none. */
-static inline struct ebx64_node *eb64_prev_dup(struct ebx64_node *eb64)
+static inline struct ebx64_node *ebx64_prev_dup(struct ebx64_node *eb64)
 {
-	return eb64_entry(ebx_prev_dup(&eb64->node), struct ebx64_node, node);
+	return ebx64_entry(ebx_prev_dup(&eb64->node), struct ebx64_node, node);
 }
 
 /* Return next node in the tree, skipping duplicates, or NULL if none */
-static inline struct ebx64_node *eb64_next_unique(struct ebx64_node *eb64)
+static inline struct ebx64_node *ebx64_next_unique(struct ebx64_node *eb64)
 {
-	return eb64_entry(ebx_next_unique(&eb64->node), struct ebx64_node, node);
+	return ebx64_entry(ebx_next_unique(&eb64->node), struct ebx64_node, node);
 }
 
 /* Return previous node in the tree, skipping duplicates, or NULL if none */
-static inline struct ebx64_node *eb64_prev_unique(struct ebx64_node *eb64)
+static inline struct ebx64_node *ebx64_prev_unique(struct ebx64_node *eb64)
 {
-	return eb64_entry(ebx_prev_unique(&eb64->node), struct ebx64_node, node);
+	return ebx64_entry(ebx_prev_unique(&eb64->node), struct ebx64_node, node);
 }
 
 /* Delete node from the tree if it was linked in. Mark the node unused. Note
@@ -129,7 +129,7 @@ REGPRM2 struct ebx64_node *eb64i_insert(struct ebx_root *root, struct ebx64_node
  */
 
 /* Delete node from the tree if it was linked in. Mark the node unused. */
-static forceinline void __eb64_delete(struct ebx64_node *eb64)
+static forceinline void __ebx64_delete(struct ebx64_node *eb64)
 {
 	__ebx_delete(&eb64->node);
 }
@@ -138,7 +138,7 @@ static forceinline void __eb64_delete(struct ebx64_node *eb64)
  * Find the first occurence of a key in the tree <root>. If none can be
  * found, return NULL.
  */
-static forceinline struct ebx64_node *__eb64_lookup(struct ebx_root *root, u64 x)
+static forceinline struct ebx64_node *__ebx64_lookup(struct ebx_root *root, u64 x)
 {
 	struct ebx64_node *node;
 	ebx_troot_t *troot;
@@ -187,7 +187,7 @@ static forceinline struct ebx64_node *__eb64_lookup(struct ebx_root *root, u64 x
  * Find the first occurence of a signed key in the tree <root>. If none can
  * be found, return NULL.
  */
-static forceinline struct ebx64_node *__eb64i_lookup(struct ebx_root *root, s64 x)
+static forceinline struct ebx64_node *__ebx64i_lookup(struct ebx_root *root, s64 x)
 {
 	struct ebx64_node *node;
 	ebx_troot_t *troot;
@@ -238,7 +238,7 @@ static forceinline struct ebx64_node *__eb64i_lookup(struct ebx_root *root, s64 
  * If root->b[EB_RGHT]==1, the tree may only contain unique keys.
  */
 static forceinline struct ebx64_node *
-__eb64_insert(struct ebx_root *root, struct ebx64_node *new) {
+__ebx64_insert(struct ebx_root *root, struct ebx64_node *new) {
 	struct ebx64_node *old;
 	unsigned int side;
 	ebx_troot_t *troot;
@@ -414,7 +414,7 @@ __eb64_insert(struct ebx_root *root, struct ebx64_node *new) {
  * is returned. If root->b[EB_RGHT]==1, the tree may only contain unique keys.
  */
 static forceinline struct ebx64_node *
-__eb64i_insert(struct ebx_root *root, struct ebx64_node *new) {
+__ebx64i_insert(struct ebx_root *root, struct ebx64_node *new) {
 	struct ebx64_node *old;
 	unsigned int side;
 	ebx_troot_t *troot;
