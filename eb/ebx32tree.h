@@ -59,49 +59,49 @@ struct ebx32_node {
 /* Return leftmost node in the tree, or NULL if none */
 static inline struct ebx32_node *eb32_first(struct ebx_root *root)
 {
-	return eb32_entry(eb_first(root), struct ebx32_node, node);
+	return eb32_entry(ebx_first(root), struct ebx32_node, node);
 }
 
 /* Return rightmost node in the tree, or NULL if none */
 static inline struct ebx32_node *eb32_last(struct ebx_root *root)
 {
-	return eb32_entry(eb_last(root), struct ebx32_node, node);
+	return eb32_entry(ebx_last(root), struct ebx32_node, node);
 }
 
 /* Return next node in the tree, or NULL if none */
 static inline struct ebx32_node *eb32_next(struct ebx32_node *eb32)
 {
-	return eb32_entry(eb_next(&eb32->node), struct ebx32_node, node);
+	return eb32_entry(ebx_next(&eb32->node), struct ebx32_node, node);
 }
 
 /* Return previous node in the tree, or NULL if none */
 static inline struct ebx32_node *eb32_prev(struct ebx32_node *eb32)
 {
-	return eb32_entry(eb_prev(&eb32->node), struct ebx32_node, node);
+	return eb32_entry(ebx_prev(&eb32->node), struct ebx32_node, node);
 }
 
 /* Return next leaf node within a duplicate sub-tree, or NULL if none. */
 static inline struct ebx32_node *eb32_next_dup(struct ebx32_node *eb32)
 {
-	return eb32_entry(eb_next_dup(&eb32->node), struct ebx32_node, node);
+	return eb32_entry(ebx_next_dup(&eb32->node), struct ebx32_node, node);
 }
 
 /* Return previous leaf node within a duplicate sub-tree, or NULL if none. */
 static inline struct ebx32_node *eb32_prev_dup(struct ebx32_node *eb32)
 {
-	return eb32_entry(eb_prev_dup(&eb32->node), struct ebx32_node, node);
+	return eb32_entry(ebx_prev_dup(&eb32->node), struct ebx32_node, node);
 }
 
 /* Return next node in the tree, skipping duplicates, or NULL if none */
 static inline struct ebx32_node *eb32_next_unique(struct ebx32_node *eb32)
 {
-	return eb32_entry(eb_next_unique(&eb32->node), struct ebx32_node, node);
+	return eb32_entry(ebx_next_unique(&eb32->node), struct ebx32_node, node);
 }
 
 /* Return previous node in the tree, skipping duplicates, or NULL if none */
 static inline struct ebx32_node *eb32_prev_unique(struct ebx32_node *eb32)
 {
-	return eb32_entry(eb_prev_unique(&eb32->node), struct ebx32_node, node);
+	return eb32_entry(ebx_prev_unique(&eb32->node), struct ebx32_node, node);
 }
 
 /* Delete node from the tree if it was linked in. Mark the node unused. Note
@@ -131,7 +131,7 @@ REGPRM2 struct ebx32_node *eb32i_insert(struct ebx_root *root, struct ebx32_node
 /* Delete node from the tree if it was linked in. Mark the node unused. */
 static forceinline void __eb32_delete(struct ebx32_node *eb32)
 {
-	__eb_delete(&eb32->node);
+	__ebx_delete(&eb32->node);
 }
 
 /*
@@ -150,15 +150,15 @@ static forceinline struct ebx32_node *__eb32_lookup(struct ebx_root *root, u32 x
 		return NULL;
 
 	while (1) {
-		if ((eb_gettag(troot) == EB_LEAF)) {
-			node = container_of(eb_untag(troot, EB_LEAF),
+		if ((ebx_gettag(troot) == EB_LEAF)) {
+			node = container_of(ebx_untag(troot, EB_LEAF),
 					    struct ebx32_node, node.branches);
 			if (node->key == x)
 				return node;
 			else
 				return NULL;
 		}
-		node = container_of(eb_untag(troot, EB_NODE),
+		node = container_of(ebx_untag(troot, EB_NODE),
 				    struct ebx32_node, node.branches);
 		node_bit = node->node.bit;
 
@@ -170,9 +170,9 @@ static forceinline struct ebx32_node *__eb32_lookup(struct ebx_root *root, u32 x
 			 */
 			if (node_bit < 0) {
 				troot = ebx_getroot(&node->node.branches.b[EB_LEFT]);
-				while (eb_gettag(troot) != EB_LEAF)
-					troot = ebx_getroot(&(eb_untag(troot, EB_NODE))->b[EB_LEFT]);
-				node = container_of(eb_untag(troot, EB_LEAF),
+				while (ebx_gettag(troot) != EB_LEAF)
+					troot = ebx_getroot(&(ebx_untag(troot, EB_NODE))->b[EB_LEFT]);
+				node = container_of(ebx_untag(troot, EB_LEAF),
 						    struct ebx32_node, node.branches);
 			}
 			return node;
@@ -202,15 +202,15 @@ static forceinline struct ebx32_node *__eb32i_lookup(struct ebx_root *root, s32 
 		return NULL;
 
 	while (1) {
-		if ((eb_gettag(troot) == EB_LEAF)) {
-			node = container_of(eb_untag(troot, EB_LEAF),
+		if ((ebx_gettag(troot) == EB_LEAF)) {
+			node = container_of(ebx_untag(troot, EB_LEAF),
 					    struct ebx32_node, node.branches);
 			if (node->key == (u32)x)
 				return node;
 			else
 				return NULL;
 		}
-		node = container_of(eb_untag(troot, EB_NODE),
+		node = container_of(ebx_untag(troot, EB_NODE),
 				    struct ebx32_node, node.branches);
 		node_bit = node->node.bit;
 
@@ -222,9 +222,9 @@ static forceinline struct ebx32_node *__eb32i_lookup(struct ebx_root *root, s32 
 			 */
 			if (node_bit < 0) {
 				troot = ebx_getroot(&node->node.branches.b[EB_LEFT]);
-				while (eb_gettag(troot) != EB_LEAF)
-					troot = ebx_getroot(&(eb_untag(troot, EB_NODE))->b[EB_LEFT]);
-				node = container_of(eb_untag(troot, EB_LEAF),
+				while (ebx_gettag(troot) != EB_LEAF)
+					troot = ebx_getroot(&(ebx_untag(troot, EB_NODE))->b[EB_LEFT]);
+				node = container_of(ebx_untag(troot, EB_LEAF),
 						    struct ebx32_node, node.branches);
 			}
 			return node;
@@ -259,8 +259,8 @@ __eb32_insert(struct ebx_root *root, struct ebx32_node *new)
 	root_right = ebx_getroot(&root->b[EB_RGHT]);
 	if (unlikely(troot == NULL)) {
 		/* Tree is empty, insert the leaf part below the left branch */
-		ebx_setlink(&root->b[EB_LEFT], eb_dotag(&new->node.branches, EB_LEAF));
-		ebx_setlink(&new->node.leaf_p, eb_dotag(root, EB_LEFT));
+		ebx_setlink(&root->b[EB_LEFT], ebx_dotag(&new->node.branches, EB_LEAF));
+		ebx_setlink(&new->node.leaf_p, ebx_dotag(root, EB_LEFT));
 		new->node.node_p = 0; /* node part unused */
 		return new;
 	}
@@ -279,9 +279,9 @@ __eb32_insert(struct ebx_root *root, struct ebx32_node *new)
 	newkey = new->key;
 
 	while (1) {
-		if (eb_gettag(troot) == EB_LEAF) {
+		if (ebx_gettag(troot) == EB_LEAF) {
 			/* insert above a leaf */
-			old = container_of(eb_untag(troot, EB_LEAF),
+			old = container_of(ebx_untag(troot, EB_LEAF),
 					    struct ebx32_node, node.branches);
 			ebx_setlink(&new->node.node_p, ebx_getroot(&old->node.leaf_p));
 			up_ptr = &old->node.leaf_p;
@@ -289,7 +289,7 @@ __eb32_insert(struct ebx_root *root, struct ebx32_node *new)
 		}
 
 		/* OK we're walking down this link */
-		old = container_of(eb_untag(troot, EB_NODE),
+		old = container_of(ebx_untag(troot, EB_NODE),
 				    struct ebx32_node, node.branches);
 		old_node_bit = old->node.bit;
 
@@ -315,9 +315,9 @@ __eb32_insert(struct ebx_root *root, struct ebx32_node *new)
 		troot = ebx_getroot(&root->b[side]);
 	}
 
-	new_left = eb_dotag(&new->node.branches, EB_LEFT);
-	new_rght = eb_dotag(&new->node.branches, EB_RGHT);
-	new_leaf = eb_dotag(&new->node.branches, EB_LEAF);
+	new_left = ebx_dotag(&new->node.branches, EB_LEFT);
+	new_rght = ebx_dotag(&new->node.branches, EB_RGHT);
+	new_leaf = ebx_dotag(&new->node.branches, EB_LEAF);
 
 	/* We need the common higher bits between new->key and old->key.
 	 * What differences are there between new->key and the node here ?
@@ -332,14 +332,14 @@ __eb32_insert(struct ebx_root *root, struct ebx32_node *new)
 	if (new->key == old->key) {
 		new->node.bit = -1; /* mark as new dup tree, just in case */
 
-		if (likely(eb_gettag(root_right))) {
+		if (likely(ebx_gettag(root_right))) {
 			/* we refuse to duplicate this key if the tree is
 			 * tagged as containing only unique keys.
 			 */
 			return old;
 		}
 
-		if (eb_gettag(troot) != EB_LEAF) {
+		if (ebx_gettag(troot) != EB_LEAF) {
 			/* there was already a dup tree below */
 			struct ebx_node *ret;
 			ret = eb_insert_dup(&old->node, &new->node);
@@ -367,7 +367,7 @@ __eb32_insert(struct ebx_root *root, struct ebx32_node *new)
 	 * find the side by checking the side of new->node.node_p.
 	 */
 
-	ebx_setlink(&root->b[side], eb_dotag(&new->node.branches, EB_NODE));
+	ebx_setlink(&root->b[side], ebx_dotag(&new->node.branches, EB_NODE));
 	return new;
 }
 
@@ -393,8 +393,8 @@ __eb32i_insert(struct ebx_root *root, struct ebx32_node *new)
 	root_right = ebx_getroot(&root->b[EB_RGHT]);
 	if (unlikely(troot == NULL)) {
 		/* Tree is empty, insert the leaf part below the left branch */
-		ebx_setlink(&root->b[EB_LEFT], eb_dotag(&new->node.branches, EB_LEAF));
-		ebx_setlink(&new->node.leaf_p, eb_dotag(root, EB_LEFT));
+		ebx_setlink(&root->b[EB_LEFT], ebx_dotag(&new->node.branches, EB_LEAF));
+		ebx_setlink(&new->node.leaf_p, ebx_dotag(root, EB_LEFT));
 		new->node.node_p = 0; /* node part unused */
 		return new;
 	}
@@ -415,8 +415,8 @@ __eb32i_insert(struct ebx_root *root, struct ebx32_node *new)
 	newkey = new->key + 0x80000000;
 
 	while (1) {
-		if (eb_gettag(troot) == EB_LEAF) {
-			old = container_of(eb_untag(troot, EB_LEAF),
+		if (ebx_gettag(troot) == EB_LEAF) {
+			old = container_of(ebx_untag(troot, EB_LEAF),
 					    struct ebx32_node, node.branches);
 			ebx_setlink(&new->node.node_p, ebx_getroot(&old->node.leaf_p));
 			up_ptr = &old->node.leaf_p;
@@ -424,7 +424,7 @@ __eb32i_insert(struct ebx_root *root, struct ebx32_node *new)
 		}
 
 		/* OK we're walking down this link */
-		old = container_of(eb_untag(troot, EB_NODE),
+		old = container_of(ebx_untag(troot, EB_NODE),
 				    struct ebx32_node, node.branches);
 		old_node_bit = old->node.bit;
 
@@ -450,9 +450,9 @@ __eb32i_insert(struct ebx_root *root, struct ebx32_node *new)
 		troot = ebx_getroot(&root->b[side]);
 	}
 
-	new_left = eb_dotag(&new->node.branches, EB_LEFT);
-	new_rght = eb_dotag(&new->node.branches, EB_RGHT);
-	new_leaf = eb_dotag(&new->node.branches, EB_LEAF);
+	new_left = ebx_dotag(&new->node.branches, EB_LEFT);
+	new_rght = ebx_dotag(&new->node.branches, EB_RGHT);
+	new_leaf = ebx_dotag(&new->node.branches, EB_LEAF);
 
 	/* We need the common higher bits between new->key and old->key.
 	 * What differences are there between new->key and the node here ?
@@ -467,14 +467,14 @@ __eb32i_insert(struct ebx_root *root, struct ebx32_node *new)
 	if (new->key == old->key) {
 		new->node.bit = -1; /* mark as new dup tree, just in case */
 
-		if (likely(eb_gettag(root_right))) {
+		if (likely(ebx_gettag(root_right))) {
 			/* we refuse to duplicate this key if the tree is
 			 * tagged as containing only unique keys.
 			 */
 			return old;
 		}
 
-		if (eb_gettag(troot) != EB_LEAF) {
+		if (ebx_gettag(troot) != EB_LEAF) {
 			/* there was already a dup tree below */
 			struct ebx_node *ret;
 			ret = eb_insert_dup(&old->node, &new->node);
@@ -502,7 +502,7 @@ __eb32i_insert(struct ebx_root *root, struct ebx32_node *new)
 	 * find the side by checking the side of new->node.node_p.
 	 */
 
-	ebx_setlink(&root->b[side], eb_dotag(&new->node.branches, EB_NODE));
+	ebx_setlink(&root->b[side], ebx_dotag(&new->node.branches, EB_NODE));
 	return new;
 }
 

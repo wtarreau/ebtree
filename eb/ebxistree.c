@@ -32,17 +32,17 @@
  * It's the caller's reponsibility to use this function only on trees which
  * only contain zero-terminated strings. If none can be found, return NULL.
  */
-REGPRM2 struct ebpt_node *ebis_lookup(struct ebx_root *root, const char *x)
+REGPRM2 struct ebxpt_node *ebis_lookup(struct ebx_root *root, const char *x)
 {
 	return __ebis_lookup(root, x);
 }
 
-/* Insert ebpt_node <new> into subtree starting at node root <root>. Only
- * new->key needs be set with the zero-terminated string key. The ebpt_node is
+/* Insert ebxpt_node <new> into subtree starting at node root <root>. Only
+ * new->key needs be set with the zero-terminated string key. The ebxpt_node is
  * returned. If root->b[EB_RGHT]==1, the tree may only contain unique keys. The
  * caller is responsible for properly terminating the key with a zero.
  */
-REGPRM2 struct ebpt_node *ebis_insert(struct ebx_root *root, struct ebpt_node *new)
+REGPRM2 struct ebxpt_node *ebis_insert(struct ebx_root *root, struct ebxpt_node *new)
 {
 	return __ebis_insert(root, new);
 }

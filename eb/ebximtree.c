@@ -32,19 +32,19 @@
 /* Find the first occurence of a key of <len> bytes in the tree <root>.
  * If none can be found, return NULL.
  */
-REGPRM3 struct ebpt_node *
+REGPRM3 struct ebxpt_node *
 ebim_lookup(struct ebx_root *root, const void *x, unsigned int len)
 {
 	return __ebim_lookup(root, x, len);
 }
 
-/* Insert ebpt_node <new> into subtree starting at node root <root>.
- * Only new->key needs be set with the key. The ebpt_node is returned.
+/* Insert ebxpt_node <new> into subtree starting at node root <root>.
+ * Only new->key needs be set with the key. The ebxpt_node is returned.
  * If root->b[EB_RGHT]==1, the tree may only contain unique keys. The
  * len is specified in bytes.
  */
-REGPRM3 struct ebpt_node *
-ebim_insert(struct ebx_root *root, struct ebpt_node *new, unsigned int len)
+REGPRM3 struct ebxpt_node *
+ebim_insert(struct ebx_root *root, struct ebxpt_node *new, unsigned int len)
 {
 	return __ebim_insert(root, new, len);
 }

@@ -32,14 +32,14 @@
 #include "ebxpttree.h"
 
 /* These functions and macros rely on Pointer nodes and use the <key> entry as
- * a pointer to an indirect key. Most operations are performed using ebpt_*.
+ * a pointer to an indirect key. Most operations are performed using ebxpt_*.
  */
 
 /* The following functions are not inlined by default. They are declared
  * in ebimtree.c, which simply relies on their inline version.
  */
-REGPRM3 struct ebpt_node *ebim_lookup(struct ebx_root *root, const void *x, unsigned int len);
-REGPRM3 struct ebpt_node *ebim_insert(struct ebx_root *root, struct ebpt_node *new, unsigned int len);
+REGPRM3 struct ebxpt_node *ebim_lookup(struct ebx_root *root, const void *x, unsigned int len);
+REGPRM3 struct ebxpt_node *ebim_insert(struct ebx_root *root, struct ebxpt_node *new, unsigned int len);
 
 /* Find the first occurence of a key of a least <len> bytes matching <x> in the
  * tree <root>. The caller is responsible for ensuring that <len> will not exceed
@@ -48,10 +48,10 @@ REGPRM3 struct ebpt_node *ebim_insert(struct ebx_root *root, struct ebpt_node *n
  * lookup string keys by prefix if all keys in the tree are zero-terminated. If
  * no match is found, NULL is returned. Returns first node if <len> is zero.
  */
-static forceinline struct ebpt_node *
+static forceinline struct ebxpt_node *
 __ebim_lookup(struct ebx_root *root, const void *x, unsigned int len)
 {
-	struct ebpt_node *node;
+	struct ebxpt_node *node;
 	ebx_troot_t *troot;
 	int pos, side;
 	int node_bit;
@@ -65,16 +65,16 @@ __ebim_lookup(struct ebx_root *root, const void *x, unsigned int len)
 
 	pos = 0;
 	while (1) {
-		if (eb_gettag(troot) == EB_LEAF) {
-			node = container_of(eb_untag(troot, EB_LEAF),
-					    struct ebpt_node, node.branches);
+		if (ebx_gettag(troot) == EB_LEAF) {
+			node = container_of(ebx_untag(troot, EB_LEAF),
+					    struct ebxpt_node, node.branches);
 			if (memcmp((unsigned char *)node->key + pos, (unsigned char *)x, len) != 0)
 				goto ret_null;
 			else
 				goto ret_node;
 		}
-		node = container_of(eb_untag(troot, EB_NODE),
-				    struct ebpt_node, node.branches);
+		node = container_of(ebx_untag(troot, EB_NODE),
+				    struct ebxpt_node, node.branches);
 
 		node_bit = node->node.bit;
 		if (node_bit < 0) {
@@ -124,25 +124,25 @@ __ebim_lookup(struct ebx_root *root, const void *x, unsigned int len)
  walk_left:
 	troot = ebx_getroot(&node->node.branches.b[EB_LEFT]);
  walk_down:
-	while (eb_gettag(troot) != EB_LEAF)
-		troot = ebx_getroot(&(eb_untag(troot, EB_NODE))->b[EB_LEFT]);
-	node = container_of(eb_untag(troot, EB_LEAF),
-			    struct ebpt_node, node.branches);
+	while (ebx_gettag(troot) != EB_LEAF)
+		troot = ebx_getroot(&(ebx_untag(troot, EB_NODE))->b[EB_LEFT]);
+	node = container_of(ebx_untag(troot, EB_LEAF),
+			    struct ebxpt_node, node.branches);
  ret_node:
 	return node;
  ret_null:
 	return NULL;
 }
 
-/* Insert ebpt_node <new> into subtree starting at node root <root>.
- * Only new->key needs be set with the key. The ebpt_node is returned.
+/* Insert ebxpt_node <new> into subtree starting at node root <root>.
+ * Only new->key needs be set with the key. The ebxpt_node is returned.
  * If root->b[EB_RGHT]==1, the tree may only contain unique keys. The
  * len is specified in bytes.
  */
-static forceinline struct ebpt_node *
-__ebim_insert(struct ebx_root *root, struct ebpt_node *new, unsigned int len)
+static forceinline struct ebxpt_node *
+__ebim_insert(struct ebx_root *root, struct ebxpt_node *new, unsigned int len)
 {
-	struct ebpt_node *old;
+	struct ebxpt_node *old;
 	unsigned int side;
 	ebx_troot_t *troot;
 	ebx_troot_t *root_right;
@@ -155,8 +155,8 @@ __ebim_insert(struct ebx_root *root, struct ebpt_node *new, unsigned int len)
 	root_right = ebx_getroot(&root->b[EB_RGHT]);
 	if (unlikely(troot == NULL)) {
 		/* Tree is empty, insert the leaf part below the left branch */
-		ebx_setlink(&root->b[EB_LEFT], eb_dotag(&new->node.branches, EB_LEAF));
-		ebx_setlink(&new->node.leaf_p, eb_dotag(root, EB_LEFT));
+		ebx_setlink(&root->b[EB_LEFT], ebx_dotag(&new->node.branches, EB_LEAF));
+		ebx_setlink(&new->node.leaf_p, ebx_dotag(root, EB_LEFT));
 		new->node.node_p = 0; /* node part unused */
 		return new;
 	}
@@ -177,17 +177,17 @@ __ebim_insert(struct ebx_root *root, struct ebpt_node *new, unsigned int len)
 
 	bit = 0;
 	while (1) {
-		if (unlikely(eb_gettag(troot) == EB_LEAF)) {
+		if (unlikely(ebx_gettag(troot) == EB_LEAF)) {
 			ebx_troot_t *new_left, *new_rght;
 			ebx_troot_t *new_leaf, *old_leaf;
 
-			old = container_of(eb_untag(troot, EB_LEAF),
-					    struct ebpt_node, node.branches);
+			old = container_of(ebx_untag(troot, EB_LEAF),
+					    struct ebxpt_node, node.branches);
 
-			new_left = eb_dotag(&new->node.branches, EB_LEFT);
-			new_rght = eb_dotag(&new->node.branches, EB_RGHT);
-			new_leaf = eb_dotag(&new->node.branches, EB_LEAF);
-			old_leaf = eb_dotag(&old->node.branches, EB_LEAF);
+			new_left = ebx_dotag(&new->node.branches, EB_LEFT);
+			new_rght = ebx_dotag(&new->node.branches, EB_RGHT);
+			new_leaf = ebx_dotag(&new->node.branches, EB_LEAF);
+			old_leaf = ebx_dotag(&old->node.branches, EB_LEAF);
 
 			ebx_setlink(&new->node.node_p, ebx_getroot(&old->node.leaf_p));
 
@@ -225,7 +225,7 @@ __ebim_insert(struct ebx_root *root, struct ebpt_node *new, unsigned int len)
 				/* we may refuse to duplicate this key if the tree is
 				 * tagged as containing only unique keys.
 				 */
-				if (diff == 0 && eb_gettag(root_right))
+				if (diff == 0 && ebx_gettag(root_right))
 					return old;
 
 				/* new->key >= old->key, new goes the right */
@@ -236,7 +236,7 @@ __ebim_insert(struct ebx_root *root, struct ebpt_node *new, unsigned int len)
 
 				if (diff == 0) {
 					new->node.bit = -1;
-					ebx_setlink(&root->b[side], eb_dotag(&new->node.branches, EB_NODE));
+					ebx_setlink(&root->b[side], ebx_dotag(&new->node.branches, EB_NODE));
 					return new;
 				}
 			}
@@ -244,8 +244,8 @@ __ebim_insert(struct ebx_root *root, struct ebpt_node *new, unsigned int len)
 		}
 
 		/* OK we're walking down this link */
-		old = container_of(eb_untag(troot, EB_NODE),
-				   struct ebpt_node, node.branches);
+		old = container_of(ebx_untag(troot, EB_NODE),
+				   struct ebxpt_node, node.branches);
 		old_node_bit = old->node.bit;
 
 		/* Stop going down when we don't have common bits anymore. We
@@ -272,10 +272,10 @@ __ebim_insert(struct ebx_root *root, struct ebpt_node *new, unsigned int len)
 			ebx_troot_t *new_leaf, *old_node;
 
 		dup_tree:
-			new_left = eb_dotag(&new->node.branches, EB_LEFT);
-			new_rght = eb_dotag(&new->node.branches, EB_RGHT);
-			new_leaf = eb_dotag(&new->node.branches, EB_LEAF);
-			old_node = eb_dotag(&old->node.branches, EB_NODE);
+			new_left = ebx_dotag(&new->node.branches, EB_LEFT);
+			new_rght = ebx_dotag(&new->node.branches, EB_RGHT);
+			new_leaf = ebx_dotag(&new->node.branches, EB_LEAF);
+			old_node = ebx_dotag(&old->node.branches, EB_NODE);
 
 			ebx_setlink(&new->node.node_p, ebx_getroot(&old->node.node_p));
 
@@ -302,7 +302,7 @@ __ebim_insert(struct ebx_root *root, struct ebpt_node *new, unsigned int len)
 			else {
 				struct ebx_node *ret;
 				ret = eb_insert_dup(&old->node, &new->node);
-				return container_of(ret, struct ebpt_node, node);
+				return container_of(ret, struct ebxpt_node, node);
 			}
 			break;
 		}
@@ -323,7 +323,7 @@ __ebim_insert(struct ebx_root *root, struct ebpt_node *new, unsigned int len)
 	 * This number of bits is already in <bit>.
 	 */
 	new->node.bit = bit;
-	ebx_setlink(&root->b[side], eb_dotag(&new->node.branches, EB_NODE));
+	ebx_setlink(&root->b[side], ebx_dotag(&new->node.branches, EB_NODE));
 	return new;
 }
 

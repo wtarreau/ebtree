@@ -51,7 +51,7 @@ typedef PTR_INT_TYPE ptr_t;
  * is, the end user is not meant to manipulate internals, so this is pointless.
  * Internally, it is automatically cast as an ebx32_node or ebx64_node.
  */
-struct ebpt_node {
+struct ebxpt_node {
 	struct ebx_node node; /* the tree node, must be at the beginning */
 	void *key;
 };
@@ -63,57 +63,57 @@ struct ebpt_node {
  */
 
 /* Return leftmost node in the tree, or NULL if none */
-static forceinline struct ebpt_node *ebpt_first(struct ebx_root *root)
+static forceinline struct ebxpt_node *ebpt_first(struct ebx_root *root)
 {
-	return ebpt_entry(eb_first(root), struct ebpt_node, node);
+	return ebpt_entry(ebx_first(root), struct ebxpt_node, node);
 }
 
 /* Return rightmost node in the tree, or NULL if none */
-static forceinline struct ebpt_node *ebpt_last(struct ebx_root *root)
+static forceinline struct ebxpt_node *ebpt_last(struct ebx_root *root)
 {
-	return ebpt_entry(eb_last(root), struct ebpt_node, node);
+	return ebpt_entry(ebx_last(root), struct ebxpt_node, node);
 }
 
 /* Return next node in the tree, or NULL if none */
-static forceinline struct ebpt_node *ebpt_next(struct ebpt_node *ebpt)
+static forceinline struct ebxpt_node *ebpt_next(struct ebxpt_node *ebpt)
 {
-	return ebpt_entry(eb_next(&ebpt->node), struct ebpt_node, node);
+	return ebpt_entry(ebx_next(&ebpt->node), struct ebxpt_node, node);
 }
 
 /* Return previous node in the tree, or NULL if none */
-static forceinline struct ebpt_node *ebpt_prev(struct ebpt_node *ebpt)
+static forceinline struct ebxpt_node *ebpt_prev(struct ebxpt_node *ebpt)
 {
-	return ebpt_entry(eb_prev(&ebpt->node), struct ebpt_node, node);
+	return ebpt_entry(ebx_prev(&ebpt->node), struct ebxpt_node, node);
 }
 
 /* Return next leaf node within a duplicate sub-tree, or NULL if none. */
-static inline struct ebpt_node *ebpt_next_dup(struct ebpt_node *ebpt)
+static inline struct ebxpt_node *ebpt_next_dup(struct ebxpt_node *ebpt)
 {
-	return ebpt_entry(eb_next_dup(&ebpt->node), struct ebpt_node, node);
+	return ebpt_entry(ebx_next_dup(&ebpt->node), struct ebxpt_node, node);
 }
 
 /* Return previous leaf node within a duplicate sub-tree, or NULL if none. */
-static inline struct ebpt_node *ebpt_prev_dup(struct ebpt_node *ebpt)
+static inline struct ebxpt_node *ebpt_prev_dup(struct ebxpt_node *ebpt)
 {
-	return ebpt_entry(eb_prev_dup(&ebpt->node), struct ebpt_node, node);
+	return ebpt_entry(ebx_prev_dup(&ebpt->node), struct ebxpt_node, node);
 }
 
 /* Return next node in the tree, skipping duplicates, or NULL if none */
-static forceinline struct ebpt_node *ebpt_next_unique(struct ebpt_node *ebpt)
+static forceinline struct ebxpt_node *ebpt_next_unique(struct ebxpt_node *ebpt)
 {
-	return ebpt_entry(eb_next_unique(&ebpt->node), struct ebpt_node, node);
+	return ebpt_entry(ebx_next_unique(&ebpt->node), struct ebxpt_node, node);
 }
 
 /* Return previous node in the tree, skipping duplicates, or NULL if none */
-static forceinline struct ebpt_node *ebpt_prev_unique(struct ebpt_node *ebpt)
+static forceinline struct ebxpt_node *ebpt_prev_unique(struct ebxpt_node *ebpt)
 {
-	return ebpt_entry(eb_prev_unique(&ebpt->node), struct ebpt_node, node);
+	return ebpt_entry(ebx_prev_unique(&ebpt->node), struct ebxpt_node, node);
 }
 
 /* Delete node from the tree if it was linked in. Mark the node unused. Note
  * that this function relies on a non-inlined generic function: eb_delete.
  */
-static forceinline void ebpt_delete(struct ebpt_node *ebpt)
+static forceinline void ebpt_delete(struct ebxpt_node *ebpt)
 {
 	eb_delete(&ebpt->node);
 }
@@ -121,36 +121,36 @@ static forceinline void ebpt_delete(struct ebpt_node *ebpt)
 /*
  * The following functions are inlined but derived from the integer versions.
  */
-static forceinline struct ebpt_node *ebpt_lookup(struct ebx_root *root, void *x)
+static forceinline struct ebxpt_node *ebpt_lookup(struct ebx_root *root, void *x)
 {
 	if (sizeof(void *) == 4)
-		return (struct ebpt_node *)eb32_lookup(root, (u32)(PTR_INT_TYPE)x);
+		return (struct ebxpt_node *)eb32_lookup(root, (u32)(PTR_INT_TYPE)x);
 	else
-		return (struct ebpt_node *)eb64_lookup(root, (u64)(PTR_INT_TYPE)x);
+		return (struct ebxpt_node *)eb64_lookup(root, (u64)(PTR_INT_TYPE)x);
 }
 
-static forceinline struct ebpt_node *ebpt_lookup_le(struct ebx_root *root, void *x)
+static forceinline struct ebxpt_node *ebpt_lookup_le(struct ebx_root *root, void *x)
 {
 	if (sizeof(void *) == 4)
-		return (struct ebpt_node *)eb32_lookup_le(root, (u32)(PTR_INT_TYPE)x);
+		return (struct ebxpt_node *)eb32_lookup_le(root, (u32)(PTR_INT_TYPE)x);
 	else
-		return (struct ebpt_node *)eb64_lookup_le(root, (u64)(PTR_INT_TYPE)x);
+		return (struct ebxpt_node *)eb64_lookup_le(root, (u64)(PTR_INT_TYPE)x);
 }
 
-static forceinline struct ebpt_node *ebpt_lookup_ge(struct ebx_root *root, void *x)
+static forceinline struct ebxpt_node *ebpt_lookup_ge(struct ebx_root *root, void *x)
 {
 	if (sizeof(void *) == 4)
-		return (struct ebpt_node *)eb32_lookup_ge(root, (u32)(PTR_INT_TYPE)x);
+		return (struct ebxpt_node *)eb32_lookup_ge(root, (u32)(PTR_INT_TYPE)x);
 	else
-		return (struct ebpt_node *)eb64_lookup_ge(root, (u64)(PTR_INT_TYPE)x);
+		return (struct ebxpt_node *)eb64_lookup_ge(root, (u64)(PTR_INT_TYPE)x);
 }
 
-static forceinline struct ebpt_node *ebpt_insert(struct ebx_root *root, struct ebpt_node *new)
+static forceinline struct ebxpt_node *ebpt_insert(struct ebx_root *root, struct ebxpt_node *new)
 {
 	if (sizeof(void *) == 4)
-		return (struct ebpt_node *)eb32_insert(root, (struct ebx32_node *)new);
+		return (struct ebxpt_node *)eb32_insert(root, (struct ebx32_node *)new);
 	else
-		return (struct ebpt_node *)eb64_insert(root, (struct ebx64_node *)new);
+		return (struct ebxpt_node *)eb64_insert(root, (struct ebx64_node *)new);
 }
 
 /*
@@ -159,25 +159,25 @@ static forceinline struct ebpt_node *ebpt_insert(struct ebx_root *root, struct e
  */
 
 /* Delete node from the tree if it was linked in. Mark the node unused. */
-static forceinline void __ebpt_delete(struct ebpt_node *ebpt)
+static forceinline void __ebpt_delete(struct ebxpt_node *ebpt)
 {
-	__eb_delete(&ebpt->node);
+	__ebx_delete(&ebpt->node);
 }
 
-static forceinline struct ebpt_node *__ebpt_lookup(struct ebx_root *root, void *x)
+static forceinline struct ebxpt_node *__ebpt_lookup(struct ebx_root *root, void *x)
 {
 	if (sizeof(void *) == 4)
-		return (struct ebpt_node *)__eb32_lookup(root, (u32)(PTR_INT_TYPE)x);
+		return (struct ebxpt_node *)__eb32_lookup(root, (u32)(PTR_INT_TYPE)x);
 	else
-		return (struct ebpt_node *)__eb64_lookup(root, (u64)(PTR_INT_TYPE)x);
+		return (struct ebxpt_node *)__eb64_lookup(root, (u64)(PTR_INT_TYPE)x);
 }
 
-static forceinline struct ebpt_node *__ebpt_insert(struct ebx_root *root, struct ebpt_node *new)
+static forceinline struct ebxpt_node *__ebpt_insert(struct ebx_root *root, struct ebxpt_node *new)
 {
 	if (sizeof(void *) == 4)
-		return (struct ebpt_node *)__eb32_insert(root, (struct ebx32_node *)new);
+		return (struct ebxpt_node *)__eb32_insert(root, (struct ebx32_node *)new);
 	else
-		return (struct ebpt_node *)__eb64_insert(root, (struct ebx64_node *)new);
+		return (struct ebxpt_node *)__eb64_insert(root, (struct ebx64_node *)new);
 }
 
 #endif /* _EBXPT_TREE_H */

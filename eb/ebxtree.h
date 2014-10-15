@@ -142,7 +142,7 @@
    known 32 bit platforms align their integers and pointers to 32 bits, leaving
    the two lower bits unused. So, we say that the pointers are "tagged". And
    since they designate pointers to root parts, we simply call them
-   "tagged root pointers", or "eb_troot" in the code.
+   "tagged root pointers", or "ebx_troot_t" in the code.
 
    Duplicate keys are stored in a special manner. When inserting a key, if
    the same one is found, then an incremental binary tree is built at this
@@ -234,13 +234,13 @@
        Otherwise, we insert above the node with the highest value which was not
        equal to the one of its parent + 1.
 
-     - the "eb_next" primitive walks from left to right, which means from lower
+     - the "ebx_next" primitive walks from left to right, which means from lower
        to higher keys. It returns duplicates in the order they were inserted.
-       The "eb_first" primitive returns the left-most entry.
+       The "ebx_first" primitive returns the left-most entry.
 
-     - the "eb_prev" primitive walks from right to left, which means from
+     - the "ebx_prev" primitive walks from right to left, which means from
        higher to lower keys. It returns duplicates in the opposite order they
-       were inserted. The "eb_last" primitive returns the right-most entry.
+       were inserted. The "ebx_last" primitive returns the right-most entry.
 
      - a tree which has 1 in the lower bit of its root's right branch is a
        tree with unique nodes. This means that when a node is inserted with
@@ -358,7 +358,7 @@ static inline int fls64(unsigned long long x)
 #define EB_UNIQUE   1
 
 /* This is the same as an ebx_node pointer, except that the lower bit embeds
- * a tag. See eb_dotag()/eb_untag()/eb_gettag(). This tag has two meanings :
+ * a tag. See ebx_dotag()/ebx_untag()/ebx_gettag(). This tag has two meanings :
  *  - 0=left, 1=right to designate the parent's branch for leaf_p/node_p
  *  - 0=link, 1=leaf  to designate the branch's type for branch[]
  */
@@ -415,7 +415,7 @@ struct ebx_node {
  * ready to be stored in ->branch[], leaf_p or node_p. NULL is not
  * conserved. To be used with EB_LEAF, EB_NODE, EB_LEFT or EB_RGHT in <tag>.
  */
-static inline ebx_troot_t *eb_dotag(const struct ebx_root *root, const int tag)
+static inline ebx_troot_t *ebx_dotag(const struct ebx_root *root, const int tag)
 {
 	return (ebx_troot_t *)((char *)root + tag);
 }
@@ -425,13 +425,13 @@ static inline ebx_troot_t *eb_dotag(const struct ebx_root *root, const int tag)
  * as long as the tree is not corrupted. To be used with EB_LEAF, EB_NODE,
  * EB_LEFT or EB_RGHT in <tag>.
  */
-static inline struct ebx_root *eb_untag(const ebx_troot_t *troot, const int tag)
+static inline struct ebx_root *ebx_untag(const ebx_troot_t *troot, const int tag)
 {
 	return (struct ebx_root *)((char *)troot - tag);
 }
 
 /* returns the tag associated with an ebx_troot_t pointer */
-static inline int eb_gettag(ebx_troot_t *troot)
+static inline int ebx_gettag(ebx_troot_t *troot)
 {
 	return (unsigned long)troot & 1;
 }
@@ -439,7 +439,7 @@ static inline int eb_gettag(ebx_troot_t *troot)
 /* Converts a root pointer to its equivalent ebx_troot_t pointer and clears the
  * tag, no matter what its value was.
  */
-static inline struct ebx_root *eb_clrtag(const ebx_troot_t *troot)
+static inline struct ebx_root *ebx_clrtag(const ebx_troot_t *troot)
 {
 	return (struct ebx_root *)((unsigned long)troot & ~1UL);
 }
@@ -461,13 +461,13 @@ static inline struct ebx_node *ebx_root_to_node(struct ebx_root *root)
  * or NULL if no leaf is found. <start> may either be NULL or a branch pointer.
  * The pointer to the leaf (or NULL) is returned.
  */
-static inline struct ebx_node *eb_walk_down(ebx_troot_t *start, unsigned int side)
+static inline struct ebx_node *ebx_walk_down(ebx_troot_t *start, unsigned int side)
 {
 	/* A NULL pointer on an empty tree root will be returned as-is */
-	while (eb_gettag(start) == EB_NODE)
-		start = ebx_getroot(&(eb_untag(start, EB_NODE))->b[side]);
+	while (ebx_gettag(start) == EB_NODE)
+		start = ebx_getroot(&(ebx_untag(start, EB_NODE))->b[side]);
 	/* NULL is left untouched (root==ebx_node, EB_LEAF==0) */
-	return ebx_root_to_node(eb_untag(start, EB_LEAF));
+	return ebx_root_to_node(ebx_untag(start, EB_LEAF));
 }
 
 /* This function is used to build a tree of duplicates by adding a new node to
@@ -475,18 +475,18 @@ static inline struct ebx_node *eb_walk_down(ebx_troot_t *start, unsigned int sid
  * and it is not for end-user.
  */
 static forceinline struct ebx_node *
-__eb_insert_dup(struct ebx_node *sub, struct ebx_node *new)
+__ebx_insert_dup(struct ebx_node *sub, struct ebx_node *new)
 {
 	struct ebx_node *head = sub;
 	
-	ebx_troot_t *new_left = eb_dotag(&new->branches, EB_LEFT);
-	ebx_troot_t *new_rght = eb_dotag(&new->branches, EB_RGHT);
-	ebx_troot_t *new_leaf = eb_dotag(&new->branches, EB_LEAF);
+	ebx_troot_t *new_left = ebx_dotag(&new->branches, EB_LEFT);
+	ebx_troot_t *new_rght = ebx_dotag(&new->branches, EB_RGHT);
+	ebx_troot_t *new_leaf = ebx_dotag(&new->branches, EB_LEAF);
 
 	/* first, identify the deepest hole on the right branch */
-	while (eb_gettag(ebx_getroot(&head->branches.b[EB_RGHT])) != EB_LEAF) {
+	while (ebx_gettag(ebx_getroot(&head->branches.b[EB_RGHT])) != EB_LEAF) {
 		struct ebx_node *last = head;
-		head = container_of(eb_untag(ebx_getroot(&head->branches.b[EB_RGHT]), EB_NODE),
+		head = container_of(ebx_untag(ebx_getroot(&head->branches.b[EB_RGHT]), EB_NODE),
 				    struct ebx_node, branches);
 		if (head->bit > last->bit + 1)
 			sub = head;     /* there's a hole here */
@@ -496,14 +496,14 @@ __eb_insert_dup(struct ebx_node *sub, struct ebx_node *new)
 	if (head->bit < -1) {
 		/* A hole exists just before the leaf, we insert there */
 		new->bit = -1;
-		sub = container_of(eb_untag(ebx_getroot(&head->branches.b[EB_RGHT]), EB_LEAF),
+		sub = container_of(ebx_untag(ebx_getroot(&head->branches.b[EB_RGHT]), EB_LEAF),
 				   struct ebx_node, branches);
-		ebx_setlink(&head->branches.b[EB_RGHT], eb_dotag(&new->branches, EB_NODE));
+		ebx_setlink(&head->branches.b[EB_RGHT], ebx_dotag(&new->branches, EB_NODE));
 
 		ebx_setlink(&new->node_p, ebx_getroot(&sub->leaf_p));
 		ebx_setlink(&new->leaf_p, new_rght);
 		ebx_setlink(&sub->leaf_p, new_left);
-		ebx_setlink(&new->branches.b[EB_LEFT], eb_dotag(&sub->branches, EB_LEAF));
+		ebx_setlink(&new->branches.b[EB_LEFT], ebx_dotag(&sub->branches, EB_LEAF));
 		ebx_setlink(&new->branches.b[EB_RGHT], new_leaf);
 		return new;
 	} else {
@@ -514,14 +514,14 @@ __eb_insert_dup(struct ebx_node *sub, struct ebx_node *new)
 		 * is inside the dup tree, not at the head.
 		 */
 		new->bit = sub->bit - 1; /* install at the lowest level */
-		side = eb_gettag(ebx_getroot(&sub->node_p));
-		head = container_of(eb_untag(ebx_getroot(&sub->node_p), side), struct ebx_node, branches);
-		ebx_setlink(&head->branches.b[side], eb_dotag(&new->branches, EB_NODE));
+		side = ebx_gettag(ebx_getroot(&sub->node_p));
+		head = container_of(ebx_untag(ebx_getroot(&sub->node_p), side), struct ebx_node, branches);
+		ebx_setlink(&head->branches.b[side], ebx_dotag(&new->branches, EB_NODE));
 					
 		ebx_setlink(&new->node_p, ebx_getroot(&sub->node_p));
 		ebx_setlink(&new->leaf_p, new_rght);
 		ebx_setlink(&sub->node_p, new_left);
-		ebx_setlink(&new->branches.b[EB_LEFT], eb_dotag(&sub->branches, EB_NODE));
+		ebx_setlink(&new->branches.b[EB_LEFT], ebx_dotag(&sub->branches, EB_NODE));
 		ebx_setlink(&new->branches.b[EB_RGHT], new_leaf);
 		return new;
 	}
@@ -533,117 +533,117 @@ __eb_insert_dup(struct ebx_node *sub, struct ebx_node *new)
 \**************************************/
 
 /* Return non-zero if the tree is empty, otherwise zero */
-static inline int eb_is_empty(struct ebx_root *root)
+static inline int ebx_is_empty(struct ebx_root *root)
 {
 	return !root->b[EB_LEFT];
 }
 
 /* Return non-zero if the node is a duplicate, otherwise zero */
-static inline int eb_is_dup(struct ebx_node *node)
+static inline int ebx_is_dup(struct ebx_node *node)
 {
 	return node->bit < 0;
 }
 
 /* Return the first leaf in the tree starting at <root>, or NULL if none */
-static inline struct ebx_node *eb_first(struct ebx_root *root)
+static inline struct ebx_node *ebx_first(struct ebx_root *root)
 {
-	return eb_walk_down(ebx_getroot(&root->b[0]), EB_LEFT);
+	return ebx_walk_down(ebx_getroot(&root->b[0]), EB_LEFT);
 }
 
 /* Return the last leaf in the tree starting at <root>, or NULL if none */
-static inline struct ebx_node *eb_last(struct ebx_root *root)
+static inline struct ebx_node *ebx_last(struct ebx_root *root)
 {
-	return eb_walk_down(ebx_getroot(&root->b[0]), EB_RGHT);
+	return ebx_walk_down(ebx_getroot(&root->b[0]), EB_RGHT);
 }
 
 /* Return previous leaf node before an existing leaf node, or NULL if none. */
-static inline struct ebx_node *eb_prev(struct ebx_node *node)
+static inline struct ebx_node *ebx_prev(struct ebx_node *node)
 {
 	ebx_troot_t *t = ebx_getroot(&node->leaf_p);
 
-	while (eb_gettag(t) == EB_LEFT) {
+	while (ebx_gettag(t) == EB_LEFT) {
 		/* Walking up from left branch. We must ensure that we never
 		 * walk beyond root.
 		 */
-		if (unlikely(eb_clrtag(ebx_getroot(&(eb_untag(t, EB_LEFT))->b[EB_RGHT])) == NULL))
+		if (unlikely(ebx_clrtag(ebx_getroot(&(ebx_untag(t, EB_LEFT))->b[EB_RGHT])) == NULL))
 			return NULL;
-		t = ebx_getroot(&(ebx_root_to_node(eb_untag(t, EB_LEFT)))->node_p);
+		t = ebx_getroot(&(ebx_root_to_node(ebx_untag(t, EB_LEFT)))->node_p);
 	}
 	/* Note that <t> cannot be NULL at this stage */
-	t = ebx_getroot(&(eb_untag(t, EB_RGHT))->b[EB_LEFT]);
-	return eb_walk_down(t, EB_RGHT);
+	t = ebx_getroot(&(ebx_untag(t, EB_RGHT))->b[EB_LEFT]);
+	return ebx_walk_down(t, EB_RGHT);
 }
 
 /* Return next leaf node after an existing leaf node, or NULL if none. */
-static inline struct ebx_node *eb_next(struct ebx_node *node)
+static inline struct ebx_node *ebx_next(struct ebx_node *node)
 {
 	ebx_troot_t *t = ebx_getroot(&node->leaf_p);
 
-	while (eb_gettag(t) != EB_LEFT)
+	while (ebx_gettag(t) != EB_LEFT)
 		/* Walking up from right branch, so we cannot be below root */
-		t = ebx_getroot(&(ebx_root_to_node(eb_untag(t, EB_RGHT)))->node_p);
+		t = ebx_getroot(&(ebx_root_to_node(ebx_untag(t, EB_RGHT)))->node_p);
 
 	/* Note that <t> cannot be NULL at this stage */
-	t = ebx_getroot(&(eb_untag(t, EB_LEFT))->b[EB_RGHT]);
-	if (eb_clrtag(t) == NULL)
+	t = ebx_getroot(&(ebx_untag(t, EB_LEFT))->b[EB_RGHT]);
+	if (ebx_clrtag(t) == NULL)
 		return NULL;
-	return eb_walk_down(t, EB_LEFT);
+	return ebx_walk_down(t, EB_LEFT);
 }
 
 /* Return previous leaf node within a duplicate sub-tree, or NULL if none. */
-static inline struct ebx_node *eb_prev_dup(struct ebx_node *node)
+static inline struct ebx_node *ebx_prev_dup(struct ebx_node *node)
 {
 	ebx_troot_t *t = ebx_getroot(&node->leaf_p);
 
-	while (eb_gettag(t) == EB_LEFT) {
+	while (ebx_gettag(t) == EB_LEFT) {
 		/* Walking up from left branch. We must ensure that we never
 		 * walk beyond root.
 		 */
-		if (unlikely(eb_clrtag(ebx_getroot(&(eb_untag(t, EB_LEFT))->b[EB_RGHT])) == NULL))
+		if (unlikely(ebx_clrtag(ebx_getroot(&(ebx_untag(t, EB_LEFT))->b[EB_RGHT])) == NULL))
 			return NULL;
 		/* if the current node leaves a dup tree, quit */
-		if ((ebx_root_to_node(eb_untag(t, EB_LEFT)))->bit >= 0)
+		if ((ebx_root_to_node(ebx_untag(t, EB_LEFT)))->bit >= 0)
 			return NULL;
-		t = ebx_getroot(&(ebx_root_to_node(eb_untag(t, EB_LEFT)))->node_p);
+		t = ebx_getroot(&(ebx_root_to_node(ebx_untag(t, EB_LEFT)))->node_p);
 	}
 	/* Note that <t> cannot be NULL at this stage */
-	if ((ebx_root_to_node(eb_untag(t, EB_RGHT)))->bit >= 0)
+	if ((ebx_root_to_node(ebx_untag(t, EB_RGHT)))->bit >= 0)
 		return NULL;
-	t = ebx_getroot(&(eb_untag(t, EB_RGHT))->b[EB_LEFT]);
-	return eb_walk_down(t, EB_RGHT);
+	t = ebx_getroot(&(ebx_untag(t, EB_RGHT))->b[EB_LEFT]);
+	return ebx_walk_down(t, EB_RGHT);
 }
 
 /* Return next leaf node within a duplicate sub-tree, or NULL if none. */
-static inline struct ebx_node *eb_next_dup(struct ebx_node *node)
+static inline struct ebx_node *ebx_next_dup(struct ebx_node *node)
 {
 	ebx_troot_t *t = ebx_getroot(&node->leaf_p);
 
-	while (eb_gettag(t) != EB_LEFT) {
+	while (ebx_gettag(t) != EB_LEFT) {
 		/* Walking up from right branch, so we cannot be below root */
 		/* if the current node leaves a dup tree, quit */
-		if ((ebx_root_to_node(eb_untag(t, EB_RGHT)))->bit >= 0)
+		if ((ebx_root_to_node(ebx_untag(t, EB_RGHT)))->bit >= 0)
 			return NULL;
-		t = ebx_getroot(&(ebx_root_to_node(eb_untag(t, EB_RGHT)))->node_p);
+		t = ebx_getroot(&(ebx_root_to_node(ebx_untag(t, EB_RGHT)))->node_p);
 	}
 
 	/* Note that <t> cannot be NULL at this stage */
-	if ((ebx_root_to_node(eb_untag(t, EB_LEFT)))->bit >= 0)
+	if ((ebx_root_to_node(ebx_untag(t, EB_LEFT)))->bit >= 0)
 		return NULL;
-	t = ebx_getroot(&(eb_untag(t, EB_LEFT))->b[EB_RGHT]);
-	if (eb_clrtag(t) == NULL)
+	t = ebx_getroot(&(ebx_untag(t, EB_LEFT))->b[EB_RGHT]);
+	if (ebx_clrtag(t) == NULL)
 		return NULL;
-	return eb_walk_down(t, EB_LEFT);
+	return ebx_walk_down(t, EB_LEFT);
 }
 
 /* Return previous leaf node before an existing leaf node, skipping duplicates,
  * or NULL if none. */
-static inline struct ebx_node *eb_prev_unique(struct ebx_node *node)
+static inline struct ebx_node *ebx_prev_unique(struct ebx_node *node)
 {
 	ebx_troot_t *t = ebx_getroot(&node->leaf_p);
 
 	while (1) {
-		if (eb_gettag(t) != EB_LEFT) {
-			node = ebx_root_to_node(eb_untag(t, EB_RGHT));
+		if (ebx_gettag(t) != EB_LEFT) {
+			node = ebx_root_to_node(ebx_untag(t, EB_RGHT));
 			/* if we're right and not in duplicates, stop here */
 			if (node->bit >= 0)
 				break;
@@ -653,28 +653,28 @@ static inline struct ebx_node *eb_prev_unique(struct ebx_node *node)
 			/* Walking up from left branch. We must ensure that we never
 			 * walk beyond root.
 			 */
-			if (unlikely(eb_clrtag(ebx_getroot(&(eb_untag(t, EB_LEFT))->b[EB_RGHT])) == NULL))
+			if (unlikely(ebx_clrtag(ebx_getroot(&(ebx_untag(t, EB_LEFT))->b[EB_RGHT])) == NULL))
 				return NULL;
-			t = ebx_getroot(&(ebx_root_to_node(eb_untag(t, EB_LEFT)))->node_p);
+			t = ebx_getroot(&(ebx_root_to_node(ebx_untag(t, EB_LEFT)))->node_p);
 		}
 	}
 	/* Note that <t> cannot be NULL at this stage */
-	t = ebx_getroot(&(eb_untag(t, EB_RGHT))->b[EB_LEFT]);
-	return eb_walk_down(t, EB_RGHT);
+	t = ebx_getroot(&(ebx_untag(t, EB_RGHT))->b[EB_LEFT]);
+	return ebx_walk_down(t, EB_RGHT);
 }
 
 /* Return next leaf node after an existing leaf node, skipping duplicates, or
  * NULL if none.
  */
-static inline struct ebx_node *eb_next_unique(struct ebx_node *node)
+static inline struct ebx_node *ebx_next_unique(struct ebx_node *node)
 {
 	ebx_troot_t *t = ebx_getroot(&node->leaf_p);
 
 	while (1) {
-		if (eb_gettag(t) == EB_LEFT) {
-			if (unlikely(eb_clrtag(ebx_getroot(&(eb_untag(t, EB_LEFT))->b[EB_RGHT])) == NULL))
+		if (ebx_gettag(t) == EB_LEFT) {
+			if (unlikely(ebx_clrtag(ebx_getroot(&(ebx_untag(t, EB_LEFT))->b[EB_RGHT])) == NULL))
 				return NULL;	/* we reached root */
-			node = ebx_root_to_node(eb_untag(t, EB_LEFT));
+			node = ebx_root_to_node(ebx_untag(t, EB_LEFT));
 			/* if we're left and not in duplicates, stop here */
 			if (node->bit >= 0)
 				break;
@@ -682,22 +682,22 @@ static inline struct ebx_node *eb_next_unique(struct ebx_node *node)
 		}
 		else {
 			/* Walking up from right branch, so we cannot be below root */
-			t = ebx_getroot(&(ebx_root_to_node(eb_untag(t, EB_RGHT)))->node_p);
+			t = ebx_getroot(&(ebx_root_to_node(ebx_untag(t, EB_RGHT)))->node_p);
 		}
 	}
 
 	/* Note that <t> cannot be NULL at this stage */
-	t = ebx_getroot(&(eb_untag(t, EB_LEFT))->b[EB_RGHT]);
-	if (eb_clrtag(t) == NULL)
+	t = ebx_getroot(&(ebx_untag(t, EB_LEFT))->b[EB_RGHT]);
+	if (ebx_clrtag(t) == NULL)
 		return NULL;
-	return eb_walk_down(t, EB_LEFT);
+	return ebx_walk_down(t, EB_LEFT);
 }
 
 
 /* Removes a leaf node from the tree if it was still in it. Marks the node
  * as unlinked.
  */
-static forceinline void __eb_delete(struct ebx_node *node)
+static forceinline void __ebx_delete(struct ebx_node *node)
 {
 	unsigned int pside, gpside, sibtype;
 	struct ebx_node *parent;
@@ -707,15 +707,15 @@ static forceinline void __eb_delete(struct ebx_node *node)
 		return;
 
 	/* we need the parent, our side, and the grand parent */
-	pside = eb_gettag(ebx_getroot(&node->leaf_p));
-	parent = ebx_root_to_node(eb_untag(ebx_getroot(&node->leaf_p), pside));
+	pside = ebx_gettag(ebx_getroot(&node->leaf_p));
+	parent = ebx_root_to_node(ebx_untag(ebx_getroot(&node->leaf_p), pside));
 
 	/* We likely have to release the parent link, unless it's the root,
 	 * in which case we only set our branch to NULL. Note that we can
 	 * only be attached to the root by its left branch.
 	 */
 
-	if (eb_clrtag(ebx_getroot(&parent->branches.b[EB_RGHT])) == NULL) {
+	if (ebx_clrtag(ebx_getroot(&parent->branches.b[EB_RGHT])) == NULL) {
 		/* we're just below the root, it's trivial. */
 		parent->branches.b[EB_LEFT] = 0;
 		goto delete_unlink;
@@ -726,16 +726,16 @@ static forceinline void __eb_delete(struct ebx_node *node)
 	 * either be a link or a leaf.
 	 */
 
-	gpside = eb_gettag(ebx_getroot(&parent->node_p));
-	gparent = eb_untag(ebx_getroot(&parent->node_p), gpside);
+	gpside = ebx_gettag(ebx_getroot(&parent->node_p));
+	gparent = ebx_untag(ebx_getroot(&parent->node_p), gpside);
 
 	ebx_setlink(&gparent->b[gpside], ebx_getroot(&parent->branches.b[!pside]));
-	sibtype = eb_gettag(ebx_getroot(&gparent->b[gpside]));
+	sibtype = ebx_gettag(ebx_getroot(&gparent->b[gpside]));
 
 	if (sibtype == EB_LEAF) {
-		ebx_setlink(&ebx_root_to_node(eb_untag(ebx_getroot(&gparent->b[gpside]), EB_LEAF))->leaf_p, eb_dotag(gparent, gpside));
+		ebx_setlink(&ebx_root_to_node(ebx_untag(ebx_getroot(&gparent->b[gpside]), EB_LEAF))->leaf_p, ebx_dotag(gparent, gpside));
 	} else {
-		ebx_setlink(&ebx_root_to_node(eb_untag(ebx_getroot(&gparent->b[gpside]), EB_NODE))->node_p, eb_dotag(gparent, gpside));
+		ebx_setlink(&ebx_root_to_node(ebx_untag(ebx_getroot(&gparent->b[gpside]), EB_NODE))->node_p, ebx_dotag(gparent, gpside));
 	}
 	/* Mark the parent unused. Note that we do not check if the parent is
 	 * our own node, but that's not a problem because if it is, it will be
@@ -765,18 +765,18 @@ static forceinline void __eb_delete(struct ebx_node *node)
 	parent->bit = node->bit;
 
 	/* We must now update the new node's parent... */
-	gpside = eb_gettag(ebx_getroot(&parent->node_p));
-	gparent = eb_untag(ebx_getroot(&parent->node_p), gpside);
-	ebx_setlink(&gparent->b[gpside], eb_dotag(&parent->branches, EB_NODE));
+	gpside = ebx_gettag(ebx_getroot(&parent->node_p));
+	gparent = ebx_untag(ebx_getroot(&parent->node_p), gpside);
+	ebx_setlink(&gparent->b[gpside], ebx_dotag(&parent->branches, EB_NODE));
 
 	/* ... and its branches */
 	for (pside = 0; pside <= 1; pside++) {
-		if (eb_gettag(ebx_getroot(&parent->branches.b[pside])) == EB_NODE) {
-			ebx_setlink(&ebx_root_to_node(eb_untag(ebx_getroot(&parent->branches.b[pside]), EB_NODE))->node_p,
-				eb_dotag(&parent->branches, pside));
+		if (ebx_gettag(ebx_getroot(&parent->branches.b[pside])) == EB_NODE) {
+			ebx_setlink(&ebx_root_to_node(ebx_untag(ebx_getroot(&parent->branches.b[pside]), EB_NODE))->node_p,
+				ebx_dotag(&parent->branches, pside));
 		} else {
-			ebx_setlink(&ebx_root_to_node(eb_untag(ebx_getroot(&parent->branches.b[pside]), EB_LEAF))->leaf_p,
-				eb_dotag(&parent->branches, pside));
+			ebx_setlink(&ebx_root_to_node(ebx_untag(ebx_getroot(&parent->branches.b[pside]), EB_LEAF))->leaf_p,
+				ebx_dotag(&parent->branches, pside));
 		}
 	}
  delete_unlink:
@@ -914,7 +914,7 @@ static forceinline int get_bit(const unsigned char *a, unsigned int pos)
 	return (a[ofs] >> pos) & 1;
 }
 
-/* These functions are declared in ebtree.c */
+/* These functions are declared in ebxtree.c */
 void eb_delete(struct ebx_node *node);
 REGPRM1 struct ebx_node *eb_insert_dup(struct ebx_node *sub, struct ebx_node *new);
 
