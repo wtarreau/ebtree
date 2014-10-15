@@ -55,13 +55,13 @@ struct ebmb_node {
  */
 
 /* Return leftmost node in the tree, or NULL if none */
-static forceinline struct ebmb_node *ebmb_first(struct eb_root *root)
+static forceinline struct ebmb_node *ebmb_first(struct ebx_root *root)
 {
 	return ebmb_entry(eb_first(root), struct ebmb_node, node);
 }
 
 /* Return rightmost node in the tree, or NULL if none */
-static forceinline struct ebmb_node *ebmb_last(struct eb_root *root)
+static forceinline struct ebmb_node *ebmb_last(struct ebx_root *root)
 {
 	return ebmb_entry(eb_last(root), struct ebmb_node, node);
 }
@@ -113,11 +113,11 @@ static forceinline void ebmb_delete(struct ebmb_node *ebmb)
 /* The following functions are not inlined by default. They are declared
  * in ebmbtree.c, which simply relies on their inline version.
  */
-REGPRM3 struct ebmb_node *ebmb_lookup(struct eb_root *root, const void *x, unsigned int len);
-REGPRM3 struct ebmb_node *ebmb_insert(struct eb_root *root, struct ebmb_node *new, unsigned int len);
-REGPRM2 struct ebmb_node *ebmb_lookup_longest(struct eb_root *root, const void *x);
-REGPRM3 struct ebmb_node *ebmb_lookup_prefix(struct eb_root *root, const void *x, unsigned int pfx);
-REGPRM3 struct ebmb_node *ebmb_insert_prefix(struct eb_root *root, struct ebmb_node *new, unsigned int len);
+REGPRM3 struct ebmb_node *ebmb_lookup(struct ebx_root *root, const void *x, unsigned int len);
+REGPRM3 struct ebmb_node *ebmb_insert(struct ebx_root *root, struct ebmb_node *new, unsigned int len);
+REGPRM2 struct ebmb_node *ebmb_lookup_longest(struct ebx_root *root, const void *x);
+REGPRM3 struct ebmb_node *ebmb_lookup_prefix(struct ebx_root *root, const void *x, unsigned int pfx);
+REGPRM3 struct ebmb_node *ebmb_insert_prefix(struct ebx_root *root, struct ebmb_node *new, unsigned int len);
 
 /* The following functions are less likely to be used directly, because their
  * code is larger. The non-inlined version is preferred.
@@ -136,7 +136,7 @@ static forceinline void __ebmb_delete(struct ebmb_node *ebmb)
  * lookup string keys by prefix if all keys in the tree are zero-terminated. If
  * no match is found, NULL is returned. Returns first node if <len> is zero.
  */
-static forceinline struct ebmb_node *__ebmb_lookup(struct eb_root *root, const void *x, unsigned int len)
+static forceinline struct ebmb_node *__ebmb_lookup(struct ebx_root *root, const void *x, unsigned int len)
 {
 	struct ebmb_node *node;
 	eb_troot_t *troot;
@@ -229,7 +229,7 @@ static forceinline struct ebmb_node *__ebmb_lookup(struct eb_root *root, const v
  * insert strings.
  */
 static forceinline struct ebmb_node *
-__ebmb_insert(struct eb_root *root, struct ebmb_node *new, unsigned int len)
+__ebmb_insert(struct ebx_root *root, struct ebmb_node *new, unsigned int len)
 {
 	struct ebmb_node *old;
 	unsigned int side;
@@ -383,7 +383,7 @@ __ebmb_insert(struct eb_root *root, struct ebmb_node *new, unsigned int len)
  * having a byte at the end of <x> which cannot be part of any prefix, typically
  * the trailing zero for a string. If none can be found, return NULL.
  */
-static forceinline struct ebmb_node *__ebmb_lookup_longest(struct eb_root *root, const void *x)
+static forceinline struct ebmb_node *__ebmb_lookup_longest(struct ebx_root *root, const void *x)
 {
 	struct ebmb_node *node;
 	eb_troot_t *troot, *cover;
@@ -477,7 +477,7 @@ static forceinline struct ebmb_node *__ebmb_lookup_longest(struct eb_root *root,
  * having a byte at the end of <x> which cannot be part of any prefix, typically
  * the trailing zero for a string. If none can be found, return NULL.
  */
-static forceinline struct ebmb_node *__ebmb_lookup_prefix(struct eb_root *root, const void *x, unsigned int pfx)
+static forceinline struct ebmb_node *__ebmb_lookup_prefix(struct ebx_root *root, const void *x, unsigned int pfx)
 {
 	struct ebmb_node *node;
 	eb_troot_t *troot;
@@ -575,7 +575,7 @@ static forceinline struct ebmb_node *__ebmb_lookup_prefix(struct eb_root *root, 
  * len is specified in bytes.
  */
 static forceinline struct ebmb_node *
-__ebmb_insert_prefix(struct eb_root *root, struct ebmb_node *new, unsigned int len)
+__ebmb_insert_prefix(struct ebx_root *root, struct ebmb_node *new, unsigned int len)
 {
 	struct ebmb_node *old;
 	unsigned int side;

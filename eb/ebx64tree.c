@@ -28,22 +28,22 @@
 
 #include "ebx64tree.h"
 
-REGPRM2 struct eb64_node *eb64_insert(struct eb_root *root, struct eb64_node *new)
+REGPRM2 struct eb64_node *eb64_insert(struct ebx_root *root, struct eb64_node *new)
 {
 	return __eb64_insert(root, new);
 }
 
-REGPRM2 struct eb64_node *eb64i_insert(struct eb_root *root, struct eb64_node *new)
+REGPRM2 struct eb64_node *eb64i_insert(struct ebx_root *root, struct eb64_node *new)
 {
 	return __eb64i_insert(root, new);
 }
 
-REGPRM2 struct eb64_node *eb64_lookup(struct eb_root *root, u64 x)
+REGPRM2 struct eb64_node *eb64_lookup(struct ebx_root *root, u64 x)
 {
 	return __eb64_lookup(root, x);
 }
 
-REGPRM2 struct eb64_node *eb64i_lookup(struct eb_root *root, s64 x)
+REGPRM2 struct eb64_node *eb64i_lookup(struct ebx_root *root, s64 x)
 {
 	return __eb64i_lookup(root, x);
 }
@@ -52,7 +52,7 @@ REGPRM2 struct eb64_node *eb64i_lookup(struct eb_root *root, s64 x)
  * Find the last occurrence of the highest key in the tree <root>, which is
  * equal to or less than <x>. NULL is returned is no key matches.
  */
-REGPRM2 struct eb64_node *eb64_lookup_le(struct eb_root *root, u64 x)
+REGPRM2 struct eb64_node *eb64_lookup_le(struct ebx_root *root, u64 x)
 {
 	struct eb64_node *node;
 	eb_troot_t *troot;
@@ -128,7 +128,7 @@ REGPRM2 struct eb64_node *eb64_lookup_le(struct eb_root *root, u64 x)
 		 */
 		if (unlikely(eb_clrtag((eb_untag(troot, EB_LEFT))->b[EB_RGHT]) == NULL))
 			return NULL;
-		troot = (eb_root_to_node(eb_untag(troot, EB_LEFT)))->node_p;
+		troot = (ebx_root_to_node(eb_untag(troot, EB_LEFT)))->node_p;
 	}
 	/* Note that <troot> cannot be NULL at this stage */
 	troot = (eb_untag(troot, EB_RGHT))->b[EB_LEFT];
@@ -140,7 +140,7 @@ REGPRM2 struct eb64_node *eb64_lookup_le(struct eb_root *root, u64 x)
  * Find the first occurrence of the lowest key in the tree <root>, which is
  * equal to or greater than <x>. NULL is returned is no key matches.
  */
-REGPRM2 struct eb64_node *eb64_lookup_ge(struct eb_root *root, u64 x)
+REGPRM2 struct eb64_node *eb64_lookup_ge(struct ebx_root *root, u64 x)
 {
 	struct eb64_node *node;
 	eb_troot_t *troot;
@@ -212,7 +212,7 @@ REGPRM2 struct eb64_node *eb64_lookup_ge(struct eb_root *root, u64 x)
 	 */
 	while (eb_gettag(troot) != EB_LEFT)
 		/* Walking up from right branch, so we cannot be below root */
-		troot = (eb_root_to_node(eb_untag(troot, EB_RGHT)))->node_p;
+		troot = (ebx_root_to_node(eb_untag(troot, EB_RGHT)))->node_p;
 
 	/* Note that <troot> cannot be NULL at this stage */
 	troot = (eb_untag(troot, EB_LEFT))->b[EB_RGHT];

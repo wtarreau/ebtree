@@ -57,13 +57,13 @@ struct eb32_node {
  */
 
 /* Return leftmost node in the tree, or NULL if none */
-static inline struct eb32_node *eb32_first(struct eb_root *root)
+static inline struct eb32_node *eb32_first(struct ebx_root *root)
 {
 	return eb32_entry(eb_first(root), struct eb32_node, node);
 }
 
 /* Return rightmost node in the tree, or NULL if none */
-static inline struct eb32_node *eb32_last(struct eb_root *root)
+static inline struct eb32_node *eb32_last(struct ebx_root *root)
 {
 	return eb32_entry(eb_last(root), struct eb32_node, node);
 }
@@ -116,12 +116,12 @@ static inline void eb32_delete(struct eb32_node *eb32)
  * The following functions are not inlined by default. They are declared
  * in eb32tree.c, which simply relies on their inline version.
  */
-REGPRM2 struct eb32_node *eb32_lookup(struct eb_root *root, u32 x);
-REGPRM2 struct eb32_node *eb32i_lookup(struct eb_root *root, s32 x);
-REGPRM2 struct eb32_node *eb32_lookup_le(struct eb_root *root, u32 x);
-REGPRM2 struct eb32_node *eb32_lookup_ge(struct eb_root *root, u32 x);
-REGPRM2 struct eb32_node *eb32_insert(struct eb_root *root, struct eb32_node *new);
-REGPRM2 struct eb32_node *eb32i_insert(struct eb_root *root, struct eb32_node *new);
+REGPRM2 struct eb32_node *eb32_lookup(struct ebx_root *root, u32 x);
+REGPRM2 struct eb32_node *eb32i_lookup(struct ebx_root *root, s32 x);
+REGPRM2 struct eb32_node *eb32_lookup_le(struct ebx_root *root, u32 x);
+REGPRM2 struct eb32_node *eb32_lookup_ge(struct ebx_root *root, u32 x);
+REGPRM2 struct eb32_node *eb32_insert(struct ebx_root *root, struct eb32_node *new);
+REGPRM2 struct eb32_node *eb32i_insert(struct ebx_root *root, struct eb32_node *new);
 
 /*
  * The following functions are less likely to be used directly, because their
@@ -138,7 +138,7 @@ static forceinline void __eb32_delete(struct eb32_node *eb32)
  * Find the first occurence of a key in the tree <root>. If none can be
  * found, return NULL.
  */
-static forceinline struct eb32_node *__eb32_lookup(struct eb_root *root, u32 x)
+static forceinline struct eb32_node *__eb32_lookup(struct ebx_root *root, u32 x)
 {
 	struct eb32_node *node;
 	eb_troot_t *troot;
@@ -189,7 +189,7 @@ static forceinline struct eb32_node *__eb32_lookup(struct eb_root *root, u32 x)
  * Find the first occurence of a signed key in the tree <root>. If none can
  * be found, return NULL.
  */
-static forceinline struct eb32_node *__eb32i_lookup(struct eb_root *root, s32 x)
+static forceinline struct eb32_node *__eb32i_lookup(struct ebx_root *root, s32 x)
 {
 	struct eb32_node *node;
 	eb_troot_t *troot;
@@ -242,7 +242,7 @@ static forceinline struct eb32_node *__eb32i_lookup(struct eb_root *root, s32 x)
  * If root->b[EB_RGHT]==1, the tree may only contain unique keys.
  */
 static forceinline struct eb32_node *
-__eb32_insert(struct eb_root *root, struct eb32_node *new) {
+__eb32_insert(struct ebx_root *root, struct eb32_node *new) {
 	struct eb32_node *old;
 	unsigned int side;
 	eb_troot_t *troot, **up_ptr;
@@ -374,7 +374,7 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
  * is returned. If root->b[EB_RGHT]==1, the tree may only contain unique keys.
  */
 static forceinline struct eb32_node *
-__eb32i_insert(struct eb_root *root, struct eb32_node *new) {
+__eb32i_insert(struct ebx_root *root, struct eb32_node *new) {
 	struct eb32_node *old;
 	unsigned int side;
 	eb_troot_t *troot, **up_ptr;

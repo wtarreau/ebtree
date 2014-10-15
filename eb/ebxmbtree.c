@@ -32,7 +32,7 @@
  * If none can be found, return NULL.
  */
 REGPRM3 struct ebmb_node *
-ebmb_lookup(struct eb_root *root, const void *x, unsigned int len)
+ebmb_lookup(struct ebx_root *root, const void *x, unsigned int len)
 {
 	return __ebmb_lookup(root, x, len);
 }
@@ -43,7 +43,7 @@ ebmb_lookup(struct eb_root *root, const void *x, unsigned int len)
  * len is specified in bytes.
  */
 REGPRM3 struct ebmb_node *
-ebmb_insert(struct eb_root *root, struct ebmb_node *new, unsigned int len)
+ebmb_insert(struct ebx_root *root, struct ebmb_node *new, unsigned int len)
 {
 	return __ebmb_insert(root, new, len);
 }
@@ -53,7 +53,7 @@ ebmb_insert(struct eb_root *root, struct ebmb_node *new, unsigned int len)
  * least as long as the keys in the tree. If none can be found, return NULL.
  */
 REGPRM2 struct ebmb_node *
-ebmb_lookup_longest(struct eb_root *root, const void *x)
+ebmb_lookup_longest(struct ebx_root *root, const void *x)
 {
 	return __ebmb_lookup_longest(root, x);
 }
@@ -62,7 +62,7 @@ ebmb_lookup_longest(struct eb_root *root, const void *x)
  * tree <root>. If none can be found, return NULL.
  */
 REGPRM3 struct ebmb_node *
-ebmb_lookup_prefix(struct eb_root *root, const void *x, unsigned int pfx)
+ebmb_lookup_prefix(struct ebx_root *root, const void *x, unsigned int pfx)
 {
 	return __ebmb_lookup_prefix(root, x, pfx);
 }
@@ -77,7 +77,7 @@ ebmb_lookup_prefix(struct eb_root *root, const void *x, unsigned int pfx)
  * len is specified in bytes.
  */
 REGPRM3 struct ebmb_node *
-ebmb_insert_prefix(struct eb_root *root, struct ebmb_node *new, unsigned int len)
+ebmb_insert_prefix(struct ebx_root *root, struct ebmb_node *new, unsigned int len)
 {
 	return __ebmb_insert_prefix(root, new, len);
 }

@@ -38,8 +38,8 @@
 /* The following functions are not inlined by default. They are declared
  * in ebimtree.c, which simply relies on their inline version.
  */
-REGPRM3 struct ebpt_node *ebim_lookup(struct eb_root *root, const void *x, unsigned int len);
-REGPRM3 struct ebpt_node *ebim_insert(struct eb_root *root, struct ebpt_node *new, unsigned int len);
+REGPRM3 struct ebpt_node *ebim_lookup(struct ebx_root *root, const void *x, unsigned int len);
+REGPRM3 struct ebpt_node *ebim_insert(struct ebx_root *root, struct ebpt_node *new, unsigned int len);
 
 /* Find the first occurence of a key of a least <len> bytes matching <x> in the
  * tree <root>. The caller is responsible for ensuring that <len> will not exceed
@@ -49,7 +49,7 @@ REGPRM3 struct ebpt_node *ebim_insert(struct eb_root *root, struct ebpt_node *ne
  * no match is found, NULL is returned. Returns first node if <len> is zero.
  */
 static forceinline struct ebpt_node *
-__ebim_lookup(struct eb_root *root, const void *x, unsigned int len)
+__ebim_lookup(struct ebx_root *root, const void *x, unsigned int len)
 {
 	struct ebpt_node *node;
 	eb_troot_t *troot;
@@ -140,7 +140,7 @@ __ebim_lookup(struct eb_root *root, const void *x, unsigned int len)
  * len is specified in bytes.
  */
 static forceinline struct ebpt_node *
-__ebim_insert(struct eb_root *root, struct ebpt_node *new, unsigned int len)
+__ebim_insert(struct ebx_root *root, struct ebpt_node *new, unsigned int len)
 {
 	struct ebpt_node *old;
 	unsigned int side;

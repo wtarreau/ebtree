@@ -35,8 +35,8 @@
 /* The following functions are not inlined by default. They are declared
  * in ebsttree.c, which simply relies on their inline version.
  */
-REGPRM2 struct ebmb_node *ebst_lookup(struct eb_root *root, const char *x);
-REGPRM2 struct ebmb_node *ebst_insert(struct eb_root *root, struct ebmb_node *new);
+REGPRM2 struct ebmb_node *ebst_lookup(struct ebx_root *root, const char *x);
+REGPRM2 struct ebmb_node *ebst_insert(struct ebx_root *root, struct ebmb_node *new);
 
 /* Find the first occurence of a length <len> string <x> in the tree <root>.
  * It's the caller's reponsibility to use this function only on trees which
@@ -44,7 +44,7 @@ REGPRM2 struct ebmb_node *ebst_insert(struct eb_root *root, struct ebmb_node *ne
  * in string <x> in the first <len> chars. If none can be found, return NULL.
  */
 static forceinline struct ebmb_node *
-ebst_lookup_len(struct eb_root *root, const char *x, unsigned int len)
+ebst_lookup_len(struct ebx_root *root, const char *x, unsigned int len)
 {
 	struct ebmb_node *node;
 
@@ -58,7 +58,7 @@ ebst_lookup_len(struct eb_root *root, const char *x, unsigned int len)
  * It's the caller's reponsibility to use this function only on trees which
  * only contain zero-terminated strings. If none can be found, return NULL.
  */
-static forceinline struct ebmb_node *__ebst_lookup(struct eb_root *root, const void *x)
+static forceinline struct ebmb_node *__ebst_lookup(struct ebx_root *root, const void *x)
 {
 	struct ebmb_node *node;
 	eb_troot_t *troot;
@@ -137,7 +137,7 @@ static forceinline struct ebmb_node *__ebst_lookup(struct eb_root *root, const v
  * caller is responsible for properly terminating the key with a zero.
  */
 static forceinline struct ebmb_node *
-__ebst_insert(struct eb_root *root, struct ebmb_node *new)
+__ebst_insert(struct ebx_root *root, struct ebmb_node *new)
 {
 	struct ebmb_node *old;
 	unsigned int side;

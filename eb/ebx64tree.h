@@ -57,13 +57,13 @@ struct eb64_node {
  */
 
 /* Return leftmost node in the tree, or NULL if none */
-static inline struct eb64_node *eb64_first(struct eb_root *root)
+static inline struct eb64_node *eb64_first(struct ebx_root *root)
 {
 	return eb64_entry(eb_first(root), struct eb64_node, node);
 }
 
 /* Return rightmost node in the tree, or NULL if none */
-static inline struct eb64_node *eb64_last(struct eb_root *root)
+static inline struct eb64_node *eb64_last(struct ebx_root *root)
 {
 	return eb64_entry(eb_last(root), struct eb64_node, node);
 }
@@ -116,12 +116,12 @@ static inline void eb64_delete(struct eb64_node *eb64)
  * The following functions are not inlined by default. They are declared
  * in eb64tree.c, which simply relies on their inline version.
  */
-REGPRM2 struct eb64_node *eb64_lookup(struct eb_root *root, u64 x);
-REGPRM2 struct eb64_node *eb64i_lookup(struct eb_root *root, s64 x);
-REGPRM2 struct eb64_node *eb64_lookup_le(struct eb_root *root, u64 x);
-REGPRM2 struct eb64_node *eb64_lookup_ge(struct eb_root *root, u64 x);
-REGPRM2 struct eb64_node *eb64_insert(struct eb_root *root, struct eb64_node *new);
-REGPRM2 struct eb64_node *eb64i_insert(struct eb_root *root, struct eb64_node *new);
+REGPRM2 struct eb64_node *eb64_lookup(struct ebx_root *root, u64 x);
+REGPRM2 struct eb64_node *eb64i_lookup(struct ebx_root *root, s64 x);
+REGPRM2 struct eb64_node *eb64_lookup_le(struct ebx_root *root, u64 x);
+REGPRM2 struct eb64_node *eb64_lookup_ge(struct ebx_root *root, u64 x);
+REGPRM2 struct eb64_node *eb64_insert(struct ebx_root *root, struct eb64_node *new);
+REGPRM2 struct eb64_node *eb64i_insert(struct ebx_root *root, struct eb64_node *new);
 
 /*
  * The following functions are less likely to be used directly, because their
@@ -138,7 +138,7 @@ static forceinline void __eb64_delete(struct eb64_node *eb64)
  * Find the first occurence of a key in the tree <root>. If none can be
  * found, return NULL.
  */
-static forceinline struct eb64_node *__eb64_lookup(struct eb_root *root, u64 x)
+static forceinline struct eb64_node *__eb64_lookup(struct ebx_root *root, u64 x)
 {
 	struct eb64_node *node;
 	eb_troot_t *troot;
@@ -187,7 +187,7 @@ static forceinline struct eb64_node *__eb64_lookup(struct eb_root *root, u64 x)
  * Find the first occurence of a signed key in the tree <root>. If none can
  * be found, return NULL.
  */
-static forceinline struct eb64_node *__eb64i_lookup(struct eb_root *root, s64 x)
+static forceinline struct eb64_node *__eb64i_lookup(struct ebx_root *root, s64 x)
 {
 	struct eb64_node *node;
 	eb_troot_t *troot;
@@ -238,7 +238,7 @@ static forceinline struct eb64_node *__eb64i_lookup(struct eb_root *root, s64 x)
  * If root->b[EB_RGHT]==1, the tree may only contain unique keys.
  */
 static forceinline struct eb64_node *
-__eb64_insert(struct eb_root *root, struct eb64_node *new) {
+__eb64_insert(struct ebx_root *root, struct eb64_node *new) {
 	struct eb64_node *old;
 	unsigned int side;
 	eb_troot_t *troot;
@@ -414,7 +414,7 @@ __eb64_insert(struct eb_root *root, struct eb64_node *new) {
  * is returned. If root->b[EB_RGHT]==1, the tree may only contain unique keys.
  */
 static forceinline struct eb64_node *
-__eb64i_insert(struct eb_root *root, struct eb64_node *new) {
+__eb64i_insert(struct ebx_root *root, struct eb64_node *new) {
 	struct eb64_node *old;
 	unsigned int side;
 	eb_troot_t *troot;
