@@ -41,6 +41,20 @@
 #undef __ebxmb_insert_prefix
 #define __ebxmb_insert_prefix __ebmb_insert_prefix
 
+/* exported functions below */
+#undef ebxmb_delete
+#define ebxmb_delete ebmb_delete
+#undef ebxmb_lookup_longest
+#define ebxmb_lookup_longest ebmb_lookup_longest
+#undef ebxmb_lookup
+#define ebxmb_lookup ebmb_lookup
+#undef ebxmb_insert
+#define ebxmb_insert ebmb_insert
+#undef ebxmb_lookup_prefix
+#define ebxmb_lookup_prefix ebmb_lookup_prefix
+#undef ebxmb_insert_prefix
+#define ebxmb_insert_prefix ebmb_insert_prefix
+
 #include "ebtree.h"
 #include "ebxmbtree.h"
 

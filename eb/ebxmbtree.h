@@ -105,7 +105,7 @@ static forceinline struct ebxmb_node *ebxmb_prev_unique(struct ebxmb_node *ebmb)
 /* Delete node from the tree if it was linked in. Mark the node unused. Note
  * that this function relies on a non-inlined generic function: ebx_delete.
  */
-static forceinline void ebmb_delete(struct ebxmb_node *ebmb)
+static forceinline void ebxmb_delete(struct ebxmb_node *ebmb)
 {
 	ebx_delete(&ebmb->node);
 }
@@ -113,11 +113,11 @@ static forceinline void ebmb_delete(struct ebxmb_node *ebmb)
 /* The following functions are not inlined by default. They are declared
  * in ebmbtree.c, which simply relies on their inline version.
  */
-REGPRM3 struct ebxmb_node *ebmb_lookup(struct ebx_root *root, const void *x, unsigned int len);
-REGPRM3 struct ebxmb_node *ebmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len);
-REGPRM2 struct ebxmb_node *ebmb_lookup_longest(struct ebx_root *root, const void *x);
-REGPRM3 struct ebxmb_node *ebmb_lookup_prefix(struct ebx_root *root, const void *x, unsigned int pfx);
-REGPRM3 struct ebxmb_node *ebmb_insert_prefix(struct ebx_root *root, struct ebxmb_node *new, unsigned int len);
+REGPRM3 struct ebxmb_node *ebxmb_lookup(struct ebx_root *root, const void *x, unsigned int len);
+REGPRM3 struct ebxmb_node *ebxmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len);
+REGPRM2 struct ebxmb_node *ebxmb_lookup_longest(struct ebx_root *root, const void *x);
+REGPRM3 struct ebxmb_node *ebxmb_lookup_prefix(struct ebx_root *root, const void *x, unsigned int pfx);
+REGPRM3 struct ebxmb_node *ebxmb_insert_prefix(struct ebx_root *root, struct ebxmb_node *new, unsigned int len);
 
 /* The following functions are less likely to be used directly, because their
  * code is larger. The non-inlined version is preferred.

@@ -48,7 +48,7 @@ ebst_lookup_len(struct ebx_root *root, const char *x, unsigned int len)
 {
 	struct ebxmb_node *node;
 
-	node = ebmb_lookup(root, x, len);
+	node = ebxmb_lookup(root, x, len);
 	if (!node || node->key[len] != 0)
 		return NULL;
 	return node;
