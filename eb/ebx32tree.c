@@ -28,22 +28,22 @@
 
 #include "ebx32tree.h"
 
-REGPRM2 struct eb32_node *eb32_insert(struct ebx_root *root, struct eb32_node *new)
+REGPRM2 struct ebx32_node *eb32_insert(struct ebx_root *root, struct ebx32_node *new)
 {
 	return __eb32_insert(root, new);
 }
 
-REGPRM2 struct eb32_node *eb32i_insert(struct ebx_root *root, struct eb32_node *new)
+REGPRM2 struct ebx32_node *eb32i_insert(struct ebx_root *root, struct ebx32_node *new)
 {
 	return __eb32i_insert(root, new);
 }
 
-REGPRM2 struct eb32_node *eb32_lookup(struct ebx_root *root, u32 x)
+REGPRM2 struct ebx32_node *eb32_lookup(struct ebx_root *root, u32 x)
 {
 	return __eb32_lookup(root, x);
 }
 
-REGPRM2 struct eb32_node *eb32i_lookup(struct ebx_root *root, s32 x)
+REGPRM2 struct ebx32_node *eb32i_lookup(struct ebx_root *root, s32 x)
 {
 	return __eb32i_lookup(root, x);
 }
@@ -52,9 +52,9 @@ REGPRM2 struct eb32_node *eb32i_lookup(struct ebx_root *root, s32 x)
  * Find the last occurrence of the highest key in the tree <root>, which is
  * equal to or less than <x>. NULL is returned is no key matches.
  */
-REGPRM2 struct eb32_node *eb32_lookup_le(struct ebx_root *root, u32 x)
+REGPRM2 struct ebx32_node *eb32_lookup_le(struct ebx_root *root, u32 x)
 {
-	struct eb32_node *node;
+	struct ebx32_node *node;
 	eb_troot_t *troot;
 
 	troot = root->b[EB_LEFT];
@@ -68,7 +68,7 @@ REGPRM2 struct eb32_node *eb32_lookup_le(struct ebx_root *root, u32 x)
 			 * node or its next one if the former is too small.
 			 */
 			node = container_of(eb_untag(troot, EB_LEAF),
-					    struct eb32_node, node.branches);
+					    struct ebx32_node, node.branches);
 			if (node->key <= x)
 				return node;
 			/* return prev */
@@ -76,7 +76,7 @@ REGPRM2 struct eb32_node *eb32_lookup_le(struct ebx_root *root, u32 x)
 			break;
 		}
 		node = container_of(eb_untag(troot, EB_NODE),
-				    struct eb32_node, node.branches);
+				    struct ebx32_node, node.branches);
 
 		if (node->node.bit < 0) {
 			/* We're at the top of a dup tree. Either we got a
@@ -92,7 +92,7 @@ REGPRM2 struct eb32_node *eb32_lookup_le(struct ebx_root *root, u32 x)
 				while (eb_gettag(troot) != EB_LEAF)
 					troot = (eb_untag(troot, EB_NODE))->b[EB_RGHT];
 				return container_of(eb_untag(troot, EB_LEAF),
-						    struct eb32_node, node.branches);
+						    struct ebx32_node, node.branches);
 			}
 			/* return prev */
 			troot = node->node.node_p;
@@ -106,7 +106,7 @@ REGPRM2 struct eb32_node *eb32_lookup_le(struct ebx_root *root, u32 x)
 			 */
 			if ((node->key >> node->node.bit) < (x >> node->node.bit)) {
 				troot = node->node.branches.b[EB_RGHT];
-				return eb32_entry(eb_walk_down(troot, EB_RGHT), struct eb32_node, node);
+				return eb32_entry(eb_walk_down(troot, EB_RGHT), struct ebx32_node, node);
 			}
 
 			/* Further values will be too high here, so return the prev
@@ -132,7 +132,7 @@ REGPRM2 struct eb32_node *eb32_lookup_le(struct ebx_root *root, u32 x)
 	}
 	/* Note that <troot> cannot be NULL at this stage */
 	troot = (eb_untag(troot, EB_RGHT))->b[EB_LEFT];
-	node = eb32_entry(eb_walk_down(troot, EB_RGHT), struct eb32_node, node);
+	node = eb32_entry(eb_walk_down(troot, EB_RGHT), struct ebx32_node, node);
 	return node;
 }
 
@@ -140,9 +140,9 @@ REGPRM2 struct eb32_node *eb32_lookup_le(struct ebx_root *root, u32 x)
  * Find the first occurrence of the lowest key in the tree <root>, which is
  * equal to or greater than <x>. NULL is returned is no key matches.
  */
-REGPRM2 struct eb32_node *eb32_lookup_ge(struct ebx_root *root, u32 x)
+REGPRM2 struct ebx32_node *eb32_lookup_ge(struct ebx_root *root, u32 x)
 {
-	struct eb32_node *node;
+	struct ebx32_node *node;
 	eb_troot_t *troot;
 
 	troot = root->b[EB_LEFT];
@@ -156,7 +156,7 @@ REGPRM2 struct eb32_node *eb32_lookup_ge(struct ebx_root *root, u32 x)
 			 * node or its next one if the former is too small.
 			 */
 			node = container_of(eb_untag(troot, EB_LEAF),
-					    struct eb32_node, node.branches);
+					    struct ebx32_node, node.branches);
 			if (node->key >= x)
 				return node;
 			/* return next */
@@ -164,7 +164,7 @@ REGPRM2 struct eb32_node *eb32_lookup_ge(struct ebx_root *root, u32 x)
 			break;
 		}
 		node = container_of(eb_untag(troot, EB_NODE),
-				    struct eb32_node, node.branches);
+				    struct ebx32_node, node.branches);
 
 		if (node->node.bit < 0) {
 			/* We're at the top of a dup tree. Either we got a
@@ -180,7 +180,7 @@ REGPRM2 struct eb32_node *eb32_lookup_ge(struct ebx_root *root, u32 x)
 				while (eb_gettag(troot) != EB_LEAF)
 					troot = (eb_untag(troot, EB_NODE))->b[EB_LEFT];
 				return container_of(eb_untag(troot, EB_LEAF),
-						    struct eb32_node, node.branches);
+						    struct ebx32_node, node.branches);
 			}
 			/* return next */
 			troot = node->node.node_p;
@@ -194,7 +194,7 @@ REGPRM2 struct eb32_node *eb32_lookup_ge(struct ebx_root *root, u32 x)
 			 */
 			if ((node->key >> node->node.bit) > (x >> node->node.bit)) {
 				troot = node->node.branches.b[EB_LEFT];
-				return eb32_entry(eb_walk_down(troot, EB_LEFT), struct eb32_node, node);
+				return eb32_entry(eb_walk_down(troot, EB_LEFT), struct ebx32_node, node);
 			}
 
 			/* Further values will be too low here, so return the next
@@ -219,6 +219,6 @@ REGPRM2 struct eb32_node *eb32_lookup_ge(struct ebx_root *root, u32 x)
 	if (eb_clrtag(troot) == NULL)
 		return NULL;
 
-	node = eb32_entry(eb_walk_down(troot, EB_LEFT), struct eb32_node, node);
+	node = eb32_entry(eb_walk_down(troot, EB_LEFT), struct ebx32_node, node);
 	return node;
 }

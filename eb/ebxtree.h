@@ -121,7 +121,7 @@
    everything, and type-specific insertion primitives. This has led to consider
    two types of EB nodes. The type-agnostic ones will serve as a header for the
    other ones, and will simply be called "struct ebx_node". The other ones will
-   have their type indicated in the structure name. Eg: "struct eb32_node" for
+   have their type indicated in the structure name. Eg: "struct ebx32_node" for
    nodes carrying 32 bit keys.
 
    We will also node that the two branches in a node serve exactly the same

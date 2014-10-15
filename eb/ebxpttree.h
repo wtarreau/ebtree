@@ -49,7 +49,7 @@ typedef PTR_INT_TYPE ptr_t;
  * ebx_node so that it can be cast into an ebx_node. We could also have put some
  * sort of transparent union here to reduce the indirection level, but the fact
  * is, the end user is not meant to manipulate internals, so this is pointless.
- * Internally, it is automatically cast as an eb32_node or eb64_node.
+ * Internally, it is automatically cast as an ebx32_node or eb64_node.
  */
 struct ebpt_node {
 	struct ebx_node node; /* the tree node, must be at the beginning */
@@ -148,7 +148,7 @@ static forceinline struct ebpt_node *ebpt_lookup_ge(struct ebx_root *root, void 
 static forceinline struct ebpt_node *ebpt_insert(struct ebx_root *root, struct ebpt_node *new)
 {
 	if (sizeof(void *) == 4)
-		return (struct ebpt_node *)eb32_insert(root, (struct eb32_node *)new);
+		return (struct ebpt_node *)eb32_insert(root, (struct ebx32_node *)new);
 	else
 		return (struct ebpt_node *)eb64_insert(root, (struct eb64_node *)new);
 }
@@ -175,7 +175,7 @@ static forceinline struct ebpt_node *__ebpt_lookup(struct ebx_root *root, void *
 static forceinline struct ebpt_node *__ebpt_insert(struct ebx_root *root, struct ebpt_node *new)
 {
 	if (sizeof(void *) == 4)
-		return (struct ebpt_node *)__eb32_insert(root, (struct eb32_node *)new);
+		return (struct ebpt_node *)__eb32_insert(root, (struct ebx32_node *)new);
 	else
 		return (struct ebpt_node *)__eb64_insert(root, (struct eb64_node *)new);
 }
