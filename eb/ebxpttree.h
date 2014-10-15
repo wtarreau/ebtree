@@ -167,7 +167,7 @@ static forceinline void __ebpt_delete(struct ebxpt_node *ebpt)
 static forceinline struct ebxpt_node *__ebpt_lookup(struct ebx_root *root, void *x)
 {
 	if (sizeof(void *) == 4)
-		return (struct ebxpt_node *)__eb32_lookup(root, (u32)(PTR_INT_TYPE)x);
+		return (struct ebxpt_node *)__ebx32_lookup(root, (u32)(PTR_INT_TYPE)x);
 	else
 		return (struct ebxpt_node *)__eb64_lookup(root, (u64)(PTR_INT_TYPE)x);
 }
@@ -175,7 +175,7 @@ static forceinline struct ebxpt_node *__ebpt_lookup(struct ebx_root *root, void 
 static forceinline struct ebxpt_node *__ebpt_insert(struct ebx_root *root, struct ebxpt_node *new)
 {
 	if (sizeof(void *) == 4)
-		return (struct ebxpt_node *)__eb32_insert(root, (struct ebx32_node *)new);
+		return (struct ebxpt_node *)__ebx32_insert(root, (struct ebx32_node *)new);
 	else
 		return (struct ebxpt_node *)__eb64_insert(root, (struct ebx64_node *)new);
 }

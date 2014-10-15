@@ -30,22 +30,22 @@
 
 REGPRM2 struct ebx32_node *eb32_insert(struct ebx_root *root, struct ebx32_node *new)
 {
-	return __eb32_insert(root, new);
+	return __ebx32_insert(root, new);
 }
 
 REGPRM2 struct ebx32_node *eb32i_insert(struct ebx_root *root, struct ebx32_node *new)
 {
-	return __eb32i_insert(root, new);
+	return __ebx32i_insert(root, new);
 }
 
 REGPRM2 struct ebx32_node *eb32_lookup(struct ebx_root *root, u32 x)
 {
-	return __eb32_lookup(root, x);
+	return __ebx32_lookup(root, x);
 }
 
 REGPRM2 struct ebx32_node *eb32i_lookup(struct ebx_root *root, s32 x)
 {
-	return __eb32i_lookup(root, x);
+	return __ebx32i_lookup(root, x);
 }
 
 /*
@@ -106,7 +106,7 @@ REGPRM2 struct ebx32_node *eb32_lookup_le(struct ebx_root *root, u32 x)
 			 */
 			if ((node->key >> node->node.bit) < (x >> node->node.bit)) {
 				troot = ebx_getroot(&node->node.branches.b[EB_RGHT]);
-				return eb32_entry(ebx_walk_down(troot, EB_RGHT), struct ebx32_node, node);
+				return ebx32_entry(ebx_walk_down(troot, EB_RGHT), struct ebx32_node, node);
 			}
 
 			/* Further values will be too high here, so return the prev
@@ -132,7 +132,7 @@ REGPRM2 struct ebx32_node *eb32_lookup_le(struct ebx_root *root, u32 x)
 	}
 	/* Note that <troot> cannot be NULL at this stage */
 	troot = ebx_getroot(&(ebx_untag(troot, EB_RGHT))->b[EB_LEFT]);
-	node = eb32_entry(ebx_walk_down(troot, EB_RGHT), struct ebx32_node, node);
+	node = ebx32_entry(ebx_walk_down(troot, EB_RGHT), struct ebx32_node, node);
 	return node;
 }
 
@@ -194,7 +194,7 @@ REGPRM2 struct ebx32_node *eb32_lookup_ge(struct ebx_root *root, u32 x)
 			 */
 			if ((node->key >> node->node.bit) > (x >> node->node.bit)) {
 				troot = ebx_getroot(&node->node.branches.b[EB_LEFT]);
-				return eb32_entry(ebx_walk_down(troot, EB_LEFT), struct ebx32_node, node);
+				return ebx32_entry(ebx_walk_down(troot, EB_LEFT), struct ebx32_node, node);
 			}
 
 			/* Further values will be too low here, so return the next
@@ -219,6 +219,6 @@ REGPRM2 struct ebx32_node *eb32_lookup_ge(struct ebx_root *root, u32 x)
 	if (ebx_clrtag(troot) == NULL)
 		return NULL;
 
-	node = eb32_entry(ebx_walk_down(troot, EB_LEFT), struct ebx32_node, node);
+	node = ebx32_entry(ebx_walk_down(troot, EB_LEFT), struct ebx32_node, node);
 	return node;
 }
