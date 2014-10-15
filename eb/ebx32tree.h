@@ -24,8 +24,8 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef _EB32TREE_H
-#define _EB32TREE_H
+#ifndef _EBX32TREE_H
+#define _EBX32TREE_H
 
 #include "ebxtree.h"
 
@@ -502,4 +502,4 @@ __eb32i_insert(struct eb_root *root, struct eb32_node *new) {
 	return new;
 }
 
-#endif /* _EB32_TREE_H */
+#endif /* _EBX32_TREE_H */

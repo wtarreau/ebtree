@@ -249,8 +249,8 @@
 
  */
 
-#ifndef _EBTREE_H
-#define _EBTREE_H
+#ifndef _EBXTREE_H
+#define _EBXTREE_H
 
 #include <stdlib.h>
 #include "compiler.h"
@@ -912,7 +912,7 @@ static forceinline int get_bit(const unsigned char *a, unsigned int pos)
 void eb_delete(struct eb_node *node);
 REGPRM1 struct eb_node *eb_insert_dup(struct eb_node *sub, struct eb_node *new);
 
-#endif /* _EB_TREE_H */
+#endif /* _EBX_TREE_H */
 
 /*
  * Local variables:

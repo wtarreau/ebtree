@@ -24,8 +24,8 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef _EBMBTREE_H
-#define _EBMBTREE_H
+#ifndef _EBXMBTREE_H
+#define _EBXMBTREE_H
 
 #include <string.h>
 #include "ebxtree.h"
@@ -811,5 +811,5 @@ __ebmb_insert_prefix(struct eb_root *root, struct ebmb_node *new, unsigned int l
 
 
 
-#endif /* _EBMBTREE_H */
+#endif /* _EBXMBTREE_H */
 

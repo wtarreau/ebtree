@@ -24,8 +24,8 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef _EBPTTREE_H
-#define _EBPTTREE_H
+#ifndef _EBXPTTREE_H
+#define _EBXPTTREE_H
 
 #include "ebxtree.h"
 #include "ebx32tree.h"
@@ -180,4 +180,4 @@ static forceinline struct ebpt_node *__ebpt_insert(struct eb_root *root, struct 
 		return (struct ebpt_node *)__eb64_insert(root, (struct eb64_node *)new);
 }
 
-#endif /* _EBPT_TREE_H */
+#endif /* _EBXPT_TREE_H */

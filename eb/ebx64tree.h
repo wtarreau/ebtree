@@ -24,8 +24,8 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef _EB64TREE_H
-#define _EB64TREE_H
+#ifndef _EBX64TREE_H
+#define _EBX64TREE_H
 
 #include "ebxtree.h"
 
@@ -587,4 +587,4 @@ __eb64i_insert(struct eb_root *root, struct eb64_node *new) {
 	return new;
 }
 
-#endif /* _EB64_TREE_H */
+#endif /* _EBX64_TREE_H */

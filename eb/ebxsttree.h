@@ -26,8 +26,8 @@
 
 /* These functions and macros rely on Multi-Byte nodes */
 
-#ifndef _EBSTTREE_H
-#define _EBSTTREE_H
+#ifndef _EBXSTTREE_H
+#define _EBXSTTREE_H
 
 #include "ebxtree.h"
 #include "ebxmbtree.h"
@@ -326,5 +326,5 @@ __ebst_insert(struct eb_root *root, struct ebmb_node *new)
 	return new;
 }
 
-#endif /* _EBSTTREE_H */
+#endif /* _EBXSTTREE_H */
 

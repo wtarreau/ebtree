@@ -24,8 +24,8 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef _EBIMTREE_H
-#define _EBIMTREE_H
+#ifndef _EBXIMTREE_H
+#define _EBXIMTREE_H
 
 #include <string.h>
 #include "ebxtree.h"
@@ -327,4 +327,4 @@ __ebim_insert(struct eb_root *root, struct ebpt_node *new, unsigned int len)
 	return new;
 }
 
-#endif /* _EBIMTREE_H */
+#endif /* _EBXIMTREE_H */
