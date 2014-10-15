@@ -34,7 +34,7 @@
 REGPRM3 struct ebxmb_node *
 ebmb_lookup(struct ebx_root *root, const void *x, unsigned int len)
 {
-	return __ebmb_lookup(root, x, len);
+	return __ebxmb_lookup(root, x, len);
 }
 
 /* Insert ebxmb_node <new> into subtree starting at node root <root>.
@@ -45,7 +45,7 @@ ebmb_lookup(struct ebx_root *root, const void *x, unsigned int len)
 REGPRM3 struct ebxmb_node *
 ebmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 {
-	return __ebmb_insert(root, new, len);
+	return __ebxmb_insert(root, new, len);
 }
 
 /* Find the first occurence of the longest prefix matching a key <x> in the
@@ -55,7 +55,7 @@ ebmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 REGPRM2 struct ebxmb_node *
 ebmb_lookup_longest(struct ebx_root *root, const void *x)
 {
-	return __ebmb_lookup_longest(root, x);
+	return __ebxmb_lookup_longest(root, x);
 }
 
 /* Find the first occurence of a prefix matching a key <x> of <pfx> BITS in the
@@ -64,7 +64,7 @@ ebmb_lookup_longest(struct ebx_root *root, const void *x)
 REGPRM3 struct ebxmb_node *
 ebmb_lookup_prefix(struct ebx_root *root, const void *x, unsigned int pfx)
 {
-	return __ebmb_lookup_prefix(root, x, pfx);
+	return __ebxmb_lookup_prefix(root, x, pfx);
 }
 
 /* Insert ebxmb_node <new> into a prefix subtree starting at node root <root>.
@@ -79,5 +79,5 @@ ebmb_lookup_prefix(struct ebx_root *root, const void *x, unsigned int pfx)
 REGPRM3 struct ebxmb_node *
 ebmb_insert_prefix(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 {
-	return __ebmb_insert_prefix(root, new, len);
+	return __ebxmb_insert_prefix(root, new, len);
 }
