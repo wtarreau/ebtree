@@ -28,8 +28,8 @@
 #define _EBIMTREE_H
 
 #include <string.h>
-#include "ebtree.h"
-#include "ebpttree.h"
+#include "ebxtree.h"
+#include "ebxpttree.h"
 
 /* These functions and macros rely on Pointer nodes and use the <key> entry as
  * a pointer to an indirect key. Most operations are performed using ebpt_*.

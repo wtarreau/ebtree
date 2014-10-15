@@ -27,7 +27,7 @@
 #ifndef _EB64TREE_H
 #define _EB64TREE_H
 
-#include "ebtree.h"
+#include "ebxtree.h"
 
 
 /* Return the structure of type <type> whose member <member> points to <ptr> */

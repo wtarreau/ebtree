@@ -28,7 +28,7 @@
 #define _EBMBTREE_H
 
 #include <string.h>
-#include "ebtree.h"
+#include "ebxtree.h"
 
 /* Return the structure of type <type> whose member <member> points to <ptr> */
 #define ebmb_entry(ptr, type, member) container_of(ptr, type, member)

@@ -26,8 +26,8 @@
 
 /* Consult ebimtree.h for more details about those functions */
 
-#include "ebpttree.h"
-#include "ebimtree.h"
+#include "ebxpttree.h"
+#include "ebximtree.h"
 
 /* Find the first occurence of a key of <len> bytes in the tree <root>.
  * If none can be found, return NULL.

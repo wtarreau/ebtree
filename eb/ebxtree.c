@@ -24,7 +24,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "ebtree.h"
+#include "ebxtree.h"
 
 void eb_delete(struct eb_node *node)
 {

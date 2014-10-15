@@ -26,7 +26,7 @@
 
 /* Consult eb64tree.h for more details about those functions */
 
-#include "eb64tree.h"
+#include "ebx64tree.h"
 
 REGPRM2 struct eb64_node *eb64_insert(struct eb_root *root, struct eb64_node *new)
 {

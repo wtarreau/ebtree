@@ -29,8 +29,8 @@
 #ifndef _EBSTTREE_H
 #define _EBSTTREE_H
 
-#include "ebtree.h"
-#include "ebmbtree.h"
+#include "ebxtree.h"
+#include "ebxmbtree.h"
 
 /* The following functions are not inlined by default. They are declared
  * in ebsttree.c, which simply relies on their inline version.
