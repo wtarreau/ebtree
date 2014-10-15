@@ -107,7 +107,7 @@ static inline struct ebx64_node *ebx64_prev_unique(struct ebx64_node *eb64)
 /* Delete node from the tree if it was linked in. Mark the node unused. Note
  * that this function relies on a non-inlined generic function: ebx_delete.
  */
-static inline void eb64_delete(struct ebx64_node *eb64)
+static inline void ebx64_delete(struct ebx64_node *eb64)
 {
 	ebx_delete(&eb64->node);
 }
@@ -116,12 +116,12 @@ static inline void eb64_delete(struct ebx64_node *eb64)
  * The following functions are not inlined by default. They are declared
  * in eb64tree.c, which simply relies on their inline version.
  */
-REGPRM2 struct ebx64_node *eb64_lookup(struct ebx_root *root, u64 x);
-REGPRM2 struct ebx64_node *eb64i_lookup(struct ebx_root *root, s64 x);
-REGPRM2 struct ebx64_node *eb64_lookup_le(struct ebx_root *root, u64 x);
-REGPRM2 struct ebx64_node *eb64_lookup_ge(struct ebx_root *root, u64 x);
-REGPRM2 struct ebx64_node *eb64_insert(struct ebx_root *root, struct ebx64_node *new);
-REGPRM2 struct ebx64_node *eb64i_insert(struct ebx_root *root, struct ebx64_node *new);
+REGPRM2 struct ebx64_node *ebx64_lookup(struct ebx_root *root, u64 x);
+REGPRM2 struct ebx64_node *ebx64i_lookup(struct ebx_root *root, s64 x);
+REGPRM2 struct ebx64_node *ebx64_lookup_le(struct ebx_root *root, u64 x);
+REGPRM2 struct ebx64_node *ebx64_lookup_ge(struct ebx_root *root, u64 x);
+REGPRM2 struct ebx64_node *ebx64_insert(struct ebx_root *root, struct ebx64_node *new);
+REGPRM2 struct ebx64_node *ebx64i_insert(struct ebx_root *root, struct ebx64_node *new);
 
 /*
  * The following functions are less likely to be used directly, because their

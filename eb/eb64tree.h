@@ -39,6 +39,22 @@
 #undef __ebx64i_insert
 #define __ebx64i_insert __eb64i_insert
 
+/* exported functions below */
+#undef ebx64_delete
+#define ebx64_delete eb64_delete
+#undef ebx64_lookup
+#define ebx64_lookup eb64_lookup
+#undef ebx64i_lookup
+#define ebx64i_lookup eb64i_lookup
+#undef ebx64_insert
+#define ebx64_insert eb64_insert
+#undef ebx64i_insert
+#define ebx64i_insert eb64i_insert
+#undef ebx64_lookup_le
+#define ebx64_lookup_le eb64_lookup_le
+#undef ebx64_lookup_ge
+#define ebx64_lookup_ge eb64_lookup_ge
+
 #include "ebtree.h"
 #include "ebx64tree.h"
 

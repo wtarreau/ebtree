@@ -28,22 +28,22 @@
 
 #include "ebx64tree.h"
 
-REGPRM2 struct ebx64_node *eb64_insert(struct ebx_root *root, struct ebx64_node *new)
+REGPRM2 struct ebx64_node *ebx64_insert(struct ebx_root *root, struct ebx64_node *new)
 {
 	return __ebx64_insert(root, new);
 }
 
-REGPRM2 struct ebx64_node *eb64i_insert(struct ebx_root *root, struct ebx64_node *new)
+REGPRM2 struct ebx64_node *ebx64i_insert(struct ebx_root *root, struct ebx64_node *new)
 {
 	return __ebx64i_insert(root, new);
 }
 
-REGPRM2 struct ebx64_node *eb64_lookup(struct ebx_root *root, u64 x)
+REGPRM2 struct ebx64_node *ebx64_lookup(struct ebx_root *root, u64 x)
 {
 	return __ebx64_lookup(root, x);
 }
 
-REGPRM2 struct ebx64_node *eb64i_lookup(struct ebx_root *root, s64 x)
+REGPRM2 struct ebx64_node *ebx64i_lookup(struct ebx_root *root, s64 x)
 {
 	return __ebx64i_lookup(root, x);
 }
@@ -52,7 +52,7 @@ REGPRM2 struct ebx64_node *eb64i_lookup(struct ebx_root *root, s64 x)
  * Find the last occurrence of the highest key in the tree <root>, which is
  * equal to or less than <x>. NULL is returned is no key matches.
  */
-REGPRM2 struct ebx64_node *eb64_lookup_le(struct ebx_root *root, u64 x)
+REGPRM2 struct ebx64_node *ebx64_lookup_le(struct ebx_root *root, u64 x)
 {
 	struct ebx64_node *node;
 	ebx_troot_t *troot;
@@ -140,7 +140,7 @@ REGPRM2 struct ebx64_node *eb64_lookup_le(struct ebx_root *root, u64 x)
  * Find the first occurrence of the lowest key in the tree <root>, which is
  * equal to or greater than <x>. NULL is returned is no key matches.
  */
-REGPRM2 struct ebx64_node *eb64_lookup_ge(struct ebx_root *root, u64 x)
+REGPRM2 struct ebx64_node *ebx64_lookup_ge(struct ebx_root *root, u64 x)
 {
 	struct ebx64_node *node;
 	ebx_troot_t *troot;
