@@ -35,18 +35,18 @@
 /* The following functions are not inlined by default. They are declared
  * in ebsttree.c, which simply relies on their inline version.
  */
-REGPRM2 struct ebmb_node *ebst_lookup(struct ebx_root *root, const char *x);
-REGPRM2 struct ebmb_node *ebst_insert(struct ebx_root *root, struct ebmb_node *new);
+REGPRM2 struct ebxmb_node *ebst_lookup(struct ebx_root *root, const char *x);
+REGPRM2 struct ebxmb_node *ebst_insert(struct ebx_root *root, struct ebxmb_node *new);
 
 /* Find the first occurence of a length <len> string <x> in the tree <root>.
  * It's the caller's reponsibility to use this function only on trees which
  * only contain zero-terminated strings, and that no null character is present
  * in string <x> in the first <len> chars. If none can be found, return NULL.
  */
-static forceinline struct ebmb_node *
+static forceinline struct ebxmb_node *
 ebst_lookup_len(struct ebx_root *root, const char *x, unsigned int len)
 {
-	struct ebmb_node *node;
+	struct ebxmb_node *node;
 
 	node = ebmb_lookup(root, x, len);
 	if (!node || node->key[len] != 0)
@@ -58,9 +58,9 @@ ebst_lookup_len(struct ebx_root *root, const char *x, unsigned int len)
  * It's the caller's reponsibility to use this function only on trees which
  * only contain zero-terminated strings. If none can be found, return NULL.
  */
-static forceinline struct ebmb_node *__ebst_lookup(struct ebx_root *root, const void *x)
+static forceinline struct ebxmb_node *__ebst_lookup(struct ebx_root *root, const void *x)
 {
-	struct ebmb_node *node;
+	struct ebxmb_node *node;
 	eb_troot_t *troot;
 	int bit;
 	int node_bit;
@@ -73,14 +73,14 @@ static forceinline struct ebmb_node *__ebst_lookup(struct ebx_root *root, const 
 	while (1) {
 		if ((eb_gettag(troot) == EB_LEAF)) {
 			node = container_of(eb_untag(troot, EB_LEAF),
-					    struct ebmb_node, node.branches);
+					    struct ebxmb_node, node.branches);
 			if (strcmp((char *)node->key, x) == 0)
 				return node;
 			else
 				return NULL;
 		}
 		node = container_of(eb_untag(troot, EB_NODE),
-				    struct ebmb_node, node.branches);
+				    struct ebxmb_node, node.branches);
 		node_bit = node->node.bit;
 
 		if (node_bit < 0) {
@@ -95,7 +95,7 @@ static forceinline struct ebmb_node *__ebst_lookup(struct ebx_root *root, const 
 			while (eb_gettag(troot) != EB_LEAF)
 				troot = (eb_untag(troot, EB_NODE))->b[EB_LEFT];
 			node = container_of(eb_untag(troot, EB_LEAF),
-					    struct ebmb_node, node.branches);
+					    struct ebxmb_node, node.branches);
 			return node;
 		}
 
@@ -131,15 +131,15 @@ static forceinline struct ebmb_node *__ebst_lookup(struct ebx_root *root, const 
 	}
 }
 
-/* Insert ebmb_node <new> into subtree starting at node root <root>. Only
- * new->key needs be set with the zero-terminated string key. The ebmb_node is
+/* Insert ebxmb_node <new> into subtree starting at node root <root>. Only
+ * new->key needs be set with the zero-terminated string key. The ebxmb_node is
  * returned. If root->b[EB_RGHT]==1, the tree may only contain unique keys. The
  * caller is responsible for properly terminating the key with a zero.
  */
-static forceinline struct ebmb_node *
-__ebst_insert(struct ebx_root *root, struct ebmb_node *new)
+static forceinline struct ebxmb_node *
+__ebst_insert(struct ebx_root *root, struct ebxmb_node *new)
 {
-	struct ebmb_node *old;
+	struct ebxmb_node *old;
 	unsigned int side;
 	eb_troot_t *troot;
 	eb_troot_t *root_right;
@@ -177,7 +177,7 @@ __ebst_insert(struct ebx_root *root, struct ebmb_node *new)
 			eb_troot_t *new_leaf, *old_leaf;
 
 			old = container_of(eb_untag(troot, EB_LEAF),
-					    struct ebmb_node, node.branches);
+					    struct ebxmb_node, node.branches);
 
 			new_left = eb_dotag(&new->node.branches, EB_LEFT);
 			new_rght = eb_dotag(&new->node.branches, EB_RGHT);
@@ -242,7 +242,7 @@ __ebst_insert(struct ebx_root *root, struct ebmb_node *new)
 
 		/* OK we're walking down this link */
 		old = container_of(eb_untag(troot, EB_NODE),
-				   struct ebmb_node, node.branches);
+				   struct ebxmb_node, node.branches);
 		old_node_bit = old->node.bit;
 
 		/* Stop going down when we don't have common bits anymore. We
@@ -265,7 +265,7 @@ __ebst_insert(struct ebx_root *root, struct ebmb_node *new)
 				 */
 				struct ebx_node *ret;
 				ret = eb_insert_dup(&old->node, &new->node);
-				return container_of(ret, struct ebmb_node, node);
+				return container_of(ret, struct ebxmb_node, node);
 			}
 			/* OK so let's walk down */
 		}

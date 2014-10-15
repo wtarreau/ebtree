@@ -43,7 +43,7 @@
  * The 'node.bit' value here works differently from scalar types, as it contains
  * the number of identical bits between the two branches.
  */
-struct ebmb_node {
+struct ebxmb_node {
 	struct ebx_node node; /* the tree node, must be at the beginning */
 	unsigned char key[0]; /* the key, its size depends on the application */
 };
@@ -55,57 +55,57 @@ struct ebmb_node {
  */
 
 /* Return leftmost node in the tree, or NULL if none */
-static forceinline struct ebmb_node *ebmb_first(struct ebx_root *root)
+static forceinline struct ebxmb_node *ebmb_first(struct ebx_root *root)
 {
-	return ebmb_entry(eb_first(root), struct ebmb_node, node);
+	return ebmb_entry(eb_first(root), struct ebxmb_node, node);
 }
 
 /* Return rightmost node in the tree, or NULL if none */
-static forceinline struct ebmb_node *ebmb_last(struct ebx_root *root)
+static forceinline struct ebxmb_node *ebmb_last(struct ebx_root *root)
 {
-	return ebmb_entry(eb_last(root), struct ebmb_node, node);
+	return ebmb_entry(eb_last(root), struct ebxmb_node, node);
 }
 
 /* Return next node in the tree, or NULL if none */
-static forceinline struct ebmb_node *ebmb_next(struct ebmb_node *ebmb)
+static forceinline struct ebxmb_node *ebmb_next(struct ebxmb_node *ebmb)
 {
-	return ebmb_entry(eb_next(&ebmb->node), struct ebmb_node, node);
+	return ebmb_entry(eb_next(&ebmb->node), struct ebxmb_node, node);
 }
 
 /* Return previous node in the tree, or NULL if none */
-static forceinline struct ebmb_node *ebmb_prev(struct ebmb_node *ebmb)
+static forceinline struct ebxmb_node *ebmb_prev(struct ebxmb_node *ebmb)
 {
-	return ebmb_entry(eb_prev(&ebmb->node), struct ebmb_node, node);
+	return ebmb_entry(eb_prev(&ebmb->node), struct ebxmb_node, node);
 }
 
 /* Return next leaf node within a duplicate sub-tree, or NULL if none. */
-static inline struct ebmb_node *ebmb_next_dup(struct ebmb_node *ebmb)
+static inline struct ebxmb_node *ebmb_next_dup(struct ebxmb_node *ebmb)
 {
-	return ebmb_entry(eb_next_dup(&ebmb->node), struct ebmb_node, node);
+	return ebmb_entry(eb_next_dup(&ebmb->node), struct ebxmb_node, node);
 }
 
 /* Return previous leaf node within a duplicate sub-tree, or NULL if none. */
-static inline struct ebmb_node *ebmb_prev_dup(struct ebmb_node *ebmb)
+static inline struct ebxmb_node *ebmb_prev_dup(struct ebxmb_node *ebmb)
 {
-	return ebmb_entry(eb_prev_dup(&ebmb->node), struct ebmb_node, node);
+	return ebmb_entry(eb_prev_dup(&ebmb->node), struct ebxmb_node, node);
 }
 
 /* Return next node in the tree, skipping duplicates, or NULL if none */
-static forceinline struct ebmb_node *ebmb_next_unique(struct ebmb_node *ebmb)
+static forceinline struct ebxmb_node *ebmb_next_unique(struct ebxmb_node *ebmb)
 {
-	return ebmb_entry(eb_next_unique(&ebmb->node), struct ebmb_node, node);
+	return ebmb_entry(eb_next_unique(&ebmb->node), struct ebxmb_node, node);
 }
 
 /* Return previous node in the tree, skipping duplicates, or NULL if none */
-static forceinline struct ebmb_node *ebmb_prev_unique(struct ebmb_node *ebmb)
+static forceinline struct ebxmb_node *ebmb_prev_unique(struct ebxmb_node *ebmb)
 {
-	return ebmb_entry(eb_prev_unique(&ebmb->node), struct ebmb_node, node);
+	return ebmb_entry(eb_prev_unique(&ebmb->node), struct ebxmb_node, node);
 }
 
 /* Delete node from the tree if it was linked in. Mark the node unused. Note
  * that this function relies on a non-inlined generic function: eb_delete.
  */
-static forceinline void ebmb_delete(struct ebmb_node *ebmb)
+static forceinline void ebmb_delete(struct ebxmb_node *ebmb)
 {
 	eb_delete(&ebmb->node);
 }
@@ -113,18 +113,18 @@ static forceinline void ebmb_delete(struct ebmb_node *ebmb)
 /* The following functions are not inlined by default. They are declared
  * in ebmbtree.c, which simply relies on their inline version.
  */
-REGPRM3 struct ebmb_node *ebmb_lookup(struct ebx_root *root, const void *x, unsigned int len);
-REGPRM3 struct ebmb_node *ebmb_insert(struct ebx_root *root, struct ebmb_node *new, unsigned int len);
-REGPRM2 struct ebmb_node *ebmb_lookup_longest(struct ebx_root *root, const void *x);
-REGPRM3 struct ebmb_node *ebmb_lookup_prefix(struct ebx_root *root, const void *x, unsigned int pfx);
-REGPRM3 struct ebmb_node *ebmb_insert_prefix(struct ebx_root *root, struct ebmb_node *new, unsigned int len);
+REGPRM3 struct ebxmb_node *ebmb_lookup(struct ebx_root *root, const void *x, unsigned int len);
+REGPRM3 struct ebxmb_node *ebmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len);
+REGPRM2 struct ebxmb_node *ebmb_lookup_longest(struct ebx_root *root, const void *x);
+REGPRM3 struct ebxmb_node *ebmb_lookup_prefix(struct ebx_root *root, const void *x, unsigned int pfx);
+REGPRM3 struct ebxmb_node *ebmb_insert_prefix(struct ebx_root *root, struct ebxmb_node *new, unsigned int len);
 
 /* The following functions are less likely to be used directly, because their
  * code is larger. The non-inlined version is preferred.
  */
 
 /* Delete node from the tree if it was linked in. Mark the node unused. */
-static forceinline void __ebmb_delete(struct ebmb_node *ebmb)
+static forceinline void __ebmb_delete(struct ebxmb_node *ebmb)
 {
 	__eb_delete(&ebmb->node);
 }
@@ -136,9 +136,9 @@ static forceinline void __ebmb_delete(struct ebmb_node *ebmb)
  * lookup string keys by prefix if all keys in the tree are zero-terminated. If
  * no match is found, NULL is returned. Returns first node if <len> is zero.
  */
-static forceinline struct ebmb_node *__ebmb_lookup(struct ebx_root *root, const void *x, unsigned int len)
+static forceinline struct ebxmb_node *__ebmb_lookup(struct ebx_root *root, const void *x, unsigned int len)
 {
-	struct ebmb_node *node;
+	struct ebxmb_node *node;
 	eb_troot_t *troot;
 	int pos, side;
 	int node_bit;
@@ -154,14 +154,14 @@ static forceinline struct ebmb_node *__ebmb_lookup(struct ebx_root *root, const 
 	while (1) {
 		if (eb_gettag(troot) == EB_LEAF) {
 			node = container_of(eb_untag(troot, EB_LEAF),
-					    struct ebmb_node, node.branches);
+					    struct ebxmb_node, node.branches);
 			if (memcmp(node->key + pos, x, len) != 0)
 				goto ret_null;
 			else
 				goto ret_node;
 		}
 		node = container_of(eb_untag(troot, EB_NODE),
-				    struct ebmb_node, node.branches);
+				    struct ebxmb_node, node.branches);
 
 		node_bit = node->node.bit;
 		if (node_bit < 0) {
@@ -214,24 +214,24 @@ static forceinline struct ebmb_node *__ebmb_lookup(struct ebx_root *root, const 
 	while (eb_gettag(troot) != EB_LEAF)
 		troot = (eb_untag(troot, EB_NODE))->b[EB_LEFT];
 	node = container_of(eb_untag(troot, EB_LEAF),
-			    struct ebmb_node, node.branches);
+			    struct ebxmb_node, node.branches);
  ret_node:
 	return node;
  ret_null:
 	return NULL;
 }
 
-/* Insert ebmb_node <new> into subtree starting at node root <root>.
- * Only new->key needs be set with the key. The ebmb_node is returned.
+/* Insert ebxmb_node <new> into subtree starting at node root <root>.
+ * Only new->key needs be set with the key. The ebxmb_node is returned.
  * If root->b[EB_RGHT]==1, the tree may only contain unique keys. The
  * len is specified in bytes. It is absolutely mandatory that this length
  * is the same for all keys in the tree. This function cannot be used to
  * insert strings.
  */
-static forceinline struct ebmb_node *
-__ebmb_insert(struct ebx_root *root, struct ebmb_node *new, unsigned int len)
+static forceinline struct ebxmb_node *
+__ebmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 {
-	struct ebmb_node *old;
+	struct ebxmb_node *old;
 	unsigned int side;
 	eb_troot_t *troot, **up_ptr;
 	eb_troot_t *root_right;
@@ -269,7 +269,7 @@ __ebmb_insert(struct ebx_root *root, struct ebmb_node *new, unsigned int len)
 		if (unlikely(eb_gettag(troot) == EB_LEAF)) {
 			/* insert above a leaf */
 			old = container_of(eb_untag(troot, EB_LEAF),
-					    struct ebmb_node, node.branches);
+					    struct ebxmb_node, node.branches);
 			new->node.node_p = old->node.leaf_p;
 			up_ptr = &old->node.leaf_p;
 			goto check_bit_and_break;
@@ -277,7 +277,7 @@ __ebmb_insert(struct ebx_root *root, struct ebmb_node *new, unsigned int len)
 
 		/* OK we're walking down this link */
 		old = container_of(eb_untag(troot, EB_NODE),
-				   struct ebmb_node, node.branches);
+				   struct ebxmb_node, node.branches);
 		old_node_bit = old->node.bit;
 
 		if (unlikely(old->node.bit < 0)) {
@@ -348,7 +348,7 @@ __ebmb_insert(struct ebx_root *root, struct ebmb_node *new, unsigned int len)
 			/* there was already a dup tree below */
 			struct ebx_node *ret;
 			ret = eb_insert_dup(&old->node, &new->node);
-			return container_of(ret, struct ebmb_node, node);
+			return container_of(ret, struct ebxmb_node, node);
 		}
 		/* otherwise fall through */
 	}
@@ -383,9 +383,9 @@ __ebmb_insert(struct ebx_root *root, struct ebmb_node *new, unsigned int len)
  * having a byte at the end of <x> which cannot be part of any prefix, typically
  * the trailing zero for a string. If none can be found, return NULL.
  */
-static forceinline struct ebmb_node *__ebmb_lookup_longest(struct ebx_root *root, const void *x)
+static forceinline struct ebxmb_node *__ebmb_lookup_longest(struct ebx_root *root, const void *x)
 {
-	struct ebmb_node *node;
+	struct ebxmb_node *node;
 	eb_troot_t *troot, *cover;
 	int pos, side;
 	int node_bit;
@@ -399,14 +399,14 @@ static forceinline struct ebmb_node *__ebmb_lookup_longest(struct ebx_root *root
 	while (1) {
 		if ((eb_gettag(troot) == EB_LEAF)) {
 			node = container_of(eb_untag(troot, EB_LEAF),
-					    struct ebmb_node, node.branches);
+					    struct ebxmb_node, node.branches);
 			if (check_bits((unsigned char *)x - pos, node->key, pos, node->node.pfx))
 				goto not_found;
 
 			return node;
 		}
 		node = container_of(eb_untag(troot, EB_NODE),
-				    struct ebmb_node, node.branches);
+				    struct ebxmb_node, node.branches);
 
 		node_bit = node->node.bit;
 		if (node_bit < 0) {
@@ -421,7 +421,7 @@ static forceinline struct ebmb_node *__ebmb_lookup_longest(struct ebx_root *root
 			while (eb_gettag(troot) != EB_LEAF)
 				troot = (eb_untag(troot, EB_NODE))->b[EB_LEFT];
 			node = container_of(eb_untag(troot, EB_LEAF),
-					    struct ebmb_node, node.branches);
+					    struct ebxmb_node, node.branches);
 			return node;
 		}
 
@@ -467,7 +467,7 @@ static forceinline struct ebmb_node *__ebmb_lookup_longest(struct ebx_root *root
 
  not_found:
 	/* Walk down last cover tre if it exists. It does not matter if cover is NULL */
-	return ebmb_entry(eb_walk_down(cover, EB_LEFT), struct ebmb_node, node);
+	return ebmb_entry(eb_walk_down(cover, EB_LEFT), struct ebxmb_node, node);
 }
 
 
@@ -477,9 +477,9 @@ static forceinline struct ebmb_node *__ebmb_lookup_longest(struct ebx_root *root
  * having a byte at the end of <x> which cannot be part of any prefix, typically
  * the trailing zero for a string. If none can be found, return NULL.
  */
-static forceinline struct ebmb_node *__ebmb_lookup_prefix(struct ebx_root *root, const void *x, unsigned int pfx)
+static forceinline struct ebxmb_node *__ebmb_lookup_prefix(struct ebx_root *root, const void *x, unsigned int pfx)
 {
-	struct ebmb_node *node;
+	struct ebxmb_node *node;
 	eb_troot_t *troot;
 	int pos, side;
 	int node_bit;
@@ -492,7 +492,7 @@ static forceinline struct ebmb_node *__ebmb_lookup_prefix(struct ebx_root *root,
 	while (1) {
 		if ((eb_gettag(troot) == EB_LEAF)) {
 			node = container_of(eb_untag(troot, EB_LEAF),
-					    struct ebmb_node, node.branches);
+					    struct ebxmb_node, node.branches);
 			if (node->node.pfx != pfx)
 				return NULL;
 			if (check_bits((unsigned char *)x - pos, node->key, pos, node->node.pfx))
@@ -500,7 +500,7 @@ static forceinline struct ebmb_node *__ebmb_lookup_prefix(struct ebx_root *root,
 			return node;
 		}
 		node = container_of(eb_untag(troot, EB_NODE),
-				    struct ebmb_node, node.branches);
+				    struct ebxmb_node, node.branches);
 
 		node_bit = node->node.bit;
 		if (node_bit < 0) {
@@ -517,7 +517,7 @@ static forceinline struct ebmb_node *__ebmb_lookup_prefix(struct ebx_root *root,
 			while (eb_gettag(troot) != EB_LEAF)
 				troot = (eb_untag(troot, EB_NODE))->b[EB_LEFT];
 			node = container_of(eb_untag(troot, EB_LEAF),
-					    struct ebmb_node, node.branches);
+					    struct ebxmb_node, node.branches);
 			return node;
 		}
 
@@ -565,19 +565,19 @@ static forceinline struct ebmb_node *__ebmb_lookup_prefix(struct ebx_root *root,
 }
 
 
-/* Insert ebmb_node <new> into a prefix subtree starting at node root <root>.
+/* Insert ebxmb_node <new> into a prefix subtree starting at node root <root>.
  * Only new->key and new->pfx need be set with the key and its prefix length.
  * Note that bits between <pfx> and <len> are theorically ignored and should be
  * zero, as it is not certain yet that they will always be ignored everywhere
  * (eg in bit compare functions).
- * The ebmb_node is returned.
+ * The ebxmb_node is returned.
  * If root->b[EB_RGHT]==1, the tree may only contain unique keys. The
  * len is specified in bytes.
  */
-static forceinline struct ebmb_node *
-__ebmb_insert_prefix(struct ebx_root *root, struct ebmb_node *new, unsigned int len)
+static forceinline struct ebxmb_node *
+__ebmb_insert_prefix(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 {
-	struct ebmb_node *old;
+	struct ebxmb_node *old;
 	unsigned int side;
 	eb_troot_t *troot, **up_ptr;
 	eb_troot_t *root_right;
@@ -621,7 +621,7 @@ __ebmb_insert_prefix(struct ebx_root *root, struct ebmb_node *new, unsigned int 
 			 * well be part of a cover node.
 			 */
 			old = container_of(eb_untag(troot, EB_LEAF),
-					    struct ebmb_node, node.branches);
+					    struct ebxmb_node, node.branches);
 			new->node.node_p = old->node.leaf_p;
 			up_ptr = &old->node.leaf_p;
 			goto check_bit_and_break;
@@ -629,7 +629,7 @@ __ebmb_insert_prefix(struct ebx_root *root, struct ebmb_node *new, unsigned int 
 
 		/* OK we're walking down this link */
 		old = container_of(eb_untag(troot, EB_NODE),
-				   struct ebmb_node, node.branches);
+				   struct ebxmb_node, node.branches);
 		old_node_bit = old->node.bit;
 		/* Note that old_node_bit can be :
 		 *   < 0    : dup tree
@@ -778,7 +778,7 @@ __ebmb_insert_prefix(struct ebx_root *root, struct ebmb_node *new, unsigned int 
 				/* there was already a dup tree below */
 				struct ebx_node *ret;
 				ret = eb_insert_dup(&old->node, &new->node);
-				return container_of(ret, struct ebmb_node, node);
+				return container_of(ret, struct ebxmb_node, node);
 			}
 			/* otherwise fall through to insert first duplicate */
 		}

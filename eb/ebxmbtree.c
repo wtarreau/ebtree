@@ -31,19 +31,19 @@
 /* Find the first occurence of a key of <len> bytes in the tree <root>.
  * If none can be found, return NULL.
  */
-REGPRM3 struct ebmb_node *
+REGPRM3 struct ebxmb_node *
 ebmb_lookup(struct ebx_root *root, const void *x, unsigned int len)
 {
 	return __ebmb_lookup(root, x, len);
 }
 
-/* Insert ebmb_node <new> into subtree starting at node root <root>.
- * Only new->key needs be set with the key. The ebmb_node is returned.
+/* Insert ebxmb_node <new> into subtree starting at node root <root>.
+ * Only new->key needs be set with the key. The ebxmb_node is returned.
  * If root->b[EB_RGHT]==1, the tree may only contain unique keys. The
  * len is specified in bytes.
  */
-REGPRM3 struct ebmb_node *
-ebmb_insert(struct ebx_root *root, struct ebmb_node *new, unsigned int len)
+REGPRM3 struct ebxmb_node *
+ebmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 {
 	return __ebmb_insert(root, new, len);
 }
@@ -52,7 +52,7 @@ ebmb_insert(struct ebx_root *root, struct ebmb_node *new, unsigned int len)
  * tree <root>. It's the caller's responsibility to ensure that key <x> is at
  * least as long as the keys in the tree. If none can be found, return NULL.
  */
-REGPRM2 struct ebmb_node *
+REGPRM2 struct ebxmb_node *
 ebmb_lookup_longest(struct ebx_root *root, const void *x)
 {
 	return __ebmb_lookup_longest(root, x);
@@ -61,23 +61,23 @@ ebmb_lookup_longest(struct ebx_root *root, const void *x)
 /* Find the first occurence of a prefix matching a key <x> of <pfx> BITS in the
  * tree <root>. If none can be found, return NULL.
  */
-REGPRM3 struct ebmb_node *
+REGPRM3 struct ebxmb_node *
 ebmb_lookup_prefix(struct ebx_root *root, const void *x, unsigned int pfx)
 {
 	return __ebmb_lookup_prefix(root, x, pfx);
 }
 
-/* Insert ebmb_node <new> into a prefix subtree starting at node root <root>.
+/* Insert ebxmb_node <new> into a prefix subtree starting at node root <root>.
  * Only new->key and new->pfx need be set with the key and its prefix length.
  * Note that bits between <pfx> and <len> are theorically ignored and should be
  * zero, as it is not certain yet that they will always be ignored everywhere
  * (eg in bit compare functions).
- * The ebmb_node is returned.
+ * The ebxmb_node is returned.
  * If root->b[EB_RGHT]==1, the tree may only contain unique keys. The
  * len is specified in bytes.
  */
-REGPRM3 struct ebmb_node *
-ebmb_insert_prefix(struct ebx_root *root, struct ebmb_node *new, unsigned int len)
+REGPRM3 struct ebxmb_node *
+ebmb_insert_prefix(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 {
 	return __ebmb_insert_prefix(root, new, len);
 }
