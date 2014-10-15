@@ -52,7 +52,7 @@ static forceinline struct ebpt_node *
 __ebim_lookup(struct ebx_root *root, const void *x, unsigned int len)
 {
 	struct ebpt_node *node;
-	eb_troot_t *troot;
+	ebx_troot_t *troot;
 	int pos, side;
 	int node_bit;
 
@@ -144,8 +144,8 @@ __ebim_insert(struct ebx_root *root, struct ebpt_node *new, unsigned int len)
 {
 	struct ebpt_node *old;
 	unsigned int side;
-	eb_troot_t *troot;
-	eb_troot_t *root_right;
+	ebx_troot_t *troot;
+	ebx_troot_t *root_right;
 	int diff;
 	int bit;
 	int old_node_bit;
@@ -178,8 +178,8 @@ __ebim_insert(struct ebx_root *root, struct ebpt_node *new, unsigned int len)
 	bit = 0;
 	while (1) {
 		if (unlikely(eb_gettag(troot) == EB_LEAF)) {
-			eb_troot_t *new_left, *new_rght;
-			eb_troot_t *new_leaf, *old_leaf;
+			ebx_troot_t *new_left, *new_rght;
+			ebx_troot_t *new_leaf, *old_leaf;
 
 			old = container_of(eb_untag(troot, EB_LEAF),
 					    struct ebpt_node, node.branches);
@@ -268,8 +268,8 @@ __ebim_insert(struct ebx_root *root, struct ebpt_node *new, unsigned int len)
 			 * <old>, and set ->bit to designate the lowest bit position in <new>
 			 * which applies to ->branches.b[].
 			 */
-			eb_troot_t *new_left, *new_rght;
-			eb_troot_t *new_leaf, *old_node;
+			ebx_troot_t *new_left, *new_rght;
+			ebx_troot_t *new_leaf, *old_node;
 
 		dup_tree:
 			new_left = eb_dotag(&new->node.branches, EB_LEFT);
