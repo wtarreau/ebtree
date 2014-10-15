@@ -63,4 +63,7 @@
 
 #include "ebxtree.h"
 
+/* and now macros that we define based on generic ones */
+#define eb_entry(ptr, type, member) ebx_entry(ptr, type, member)
+
 #endif

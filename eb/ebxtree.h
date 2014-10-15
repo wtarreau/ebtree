@@ -387,7 +387,7 @@ struct ebx_node {
 } __attribute__((packed));
 
 /* Return the structure of type <type> whose member <member> points to <ptr> */
-#define eb_entry(ptr, type, member) container_of(ptr, type, member)
+#define ebx_entry(ptr, type, member) container_of(ptr, type, member)
 
 /* The root of a tree is an ebx_root initialized with both pointers NULL.
  * During its life, only the left pointer will change. The right one will
