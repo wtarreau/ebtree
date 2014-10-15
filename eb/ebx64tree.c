@@ -28,22 +28,22 @@
 
 #include "ebx64tree.h"
 
-REGPRM2 struct eb64_node *eb64_insert(struct ebx_root *root, struct eb64_node *new)
+REGPRM2 struct ebx64_node *eb64_insert(struct ebx_root *root, struct ebx64_node *new)
 {
 	return __eb64_insert(root, new);
 }
 
-REGPRM2 struct eb64_node *eb64i_insert(struct ebx_root *root, struct eb64_node *new)
+REGPRM2 struct ebx64_node *eb64i_insert(struct ebx_root *root, struct ebx64_node *new)
 {
 	return __eb64i_insert(root, new);
 }
 
-REGPRM2 struct eb64_node *eb64_lookup(struct ebx_root *root, u64 x)
+REGPRM2 struct ebx64_node *eb64_lookup(struct ebx_root *root, u64 x)
 {
 	return __eb64_lookup(root, x);
 }
 
-REGPRM2 struct eb64_node *eb64i_lookup(struct ebx_root *root, s64 x)
+REGPRM2 struct ebx64_node *eb64i_lookup(struct ebx_root *root, s64 x)
 {
 	return __eb64i_lookup(root, x);
 }
@@ -52,9 +52,9 @@ REGPRM2 struct eb64_node *eb64i_lookup(struct ebx_root *root, s64 x)
  * Find the last occurrence of the highest key in the tree <root>, which is
  * equal to or less than <x>. NULL is returned is no key matches.
  */
-REGPRM2 struct eb64_node *eb64_lookup_le(struct ebx_root *root, u64 x)
+REGPRM2 struct ebx64_node *eb64_lookup_le(struct ebx_root *root, u64 x)
 {
-	struct eb64_node *node;
+	struct ebx64_node *node;
 	eb_troot_t *troot;
 
 	troot = root->b[EB_LEFT];
@@ -68,7 +68,7 @@ REGPRM2 struct eb64_node *eb64_lookup_le(struct ebx_root *root, u64 x)
 			 * node or its next one if the former is too small.
 			 */
 			node = container_of(eb_untag(troot, EB_LEAF),
-					    struct eb64_node, node.branches);
+					    struct ebx64_node, node.branches);
 			if (node->key <= x)
 				return node;
 			/* return prev */
@@ -76,7 +76,7 @@ REGPRM2 struct eb64_node *eb64_lookup_le(struct ebx_root *root, u64 x)
 			break;
 		}
 		node = container_of(eb_untag(troot, EB_NODE),
-				    struct eb64_node, node.branches);
+				    struct ebx64_node, node.branches);
 
 		if (node->node.bit < 0) {
 			/* We're at the top of a dup tree. Either we got a
@@ -92,7 +92,7 @@ REGPRM2 struct eb64_node *eb64_lookup_le(struct ebx_root *root, u64 x)
 				while (eb_gettag(troot) != EB_LEAF)
 					troot = (eb_untag(troot, EB_NODE))->b[EB_RGHT];
 				return container_of(eb_untag(troot, EB_LEAF),
-						    struct eb64_node, node.branches);
+						    struct ebx64_node, node.branches);
 			}
 			/* return prev */
 			troot = node->node.node_p;
@@ -106,7 +106,7 @@ REGPRM2 struct eb64_node *eb64_lookup_le(struct ebx_root *root, u64 x)
 			 */
 			if ((node->key >> node->node.bit) < (x >> node->node.bit)) {
 				troot = node->node.branches.b[EB_RGHT];
-				return eb64_entry(eb_walk_down(troot, EB_RGHT), struct eb64_node, node);
+				return eb64_entry(eb_walk_down(troot, EB_RGHT), struct ebx64_node, node);
 			}
 
 			/* Further values will be too high here, so return the prev
@@ -132,7 +132,7 @@ REGPRM2 struct eb64_node *eb64_lookup_le(struct ebx_root *root, u64 x)
 	}
 	/* Note that <troot> cannot be NULL at this stage */
 	troot = (eb_untag(troot, EB_RGHT))->b[EB_LEFT];
-	node = eb64_entry(eb_walk_down(troot, EB_RGHT), struct eb64_node, node);
+	node = eb64_entry(eb_walk_down(troot, EB_RGHT), struct ebx64_node, node);
 	return node;
 }
 
@@ -140,9 +140,9 @@ REGPRM2 struct eb64_node *eb64_lookup_le(struct ebx_root *root, u64 x)
  * Find the first occurrence of the lowest key in the tree <root>, which is
  * equal to or greater than <x>. NULL is returned is no key matches.
  */
-REGPRM2 struct eb64_node *eb64_lookup_ge(struct ebx_root *root, u64 x)
+REGPRM2 struct ebx64_node *eb64_lookup_ge(struct ebx_root *root, u64 x)
 {
-	struct eb64_node *node;
+	struct ebx64_node *node;
 	eb_troot_t *troot;
 
 	troot = root->b[EB_LEFT];
@@ -156,7 +156,7 @@ REGPRM2 struct eb64_node *eb64_lookup_ge(struct ebx_root *root, u64 x)
 			 * node or its next one if the former is too small.
 			 */
 			node = container_of(eb_untag(troot, EB_LEAF),
-					    struct eb64_node, node.branches);
+					    struct ebx64_node, node.branches);
 			if (node->key >= x)
 				return node;
 			/* return next */
@@ -164,7 +164,7 @@ REGPRM2 struct eb64_node *eb64_lookup_ge(struct ebx_root *root, u64 x)
 			break;
 		}
 		node = container_of(eb_untag(troot, EB_NODE),
-				    struct eb64_node, node.branches);
+				    struct ebx64_node, node.branches);
 
 		if (node->node.bit < 0) {
 			/* We're at the top of a dup tree. Either we got a
@@ -180,7 +180,7 @@ REGPRM2 struct eb64_node *eb64_lookup_ge(struct ebx_root *root, u64 x)
 				while (eb_gettag(troot) != EB_LEAF)
 					troot = (eb_untag(troot, EB_NODE))->b[EB_LEFT];
 				return container_of(eb_untag(troot, EB_LEAF),
-						    struct eb64_node, node.branches);
+						    struct ebx64_node, node.branches);
 			}
 			/* return next */
 			troot = node->node.node_p;
@@ -194,7 +194,7 @@ REGPRM2 struct eb64_node *eb64_lookup_ge(struct ebx_root *root, u64 x)
 			 */
 			if ((node->key >> node->node.bit) > (x >> node->node.bit)) {
 				troot = node->node.branches.b[EB_LEFT];
-				return eb64_entry(eb_walk_down(troot, EB_LEFT), struct eb64_node, node);
+				return eb64_entry(eb_walk_down(troot, EB_LEFT), struct ebx64_node, node);
 			}
 
 			/* Further values will be too low here, so return the next
@@ -219,6 +219,6 @@ REGPRM2 struct eb64_node *eb64_lookup_ge(struct ebx_root *root, u64 x)
 	if (eb_clrtag(troot) == NULL)
 		return NULL;
 
-	node = eb64_entry(eb_walk_down(troot, EB_LEFT), struct eb64_node, node);
+	node = eb64_entry(eb_walk_down(troot, EB_LEFT), struct ebx64_node, node);
 	return node;
 }
