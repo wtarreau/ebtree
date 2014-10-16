@@ -49,7 +49,7 @@ REGPRM3 struct ebxpt_node *ebim_insert(struct ebx_root *root, struct ebxpt_node 
  * no match is found, NULL is returned. Returns first node if <len> is zero.
  */
 static forceinline struct ebxpt_node *
-__ebim_lookup(struct ebx_root *root, const void *x, unsigned int len)
+__ebxim_lookup(struct ebx_root *root, const void *x, unsigned int len)
 {
 	struct ebxpt_node *node;
 	ebx_troot_t *troot;
@@ -140,7 +140,7 @@ __ebim_lookup(struct ebx_root *root, const void *x, unsigned int len)
  * len is specified in bytes.
  */
 static forceinline struct ebxpt_node *
-__ebim_insert(struct ebx_root *root, struct ebxpt_node *new, unsigned int len)
+__ebxim_insert(struct ebx_root *root, struct ebxpt_node *new, unsigned int len)
 {
 	struct ebxpt_node *old;
 	unsigned int side;

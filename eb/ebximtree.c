@@ -35,7 +35,7 @@
 REGPRM3 struct ebxpt_node *
 ebim_lookup(struct ebx_root *root, const void *x, unsigned int len)
 {
-	return __ebim_lookup(root, x, len);
+	return __ebxim_lookup(root, x, len);
 }
 
 /* Insert ebxpt_node <new> into subtree starting at node root <root>.
@@ -46,5 +46,5 @@ ebim_lookup(struct ebx_root *root, const void *x, unsigned int len)
 REGPRM3 struct ebxpt_node *
 ebim_insert(struct ebx_root *root, struct ebxpt_node *new, unsigned int len)
 {
-	return __ebim_insert(root, new, len);
+	return __ebxim_insert(root, new, len);
 }
