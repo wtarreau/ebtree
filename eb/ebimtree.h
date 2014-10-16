@@ -13,7 +13,13 @@
 #undef __ebxim_insert
 #define __ebxim_insert __ebim_insert
 
+/* exported functions below */
+#undef ebxim_lookup
+#define ebxim_lookup ebim_lookup
+#undef ebxim_insert
+#define ebxim_insert ebim_insert
 
+#include "ebtree.h"
 #include "ebmbtree.h"
 #include "ebximtree.h"
 

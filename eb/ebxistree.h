@@ -54,7 +54,7 @@ ebis_lookup_len(struct ebx_root *root, const char *x, unsigned int len)
 {
 	struct ebxpt_node *node;
 
-	node = ebim_lookup(root, x, len);
+	node = ebxim_lookup(root, x, len);
 	if (!node || ((const char *)node->key)[len] != 0)
 		return NULL;
 	return node;

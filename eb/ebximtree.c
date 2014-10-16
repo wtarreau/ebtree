@@ -33,7 +33,7 @@
  * If none can be found, return NULL.
  */
 REGPRM3 struct ebxpt_node *
-ebim_lookup(struct ebx_root *root, const void *x, unsigned int len)
+ebxim_lookup(struct ebx_root *root, const void *x, unsigned int len)
 {
 	return __ebxim_lookup(root, x, len);
 }
@@ -44,7 +44,7 @@ ebim_lookup(struct ebx_root *root, const void *x, unsigned int len)
  * len is specified in bytes.
  */
 REGPRM3 struct ebxpt_node *
-ebim_insert(struct ebx_root *root, struct ebxpt_node *new, unsigned int len)
+ebxim_insert(struct ebx_root *root, struct ebxpt_node *new, unsigned int len)
 {
 	return __ebxim_insert(root, new, len);
 }
