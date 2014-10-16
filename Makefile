@@ -30,7 +30,7 @@ test%: test%.c libebtree.a
 	$(CC) $(CFLAGS) -I$(COMMON_DIR) -I$(EB_DIR) -o $@ $< -L. -lebtree
 
 clean:
-	-rm -fv libebtree.a $(OBJS) *~ *.rej core $(TEST_BIN) ${EXAMPLES}
+	-rm -fv libebtree.a $(OBJS) *~ *.rej core $(addprefix $(EB_DIR)/,*~ *.rej core) $(TEST_BIN) ${EXAMPLES}
 
 ifeq ($(wildcard .git),.git)
 VERSION := $(shell [ -d .git/. ] && ref=`(git describe --tags --match 'v*') 2>/dev/null` && ref=$${ref%-g*} && echo "$${ref\#v}")
