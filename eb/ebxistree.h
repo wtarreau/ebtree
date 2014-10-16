@@ -41,8 +41,8 @@
 /* The following functions are not inlined by default. They are declared
  * in ebistree.c, which simply relies on their inline version.
  */
-REGPRM2 struct ebxpt_node *ebis_lookup(struct ebx_root *root, const char *x);
-REGPRM2 struct ebxpt_node *ebis_insert(struct ebx_root *root, struct ebxpt_node *new);
+REGPRM2 struct ebxpt_node *ebxis_lookup(struct ebx_root *root, const char *x);
+REGPRM2 struct ebxpt_node *ebxis_insert(struct ebx_root *root, struct ebxpt_node *new);
 
 /* Find the first occurence of a length <len> string <x> in the tree <root>.
  * It's the caller's reponsibility to use this function only on trees which
@@ -50,7 +50,7 @@ REGPRM2 struct ebxpt_node *ebis_insert(struct ebx_root *root, struct ebxpt_node 
  * in string <x> in the first <len> chars. If none can be found, return NULL.
  */
 static forceinline struct ebxpt_node *
-ebis_lookup_len(struct ebx_root *root, const char *x, unsigned int len)
+ebxis_lookup_len(struct ebx_root *root, const char *x, unsigned int len)
 {
 	struct ebxpt_node *node;
 

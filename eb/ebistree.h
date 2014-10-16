@@ -13,6 +13,12 @@
 #undef __ebxis_insert
 #define __ebxis_insert __ebis_insert
 
+/* exported functions below */
+#undef ebxis_lookup
+#define ebxis_lookup ebis_lookup
+#undef ebxis_insert
+#define ebxis_insert ebis_insert
+
 #include "ebtree.h"
 #include "ebmbtree.h"
 #include "ebxistree.h"
