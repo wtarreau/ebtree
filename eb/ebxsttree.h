@@ -58,7 +58,7 @@ ebst_lookup_len(struct ebx_root *root, const char *x, unsigned int len)
  * It's the caller's reponsibility to use this function only on trees which
  * only contain zero-terminated strings. If none can be found, return NULL.
  */
-static forceinline struct ebxmb_node *__ebst_lookup(struct ebx_root *root, const void *x)
+static forceinline struct ebxmb_node *__ebxst_lookup(struct ebx_root *root, const void *x)
 {
 	struct ebxmb_node *node;
 	ebx_troot_t *troot;
@@ -137,7 +137,7 @@ static forceinline struct ebxmb_node *__ebst_lookup(struct ebx_root *root, const
  * caller is responsible for properly terminating the key with a zero.
  */
 static forceinline struct ebxmb_node *
-__ebst_insert(struct ebx_root *root, struct ebxmb_node *new)
+__ebxst_insert(struct ebx_root *root, struct ebxmb_node *new)
 {
 	struct ebxmb_node *old;
 	unsigned int side;
