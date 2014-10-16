@@ -34,7 +34,7 @@
  */
 REGPRM2 struct ebxpt_node *ebis_lookup(struct ebx_root *root, const char *x)
 {
-	return __ebis_lookup(root, x);
+	return __ebxis_lookup(root, x);
 }
 
 /* Insert ebxpt_node <new> into subtree starting at node root <root>. Only
@@ -44,5 +44,5 @@ REGPRM2 struct ebxpt_node *ebis_lookup(struct ebx_root *root, const char *x)
  */
 REGPRM2 struct ebxpt_node *ebis_insert(struct ebx_root *root, struct ebxpt_node *new)
 {
-	return __ebis_insert(root, new);
+	return __ebxis_insert(root, new);
 }
