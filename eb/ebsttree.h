@@ -13,6 +13,12 @@
 #undef __ebxst_insert
 #define __ebxst_insert __ebst_insert
 
+/* exported functions below */
+#undef ebxst_lookup
+#define ebxst_lookup ebst_lookup
+#undef ebxst_insert
+#define ebxst_insert ebst_insert
+
 #include "ebtree.h"
 #include "ebmbtree.h"
 #include "ebxsttree.h"
