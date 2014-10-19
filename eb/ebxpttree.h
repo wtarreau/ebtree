@@ -27,13 +27,6 @@
 /* Return the structure of type <type> whose member <member> points to <ptr> */
 #define ebxpt_entry(ptr, type, member) container_of(ptr, type, member)
 
-/* on *almost* all platforms, a pointer can be cast into a size_t which is unsigned */
-#ifndef PTR_INT_TYPE
-#define PTR_INT_TYPE	size_t
-#endif
-
-typedef PTR_INT_TYPE ptr_t;
-
 /* This structure carries a node, a leaf, and a key. It must start with the
  * ebx_node so that it can be cast into an ebx_node. We could also have put some
  * sort of transparent union here to reduce the indirection level, but the fact
@@ -113,25 +106,25 @@ static forceinline void ebxpt_delete(struct ebxpt_node *ebpt)
 static forceinline struct ebxpt_node *ebxpt_lookup(struct ebx_root *root, void *x)
 {
 	if (sizeof(void *) == 4)
-		return (struct ebxpt_node *)ebx32_lookup(root, (u32)(PTR_INT_TYPE)x);
+		return (struct ebxpt_node *)ebx32_lookup(root, (u32)(x - NULL));
 	else
-		return (struct ebxpt_node *)ebx64_lookup(root, (u64)(PTR_INT_TYPE)x);
+		return (struct ebxpt_node *)ebx64_lookup(root, (u64)(x - NULL));
 }
 
 static forceinline struct ebxpt_node *ebxpt_lookup_le(struct ebx_root *root, void *x)
 {
 	if (sizeof(void *) == 4)
-		return (struct ebxpt_node *)ebx32_lookup_le(root, (u32)(PTR_INT_TYPE)x);
+		return (struct ebxpt_node *)ebx32_lookup_le(root, (u32)(x - NULL));
 	else
-		return (struct ebxpt_node *)ebx64_lookup_le(root, (u64)(PTR_INT_TYPE)x);
+		return (struct ebxpt_node *)ebx64_lookup_le(root, (u64)(x - NULL));
 }
 
 static forceinline struct ebxpt_node *ebxpt_lookup_ge(struct ebx_root *root, void *x)
 {
 	if (sizeof(void *) == 4)
-		return (struct ebxpt_node *)ebx32_lookup_ge(root, (u32)(PTR_INT_TYPE)x);
+		return (struct ebxpt_node *)ebx32_lookup_ge(root, (u32)(x - NULL));
 	else
-		return (struct ebxpt_node *)ebx64_lookup_ge(root, (u64)(PTR_INT_TYPE)x);
+		return (struct ebxpt_node *)ebx64_lookup_ge(root, (u64)(x - NULL));
 }
 
 static forceinline struct ebxpt_node *ebxpt_insert(struct ebx_root *root, struct ebxpt_node *new)
@@ -156,9 +149,9 @@ static forceinline void __ebxpt_delete(struct ebxpt_node *ebpt)
 static forceinline struct ebxpt_node *__ebxpt_lookup(struct ebx_root *root, void *x)
 {
 	if (sizeof(void *) == 4)
-		return (struct ebxpt_node *)__ebx32_lookup(root, (u32)(PTR_INT_TYPE)x);
+		return (struct ebxpt_node *)__ebx32_lookup(root, (u32)(x - NULL));
 	else
-		return (struct ebxpt_node *)__ebx64_lookup(root, (u64)(PTR_INT_TYPE)x);
+		return (struct ebxpt_node *)__ebx64_lookup(root, (u64)(x - NULL));
 }
 
 static forceinline struct ebxpt_node *__ebxpt_insert(struct ebx_root *root, struct ebxpt_node *new)
