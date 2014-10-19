@@ -9,10 +9,6 @@
 
 #include "ebcommon.h"
 
-/* EB_SIZE = 64 : we're using 64-bit offsets for relative pointers. */
-#undef EB_SIZE
-#define EB_SIZE 64
-
 /* The root of a tree is an ebl_root initialized with both pointers NULL.
  * During its life, only the left pointer will change. The right one will
  * always remain NULL, which is the way we detect it.
@@ -308,6 +304,8 @@ typedef s64 ebl_link_t;
 /* now include all the generic files ; their symbols
  * will be defined with our names.
  */
+#undef EB_TREE_RELATIVE
+#define EB_TREE_RELATIVE
 #include "ebxtree.h"
 #include "ebx32tree.h"
 #include "ebx64tree.h"
@@ -316,5 +314,6 @@ typedef s64 ebl_link_t;
 #include "ebxsttree.h"
 #include "ebximtree.h"
 #include "ebxistree.h"
+#undef EB_TREE_RELATIVE
 
 #endif

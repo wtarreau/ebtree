@@ -9,10 +9,6 @@
 
 #include "ebcommon.h"
 
-/* EB_SIZE = 0 : we're using an absolute pointer instead of a relative one. */
-#undef EB_SIZE
-#define EB_SIZE 0
-
 /* The root of a tree is an eba_root initialized with both pointers NULL.
  * During its life, only the left pointer will change. The right one will
  * always remain NULL, which is the way we detect it.
@@ -29,6 +25,15 @@
 
 #define EBA_TREE_HEAD(name)				\
 	struct eba_root name = EBA_ROOT
+
+/* Assigns a pointer to a link */
+#define eba_setlink(dest, troot) do { *(dest) = (troot); } while (0)
+
+/* Returns the pointer from a link */
+#define eba_getroot(a) (*(a))
+
+/* an absolute pointer is NULL only when exactly NULL (no tag) */
+#define eba_link_is_null(a) ((void *)a <= (void *)1)
 
 /* we're using absolute pointers for the links */
 typedef void *eba_link_t;
@@ -308,6 +313,7 @@ typedef void *eba_link_t;
 /* now include all the generic files ; their symbols
  * will be defined with our names.
  */
+#undef EB_TREE_RELATIVE
 #include "ebxtree.h"
 #include "ebx32tree.h"
 #include "ebx64tree.h"

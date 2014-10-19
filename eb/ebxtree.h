@@ -273,7 +273,7 @@ struct ebx_root {
  * not change the order, benchmarks have shown that it's optimal this way.
  */
 
-#if EB_SIZE > 0
+#ifdef EB_TREE_RELATIVE
 /* relative pointer mode, we must never have branches[] at position zero */
 struct ebx_node {
 	ebx_link_t       node_p;  /* link node's parent */
@@ -337,9 +337,7 @@ static inline struct ebx_node *ebx_root_to_node(struct ebx_root *root)
 	return container_of(root, struct ebx_node, branches);
 }
 
-#if EB_SIZE > 0
-/**** this is the relative pointer version ****/
-
+#ifdef EB_TREE_RELATIVE
 /* Assigns a pointer to a link.
  * NOTE: We store the pointer as a relative offset of 2 so that it can never
  * match a valid pointer. The default implementation does not consider NULL
@@ -363,21 +361,6 @@ static inline int ebx_link_is_null(ebx_link_t link)
 {
 	return link <= 1;
 }
-
-#else
-/* EB_SIZE = 0 : absolute pointer version. We directly define
- * eba_* because the caller will have #defined ebx to eba.
- */
-
-/* Assigns a pointer to a link */
-#define eba_setlink(dest, troot) do { *(dest) = (troot); } while (0)
-
-/* Returns the pointer from a link */
-#define eba_getroot(a) (*(a))
-
-/* an absolute pointer is NULL only when exactly NULL (no tag) */
-#define eba_link_is_null(a) ((void *)a <= (void *)1)
-
 #endif
 
 /* Walks down starting at root pointer <start>, and always walking on side
