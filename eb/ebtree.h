@@ -180,12 +180,14 @@
 #define __ebis_insert __ebais_insert
 
 #define ebis_lookup ebais_lookup
+#define ebis_lookup_len ebais_lookup_len
 #define ebis_insert ebais_insert
 
 #define __ebst_lookup __ebast_lookup
 #define __ebst_insert __ebast_insert
 
 #define ebst_lookup ebast_lookup
+#define ebst_lookup_len ebast_lookup_len
 #define ebst_insert ebast_insert
 
 #endif

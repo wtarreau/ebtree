@@ -277,6 +277,8 @@
 /* remap ebxsttree.c symbols and types to ebm- equivalent */
 #undef ebxst_lookup
 #define ebxst_lookup ebmst_lookup
+#undef ebxst_lookup_len
+#define ebxst_lookup_len ebmst_lookup_len
 #undef ebxst_insert
 #define ebxst_insert ebmst_insert
 
@@ -301,6 +303,8 @@
 /* remap ebxistree.c symbols and types to ebm- equivalent */
 #undef ebxis_lookup
 #define ebxis_lookup ebmis_lookup
+#undef ebxis_lookup_len
+#define ebxis_lookup_len ebmis_lookup_len
 #undef ebxis_insert
 #define ebxis_insert ebmis_insert
 
