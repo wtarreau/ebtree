@@ -7,8 +7,6 @@
 #define _EBSTTREE_H
 
 #include "ebtree.h"
-#include "ebmbtree.h"
-#include "ebasttree.h"
 
 #define __ebst_lookup __ebast_lookup
 #define __ebst_insert __ebast_insert

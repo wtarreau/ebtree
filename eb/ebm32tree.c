@@ -1,3 +1,3 @@
-/* this file only remaps ebx32- names to ebm32- names */
-#include "ebm32tree.h"
+/* this file only remaps ebx- names to ebm- names */
+#include "ebmtree.h"
 #include "ebx32tree.c"

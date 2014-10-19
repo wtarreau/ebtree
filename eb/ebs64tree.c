@@ -1,3 +1,3 @@
-/* this file only remaps ebx64- names to ebs64- names */
-#include "ebs64tree.h"
+/* this file only remaps ebx- names to ebs- names */
+#include "ebstree.h"
 #include "ebx64tree.c"

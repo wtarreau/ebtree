@@ -32,7 +32,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include <ebambtree.h>
+#include <ebatree.h>
 
 struct one_net {
 	struct ebamb_node eb_node;

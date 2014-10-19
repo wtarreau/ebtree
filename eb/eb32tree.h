@@ -7,7 +7,6 @@
 #define _EB32TREE_H
 
 #include "ebtree.h"
-#include "eba32tree.h"
 
 #define eb32_node eba32_node
 

@@ -26,13 +26,7 @@
 
 /* These functions and macros rely on Multi-Byte nodes */
 
-#ifndef _EBXISTREE_H
-#define _EBXISTREE_H
-
 #include <string.h>
-#include "ebxtree.h"
-#include "ebxpttree.h"
-#include "ebximtree.h"
 
 /* These functions and macros rely on Pointer nodes and use the <key> entry as
  * a pointer to an indirect key. Most operations are performed using ebxpt_*.
@@ -332,5 +326,3 @@ __ebxis_insert(struct ebx_root *root, struct ebxpt_node *new)
 	ebx_setlink(&root->b[side], ebx_dotag(&new->node.branches, EB_NODE));
 	return new;
 }
-
-#endif /* _EBXISTREE_H */

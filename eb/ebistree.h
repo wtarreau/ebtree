@@ -7,8 +7,6 @@
 #define _EBISTREE_H
 
 #include "ebtree.h"
-#include "ebmbtree.h"
-#include "ebaistree.h"
 
 #define __ebis_lookup __ebais_lookup
 #define __ebis_insert __ebais_insert

@@ -7,7 +7,6 @@
 #define _EBPTTREE_H
 
 #include "ebtree.h"
-#include "ebapttree.h"
 
 #define ebpt_node ebapt_node
 

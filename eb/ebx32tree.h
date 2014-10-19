@@ -24,12 +24,6 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef _EBX32TREE_H
-#define _EBX32TREE_H
-
-#include "ebxtree.h"
-
-
 /* Return the structure of type <type> whose member <member> points to <ptr> */
 #define ebx32_entry(ptr, type, member) container_of(ptr, type, member)
 
@@ -503,5 +497,3 @@ __ebx32i_insert(struct ebx_root *root, struct ebx32_node *new)
 	ebx_setlink(&root->b[side], ebx_dotag(&new->node.branches, EB_NODE));
 	return new;
 }
-
-#endif /* _EBX32_TREE_H */

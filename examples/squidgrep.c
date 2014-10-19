@@ -32,7 +32,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include <ebasttree.h>
+#include <ebatree.h>
 
 struct eba_root tree = EBA_ROOT_UNIQUE;  /* EBA_ROOT || EBA_ROOT_UNIQUE */
 

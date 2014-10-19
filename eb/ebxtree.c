@@ -24,8 +24,6 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "ebxtree.h"
-
 void ebx_delete(struct ebx_node *node)
 {
 	__ebx_delete(node);

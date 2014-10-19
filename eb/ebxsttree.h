@@ -26,12 +26,6 @@
 
 /* These functions and macros rely on Multi-Byte nodes */
 
-#ifndef _EBXSTTREE_H
-#define _EBXSTTREE_H
-
-#include "ebxtree.h"
-#include "ebxmbtree.h"
-
 /* The following functions are not inlined by default. They are declared
  * in ebsttree.c, which simply relies on their inline version.
  */
@@ -326,6 +320,3 @@ __ebxst_insert(struct ebx_root *root, struct ebxmb_node *new)
 	ebx_setlink(&root->b[side], ebx_dotag(&new->node.branches, EB_NODE));
 	return new;
 }
-
-#endif /* _EBXSTTREE_H */
-

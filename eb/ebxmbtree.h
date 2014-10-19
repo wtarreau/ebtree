@@ -24,11 +24,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef _EBXMBTREE_H
-#define _EBXMBTREE_H
-
 #include <string.h>
-#include "ebxtree.h"
 
 /* Return the structure of type <type> whose member <member> points to <ptr> */
 #define ebxmb_entry(ptr, type, member) container_of(ptr, type, member)
@@ -812,8 +808,3 @@ __ebxmb_insert_prefix(struct ebx_root *root, struct ebxmb_node *new, unsigned in
 	ebx_setlink(&root->b[side], ebx_dotag(&new->node.branches, EB_NODE));
 	return new;
 }
-
-
-
-#endif /* _EBXMBTREE_H */
-

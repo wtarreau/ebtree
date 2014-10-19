@@ -26,8 +26,6 @@
 
 /* Consult eb32tree.h for more details about those functions */
 
-#include "ebx32tree.h"
-
 REGPRM2 struct ebx32_node *ebx32_insert(struct ebx_root *root, struct ebx32_node *new)
 {
 	return __ebx32_insert(root, new);

@@ -7,7 +7,6 @@
 #define _EB64TREE_H
 
 #include "ebtree.h"
-#include "eba64tree.h"
 
 #define eb64_node eba64_node
 

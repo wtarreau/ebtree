@@ -1,3 +1,3 @@
-/* this file only remaps ebxst- names to ebsst- names */
-#include "ebssttree.h"
+/* this file only remaps ebx- names to ebs- names */
+#include "ebstree.h"
 #include "ebxsttree.c"

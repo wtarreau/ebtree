@@ -24,12 +24,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef _EBXIMTREE_H
-#define _EBXIMTREE_H
-
 #include <string.h>
-#include "ebxtree.h"
-#include "ebxpttree.h"
 
 /* These functions and macros rely on Pointer nodes and use the <key> entry as
  * a pointer to an indirect key. Most operations are performed using ebxpt_*.
@@ -326,5 +321,3 @@ __ebxim_insert(struct ebx_root *root, struct ebxpt_node *new, unsigned int len)
 	ebx_setlink(&root->b[side], ebx_dotag(&new->node.branches, EB_NODE));
 	return new;
 }
-
-#endif /* _EBXIMTREE_H */

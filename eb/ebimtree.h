@@ -7,8 +7,6 @@
 #define _EBIMTREE_H
 
 #include "ebtree.h"
-#include "ebmbtree.h"
-#include "ebaimtree.h"
 
 #define __ebim_lookup __ebaim_lookup
 #define __ebim_insert __ebaim_insert

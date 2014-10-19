@@ -26,8 +26,6 @@
 
 /* Consult ebsttree.h for more details about those functions */
 
-#include "ebxsttree.h"
-
 /* Find the first occurence of a zero-terminated string <x> in the tree <root>.
  * It's the caller's reponsibility to use this function only on trees which
  * only contain zero-terminated strings. If none can be found, return NULL.

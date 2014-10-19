@@ -1,3 +1,3 @@
-/* this file only remaps ebxim- names to ebsim- names */
-#include "ebsimtree.h"
+/* this file only remaps ebx- names to ebs- names */
+#include "ebstree.h"
 #include "ebximtree.c"

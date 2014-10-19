@@ -24,12 +24,6 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef _EBX64TREE_H
-#define _EBX64TREE_H
-
-#include "ebxtree.h"
-
-
 /* Return the structure of type <type> whose member <member> points to <ptr> */
 #define ebx64_entry(ptr, type, member) container_of(ptr, type, member)
 
@@ -584,5 +578,3 @@ __ebx64i_insert(struct ebx_root *root, struct ebx64_node *new) {
 
 	return new;
 }
-
-#endif /* _EBX64_TREE_H */

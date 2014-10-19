@@ -7,7 +7,6 @@
 #define _EBMBTREE_H
 
 #include "ebtree.h"
-#include "ebambtree.h"
 
 #define ebmb_node ebamb_node
 
