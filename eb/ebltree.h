@@ -37,6 +37,8 @@
 #define eblpt_entry(ptr, type, member) ebxpt_entry(ptr, type, member)
 #define eblmb_entry(ptr, type, member) ebxmb_entry(ptr, type, member)
 
+/* we're using 64-bit signed offsets for the links */
+typedef s64 ebl_link_t;
 
 /* remap ebxtree.h symbols and types to ebl- equivalent */
 #undef ebx_root

@@ -254,20 +254,9 @@
  *  - 0=left, 1=right to designate the parent's branch for leaf_p/node_p
  *  - 0=link, 1=leaf  to designate the branch's type for branch[]
  *
- * The link type is either a signed int when EB_SIZE is set to any size > 0, or
- * a void * if EB_SIZE is unset or null.
+ * The link type is either a signed int or a void *, the type is declared by
+ * the caller.
  */
-
-#if EB_SIZE == 64
-typedef s64 ebx_link_t;
-#elif EB_SIZE == 32
-typedef s32 ebx_link_t;
-#elif EB_SIZE == 16
-typedef s16 ebx_link_t;
-#else
-typedef void *ebx_link_t;
-#endif
-
 typedef ebx_link_t *ebx_troot_t;
 
 /* The ebx_root connects the node which contains it, to two nodes below it, one

@@ -37,6 +37,8 @@
 #define ebapt_entry(ptr, type, member) ebxpt_entry(ptr, type, member)
 #define ebamb_entry(ptr, type, member) ebxmb_entry(ptr, type, member)
 
+/* we're using absolute pointers for the links */
+typedef void *eba_link_t;
 
 /* remap ebxtree.h symbols and types to eba- equivalent */
 #undef ebx_root
