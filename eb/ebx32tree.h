@@ -27,9 +27,6 @@
 /* Return the structure of type <type> whose member <member> points to <ptr> */
 #define ebx32_entry(ptr, type, member) container_of(ptr, type, member)
 
-#define EB32_ROOT	EB_ROOT
-#define EB32_TREE_HEAD	EB_TREE_HEAD
-
 /* This structure carries a node, a leaf, and a key. It must start with the
  * ebx_node so that it can be cast into an ebx_node. We could also have put some
  * sort of transparent union here to reduce the indirection level, but the fact

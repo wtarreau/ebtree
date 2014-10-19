@@ -66,6 +66,9 @@
 
 #define eb_entry(ptr, type, member) eba_entry(ptr, type, member)
 
+#define EB32_ROOT       EB_ROOT
+#define EB32_TREE_HEAD	EB_TREE_HEAD
+
 #define eb32_node eba32_node
 
 #define eb32_first eba32_first
@@ -92,6 +95,9 @@
 #define eb32_lookup_ge eba32_lookup_ge
 
 #define eb32_entry(ptr, type, member) eba32_entry(ptr, type, member)
+
+#define EB64_ROOT	EB_ROOT
+#define EB64_TREE_HEAD	EB_TREE_HEAD
 
 #define eb64_node eba64_node
 
@@ -120,6 +126,9 @@
 
 #define eb64_entry(ptr, type, member) eba64_entry(ptr, type, member)
 
+#define EBPT_ROOT	EB_ROOT
+#define EBPT_TREE_HEAD	EB_TREE_HEAD
+
 #define ebpt_node ebapt_node
 
 #define ebpt_first ebapt_first
@@ -142,6 +151,9 @@
 #define ebpt_lookup_ge ebapt_lookup_ge
 
 #define ebpt_entry(ptr, type, member) ebapt_entry(ptr, type, member)
+
+#define EBMB_ROOT	EB_ROOT
+#define EBMB_TREE_HEAD	EB_TREE_HEAD
 
 #define ebmb_node ebamb_node
 

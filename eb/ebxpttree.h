@@ -27,9 +27,6 @@
 /* Return the structure of type <type> whose member <member> points to <ptr> */
 #define ebxpt_entry(ptr, type, member) container_of(ptr, type, member)
 
-#define EBPT_ROOT	EB_ROOT
-#define EBPT_TREE_HEAD	EB_TREE_HEAD
-
 /* on *almost* all platforms, a pointer can be cast into a size_t which is unsigned */
 #ifndef PTR_INT_TYPE
 #define PTR_INT_TYPE	size_t
