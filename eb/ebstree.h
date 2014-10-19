@@ -7,6 +7,8 @@
 #ifndef _EBSTREE_H
 #define _EBSTREE_H
 
+#include "ebcommon.h"
+
 /* EB_SIZE = 16 : we're using 16-bit offsets for relative pointers. */
 #undef EB_SIZE
 #define EB_SIZE 16

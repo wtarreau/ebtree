@@ -249,10 +249,6 @@
 
  */
 
-#include <stdlib.h>
-#include "compiler.h"
-#include "ebcommon.h"
-
 /* link between nodes. The lower bit embeds a tag which can be manipulated with
  * ebx_dotag()/ebx_untag()/ebx_gettag(). This tag has two meanings :
  *  - 0=left, 1=right to designate the parent's branch for leaf_p/node_p

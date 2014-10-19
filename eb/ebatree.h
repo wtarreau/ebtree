@@ -7,6 +7,8 @@
 #ifndef _EBATREE_H
 #define _EBATREE_H
 
+#include "ebcommon.h"
+
 /* EB_SIZE = 0 : we're using an absolute pointer instead of a relative one. */
 #undef EB_SIZE
 #define EB_SIZE 0

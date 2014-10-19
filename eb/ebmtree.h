@@ -7,6 +7,8 @@
 #ifndef _EBMTREE_H
 #define _EBMTREE_H
 
+#include "ebcommon.h"
+
 /* EB_SIZE = 32 : we're using 32-bit offsets for relative pointers. */
 #undef EB_SIZE
 #define EB_SIZE 32
