@@ -4,7 +4,7 @@ EXAMPLES = $(basename $(wildcard examples/*.c))
 COMMON_DIR = common
 
 EB_DIR = eb
-EB_SRC = $(wildcard $(EB_DIR)/eba*.c $(EB_DIR)/ebl*.c)
+EB_SRC = $(wildcard $(EB_DIR)/eba*.c $(EB_DIR)/ebl*.c $(EB_DIR)/ebm*.c)
 EB_OBJ = $(EB_SRC:%.c=%.o)
 
 OBJS = $(EB_OBJ)
