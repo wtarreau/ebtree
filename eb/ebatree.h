@@ -34,6 +34,15 @@
 #undef ebx_gettag
 #define ebx_gettag eba_gettag
 
+#undef ebx_root_to_node
+#define ebx_root_to_node eba_root_to_node
+#undef ebx_setlink
+#define ebx_setlink eba_setlink
+#undef ebx_getroot
+#define ebx_getroot eba_getroot
+#undef ebx_link_is_null
+#define ebx_link_is_null eba_link_is_null
+
 #undef ebx_first
 #define ebx_first eba_first
 #undef ebx_last

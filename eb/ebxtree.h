@@ -527,16 +527,18 @@ static inline int ebx_link_is_null(ebx_link_t link)
 }
 
 #else
-/**** EB_SIZE = 0 : absolute pointer version ****/
+/* EB_SIZE = 0 : absolute pointer version. We directly define
+ * eba_* because the caller will have #defined ebx to eba.
+ */
 
 /* Assigns a pointer to a link */
-#define ebx_setlink(dest, troot) do { *(dest) = (troot); } while (0)
+#define eba_setlink(dest, troot) do { *(dest) = (troot); } while (0)
 
 /* Returns the pointer from a link */
-#define ebx_getroot(a) (*(a))
+#define eba_getroot(a) (*(a))
 
 /* an absolute pointer is NULL only when exactly NULL (no tag) */
-#define ebx_link_is_null(a) ((void *)a <= (void *)1)
+#define eba_link_is_null(a) ((void *)a <= (void *)1)
 
 #endif
 
