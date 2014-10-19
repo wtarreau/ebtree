@@ -435,26 +435,6 @@ struct ebx_node {
 } __attribute__((packed));
 #endif
 
-/* Return the structure of type <type> whose member <member> points to <ptr> */
-#define ebx_entry(ptr, type, member) container_of(ptr, type, member)
-
-/* The root of a tree is an ebx_root initialized with both pointers NULL.
- * During its life, only the left pointer will change. The right one will
- * always remain NULL, which is the way we detect it.
- */
-#define EB_ROOT						\
-	(struct ebx_root) {				\
-		.b = {[0] = 0, [1] = 0 },		\
-	}
-
-#define EB_ROOT_UNIQUE					\
-	(struct ebx_root) {				\
-		.b = {[0] = 0, [1] = (ebx_link_t)1 },	\
-	}
-
-#define EB_TREE_HEAD(name)				\
-	struct ebx_root name = EB_ROOT
-
 
 /***************************************\
  * Private functions. Not for end-user *

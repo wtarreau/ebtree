@@ -17,6 +17,10 @@
 #undef eb_link_t
 #define eb_link_t eba_link_t
 
+#define EB_ROOT            EBA_ROOT
+#define EB_ROOT_UNIQUE     EBA_ROOT_UNIQUE
+#define EB_TREE_HEAD(name) EBA_TREE_HEAD(name)
+
 #undef eb_is_empty
 #define eb_is_empty eba_is_empty
 #undef eb_is_dup

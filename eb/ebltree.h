@@ -20,6 +20,23 @@
 #undef ebx_link_t
 #define ebx_link_t ebl_link_t
 
+/* The root of a tree is an ebl_root initialized with both pointers NULL.
+ * During its life, only the left pointer will change. The right one will
+ * always remain NULL, which is the way we detect it.
+ */
+#define EBL_ROOT						\
+	(struct ebl_root) {				\
+		.b = {[0] = 0, [1] = 0 },		\
+	}
+
+#define EBL_ROOT_UNIQUE					\
+	(struct ebl_root) {				\
+		.b = {[0] = 0, [1] = (ebl_link_t)1 },	\
+	}
+
+#define EBL_TREE_HEAD(name)				\
+	struct ebl_root name = EBL_ROOT
+
 #undef ebx_is_empty
 #define ebx_is_empty ebl_is_empty
 #undef ebx_is_dup
