@@ -32,15 +32,15 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include <ebsttree.h>
+#include <ebasttree.h>
 
-struct eb_root tree = EB_ROOT_UNIQUE;  /* EB_ROOT || EB_ROOT_UNIQUE */
+struct eba_root tree = EBA_ROOT_UNIQUE;  /* EBA_ROOT || EBA_ROOT_UNIQUE */
 
 int input, match;
 
 void insert_url(const char *url)
 {
-	struct ebmb_node *node;
+	struct ebamb_node *node;
 	int l;
 
 	l = strlen(url);
@@ -49,7 +49,7 @@ void insert_url(const char *url)
 	node = calloc(1, sizeof(*node) + l + 1);
 	memcpy(node->key, url, l);
 	node->key[l] = 0;
-	ebst_insert(&tree, node);
+	ebast_insert(&tree, node);
 }
 
 void read_urls_from_file(FILE *f)
@@ -65,7 +65,7 @@ void match_logs_from_stdin()
 	int field;
 	char line[256];
 	char *str, *url, *end;
-	struct ebmb_node *node;
+	struct ebamb_node *node;
 
 	match = 0; input = 0;
 	/* Note: this construct allows easier use of halog's fgets() */
@@ -88,7 +88,7 @@ void match_logs_from_stdin()
 			continue;
 
 		input++;
-		node = ebst_lookup(&tree, url);
+		node = ebast_lookup(&tree, url);
 		if (node) {
 			match++;
 			puts(str);

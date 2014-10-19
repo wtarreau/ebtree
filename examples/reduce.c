@@ -32,15 +32,15 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include <ebmbtree.h>
+#include <ebambtree.h>
 
 struct one_net {
-	struct ebmb_node eb_node;
+	struct ebamb_node eb_node;
 	struct in_addr addr; /* keep it after eb_node */
 	/* any other information related to this network could be stored here */
 };
 
-struct eb_root tree = EB_ROOT;  /* EB_ROOT || EB_ROOT_UNIQUE */
+struct eba_root tree = EBA_ROOT;  /* EBA_ROOT || EBA_ROOT_UNIQUE */
 
 /* Insert an address into the tree, after checking that it does not match
  * another one. If it does, then only one is kept or they are merged in a
@@ -50,7 +50,7 @@ struct eb_root tree = EB_ROOT;  /* EB_ROOT || EB_ROOT_UNIQUE */
 void insert_net(unsigned addr, unsigned cidr)
 {
 	unsigned mask;
-	struct ebmb_node *node;
+	struct ebamb_node *node;
 	struct one_net *net;
 
 	/* clear unexpected bits */
@@ -61,10 +61,10 @@ void insert_net(unsigned addr, unsigned cidr)
 	/* 1) check if the entry already exists or matches an existing one. If we
 	 * get a match, we have to compare prefixes and keep the widest one.
 	 */
-	if ((node = ebmb_lookup_longest(&tree, &addr)) != NULL) {
+	if ((node = ebamb_lookup_longest(&tree, &addr)) != NULL) {
 		if (node->node.pfx <= cidr)
 			return;
-		ebmb_delete(node);
+		ebamb_delete(node);
 		free(node);
 	}
 
@@ -76,12 +76,12 @@ void insert_net(unsigned addr, unsigned cidr)
 
 		/* invert the bit corresponding to the mask */
 		addr2 = addr ^ mask2;
-		node = ebmb_lookup_prefix(&tree, &addr2, cidr);
+		node = ebamb_lookup_prefix(&tree, &addr2, cidr);
 
 		if (node) {
 			/* we can merge both entries at cidr - 1 */
-			ebmb_delete(node);
-			free(ebmb_entry(node, struct one_net, eb_node));
+			ebamb_delete(node);
+			free(ebamb_entry(node, struct one_net, eb_node));
 			addr &= addr2; /* clear varying bit */
 			cidr--;
 			/* recursively do the same above */
@@ -93,19 +93,19 @@ void insert_net(unsigned addr, unsigned cidr)
 	net = (struct one_net *)calloc(1, sizeof(*net));
 	net->addr.s_addr = addr;
 	net->eb_node.node.pfx = cidr;
-	ebmb_insert_prefix(&tree, &net->eb_node, sizeof(net->addr.s_addr));
+	ebamb_insert_prefix(&tree, &net->eb_node, sizeof(net->addr.s_addr));
 
 	/* 3) it is possible that this node covers other ones. All other ones
 	 * will always be located just after this one, so let's walk right as
 	 * long as we find some matches and kill them.
 	 */
-	node = ebmb_next(&net->eb_node);
+	node = ebamb_next(&net->eb_node);
 	while (node) {
-		net = ebmb_entry(node, struct one_net, eb_node);
+		net = ebamb_entry(node, struct one_net, eb_node);
 		if ((addr & mask) != (net->addr.s_addr & mask))
 			break;
-		node = ebmb_next(&net->eb_node);
-		ebmb_delete(&net->eb_node);
+		node = ebamb_next(&net->eb_node);
+		ebamb_delete(&net->eb_node);
 	}
 
 }
@@ -138,12 +138,12 @@ void read_nets_from_stdin()
 
 void dump_nets()
 {
-	struct ebmb_node *node = ebmb_first(&tree);
+	struct ebamb_node *node = ebamb_first(&tree);
 
 	while (node) {
 		printf("%d.%d.%d.%d/%d\n",
 		       node->key[0], node->key[1], node->key[2], node->key[3], node->node.pfx);
-		node = ebmb_next(node);
+		node = ebamb_next(node);
 		if (!node)
 			break;
 	}
