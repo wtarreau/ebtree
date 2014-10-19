@@ -24,9 +24,6 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* Return the structure of type <type> whose member <member> points to <ptr> */
-#define ebxpt_entry(ptr, type, member) container_of(ptr, type, member)
-
 /* This structure carries a node, a leaf, and a key. It must start with the
  * ebx_node so that it can be cast into an ebx_node. We could also have put some
  * sort of transparent union here to reduce the indirection level, but the fact
@@ -47,49 +44,49 @@ struct ebxpt_node {
 /* Return leftmost node in the tree, or NULL if none */
 static forceinline struct ebxpt_node *ebxpt_first(struct ebx_root *root)
 {
-	return ebxpt_entry(ebx_first(root), struct ebxpt_node, node);
+	return eb_entry(ebx_first(root), struct ebxpt_node, node);
 }
 
 /* Return rightmost node in the tree, or NULL if none */
 static forceinline struct ebxpt_node *ebxpt_last(struct ebx_root *root)
 {
-	return ebxpt_entry(ebx_last(root), struct ebxpt_node, node);
+	return eb_entry(ebx_last(root), struct ebxpt_node, node);
 }
 
 /* Return next node in the tree, or NULL if none */
 static forceinline struct ebxpt_node *ebxpt_next(struct ebxpt_node *ebpt)
 {
-	return ebxpt_entry(ebx_next(&ebpt->node), struct ebxpt_node, node);
+	return eb_entry(ebx_next(&ebpt->node), struct ebxpt_node, node);
 }
 
 /* Return previous node in the tree, or NULL if none */
 static forceinline struct ebxpt_node *ebxpt_prev(struct ebxpt_node *ebpt)
 {
-	return ebxpt_entry(ebx_prev(&ebpt->node), struct ebxpt_node, node);
+	return eb_entry(ebx_prev(&ebpt->node), struct ebxpt_node, node);
 }
 
 /* Return next leaf node within a duplicate sub-tree, or NULL if none. */
 static inline struct ebxpt_node *ebxpt_next_dup(struct ebxpt_node *ebpt)
 {
-	return ebxpt_entry(ebx_next_dup(&ebpt->node), struct ebxpt_node, node);
+	return eb_entry(ebx_next_dup(&ebpt->node), struct ebxpt_node, node);
 }
 
 /* Return previous leaf node within a duplicate sub-tree, or NULL if none. */
 static inline struct ebxpt_node *ebxpt_prev_dup(struct ebxpt_node *ebpt)
 {
-	return ebxpt_entry(ebx_prev_dup(&ebpt->node), struct ebxpt_node, node);
+	return eb_entry(ebx_prev_dup(&ebpt->node), struct ebxpt_node, node);
 }
 
 /* Return next node in the tree, skipping duplicates, or NULL if none */
 static forceinline struct ebxpt_node *ebxpt_next_unique(struct ebxpt_node *ebpt)
 {
-	return ebxpt_entry(ebx_next_unique(&ebpt->node), struct ebxpt_node, node);
+	return eb_entry(ebx_next_unique(&ebpt->node), struct ebxpt_node, node);
 }
 
 /* Return previous node in the tree, skipping duplicates, or NULL if none */
 static forceinline struct ebxpt_node *ebxpt_prev_unique(struct ebxpt_node *ebpt)
 {
-	return ebxpt_entry(ebx_prev_unique(&ebpt->node), struct ebxpt_node, node);
+	return eb_entry(ebx_prev_unique(&ebpt->node), struct ebxpt_node, node);
 }
 
 /* Delete node from the tree if it was linked in. Mark the node unused. Note

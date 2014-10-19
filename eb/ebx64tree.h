@@ -24,9 +24,6 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* Return the structure of type <type> whose member <member> points to <ptr> */
-#define ebx64_entry(ptr, type, member) container_of(ptr, type, member)
-
 /* This structure carries a node, a leaf, and a key. It must start with the
  * ebx_node so that it can be cast into an ebx_node. We could also have put some
  * sort of transparent union here to reduce the indirection level, but the fact
@@ -46,49 +43,49 @@ struct ebx64_node {
 /* Return leftmost node in the tree, or NULL if none */
 static inline struct ebx64_node *ebx64_first(struct ebx_root *root)
 {
-	return ebx64_entry(ebx_first(root), struct ebx64_node, node);
+	return eb_entry(ebx_first(root), struct ebx64_node, node);
 }
 
 /* Return rightmost node in the tree, or NULL if none */
 static inline struct ebx64_node *ebx64_last(struct ebx_root *root)
 {
-	return ebx64_entry(ebx_last(root), struct ebx64_node, node);
+	return eb_entry(ebx_last(root), struct ebx64_node, node);
 }
 
 /* Return next node in the tree, or NULL if none */
 static inline struct ebx64_node *ebx64_next(struct ebx64_node *eb64)
 {
-	return ebx64_entry(ebx_next(&eb64->node), struct ebx64_node, node);
+	return eb_entry(ebx_next(&eb64->node), struct ebx64_node, node);
 }
 
 /* Return previous node in the tree, or NULL if none */
 static inline struct ebx64_node *ebx64_prev(struct ebx64_node *eb64)
 {
-	return ebx64_entry(ebx_prev(&eb64->node), struct ebx64_node, node);
+	return eb_entry(ebx_prev(&eb64->node), struct ebx64_node, node);
 }
 
 /* Return next leaf node within a duplicate sub-tree, or NULL if none. */
 static inline struct ebx64_node *ebx64_next_dup(struct ebx64_node *eb64)
 {
-	return ebx64_entry(ebx_next_dup(&eb64->node), struct ebx64_node, node);
+	return eb_entry(ebx_next_dup(&eb64->node), struct ebx64_node, node);
 }
 
 /* Return previous leaf node within a duplicate sub-tree, or NULL if none. */
 static inline struct ebx64_node *ebx64_prev_dup(struct ebx64_node *eb64)
 {
-	return ebx64_entry(ebx_prev_dup(&eb64->node), struct ebx64_node, node);
+	return eb_entry(ebx_prev_dup(&eb64->node), struct ebx64_node, node);
 }
 
 /* Return next node in the tree, skipping duplicates, or NULL if none */
 static inline struct ebx64_node *ebx64_next_unique(struct ebx64_node *eb64)
 {
-	return ebx64_entry(ebx_next_unique(&eb64->node), struct ebx64_node, node);
+	return eb_entry(ebx_next_unique(&eb64->node), struct ebx64_node, node);
 }
 
 /* Return previous node in the tree, skipping duplicates, or NULL if none */
 static inline struct ebx64_node *ebx64_prev_unique(struct ebx64_node *eb64)
 {
-	return ebx64_entry(ebx_prev_unique(&eb64->node), struct ebx64_node, node);
+	return eb_entry(ebx_prev_unique(&eb64->node), struct ebx64_node, node);
 }
 
 /* Delete node from the tree if it was linked in. Mark the node unused. Note

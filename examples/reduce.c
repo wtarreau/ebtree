@@ -81,7 +81,7 @@ void insert_net(unsigned addr, unsigned cidr)
 		if (node) {
 			/* we can merge both entries at cidr - 1 */
 			ebamb_delete(node);
-			free(ebamb_entry(node, struct one_net, eb_node));
+			free(eb_entry(node, struct one_net, eb_node));
 			addr &= addr2; /* clear varying bit */
 			cidr--;
 			/* recursively do the same above */
@@ -101,7 +101,7 @@ void insert_net(unsigned addr, unsigned cidr)
 	 */
 	node = ebamb_next(&net->eb_node);
 	while (node) {
-		net = ebamb_entry(node, struct one_net, eb_node);
+		net = eb_entry(node, struct one_net, eb_node);
 		if ((addr & mask) != (net->addr.s_addr & mask))
 			break;
 		node = ebamb_next(&net->eb_node);

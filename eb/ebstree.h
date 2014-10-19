@@ -30,13 +30,6 @@
 #define EBS_TREE_HEAD(name)				\
 	struct ebs_root name = EBS_ROOT
 
-/* map a few macros to their original names */
-#define ebs_entry(ptr, type, member) ebx_entry(ptr, type, member)
-#define ebs32_entry(ptr, type, member) ebx32_entry(ptr, type, member)
-#define ebs64_entry(ptr, type, member) ebx64_entry(ptr, type, member)
-#define ebspt_entry(ptr, type, member) ebxpt_entry(ptr, type, member)
-#define ebsmb_entry(ptr, type, member) ebxmb_entry(ptr, type, member)
-
 /* we're using 16-bit signed offsets for the links */
 typedef s16 ebs_link_t;
 

@@ -61,7 +61,7 @@ typedef   signed long long s64;
 #endif
 
 /* Return the structure of type <type> whose member <member> points to <ptr> */
-#define ebx_entry(ptr, type, member) container_of(ptr, type, member)
+#define eb_entry(ptr, type, member) container_of(ptr, type, member)
 
 
 /******************************\

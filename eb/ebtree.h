@@ -64,8 +64,6 @@
 #undef eb_insert_dup
 #define eb_insert_dup eba_insert_dup
 
-#define eb_entry(ptr, type, member) eba_entry(ptr, type, member)
-
 #define EB32_ROOT       EB_ROOT
 #define EB32_TREE_HEAD	EB_TREE_HEAD
 
@@ -94,7 +92,7 @@
 #define eb32_lookup_le eba32_lookup_le
 #define eb32_lookup_ge eba32_lookup_ge
 
-#define eb32_entry(ptr, type, member) eba32_entry(ptr, type, member)
+#define eb32_entry(ptr, type, member) eb_entry(ptr, type, member)
 
 #define EB64_ROOT	EB_ROOT
 #define EB64_TREE_HEAD	EB_TREE_HEAD
@@ -124,7 +122,7 @@
 #define eb64_lookup_le eba64_lookup_le
 #define eb64_lookup_ge eba64_lookup_ge
 
-#define eb64_entry(ptr, type, member) eba64_entry(ptr, type, member)
+#define eb64_entry(ptr, type, member) eb_entry(ptr, type, member)
 
 #define EBPT_ROOT	EB_ROOT
 #define EBPT_TREE_HEAD	EB_TREE_HEAD
@@ -150,7 +148,7 @@
 #define ebpt_lookup_le ebapt_lookup_le
 #define ebpt_lookup_ge ebapt_lookup_ge
 
-#define ebpt_entry(ptr, type, member) ebapt_entry(ptr, type, member)
+#define ebpt_entry(ptr, type, member) eb_entry(ptr, type, member)
 
 #define EBMB_ROOT	EB_ROOT
 #define EBMB_TREE_HEAD	EB_TREE_HEAD
@@ -180,7 +178,7 @@
 #define ebmb_lookup_prefix ebamb_lookup_prefix
 #define ebmb_insert_prefix ebamb_insert_prefix
 
-#define ebmb_entry(ptr, type, member) ebamb_entry(ptr, type, member)
+#define ebmb_entry(ptr, type, member) eb_entry(ptr, type, member)
 
 #define __ebim_lookup __ebaim_lookup
 #define __ebim_insert __ebaim_insert

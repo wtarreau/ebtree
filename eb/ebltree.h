@@ -30,13 +30,6 @@
 #define EBL_TREE_HEAD(name)				\
 	struct ebl_root name = EBL_ROOT
 
-/* map a few macros to their original names */
-#define ebl_entry(ptr, type, member) ebx_entry(ptr, type, member)
-#define ebl32_entry(ptr, type, member) ebx32_entry(ptr, type, member)
-#define ebl64_entry(ptr, type, member) ebx64_entry(ptr, type, member)
-#define eblpt_entry(ptr, type, member) ebxpt_entry(ptr, type, member)
-#define eblmb_entry(ptr, type, member) ebxmb_entry(ptr, type, member)
-
 /* we're using 64-bit signed offsets for the links */
 typedef s64 ebl_link_t;
 

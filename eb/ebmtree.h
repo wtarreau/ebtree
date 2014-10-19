@@ -30,13 +30,6 @@
 #define EBM_TREE_HEAD(name)				\
 	struct ebm_root name = EBM_ROOT
 
-/* map a few macros to their original names */
-#define ebm_entry(ptr, type, member) ebx_entry(ptr, type, member)
-#define ebm32_entry(ptr, type, member) ebx32_entry(ptr, type, member)
-#define ebm64_entry(ptr, type, member) ebx64_entry(ptr, type, member)
-#define ebmpt_entry(ptr, type, member) ebxpt_entry(ptr, type, member)
-#define ebmmb_entry(ptr, type, member) ebxmb_entry(ptr, type, member)
-
 /* we're using 32-bit signed offsets for the links */
 typedef s32 ebm_link_t;
 

@@ -30,13 +30,6 @@
 #define EBA_TREE_HEAD(name)				\
 	struct eba_root name = EBA_ROOT
 
-/* map a few macros to their original names */
-#define eba_entry(ptr, type, member) ebx_entry(ptr, type, member)
-#define eba32_entry(ptr, type, member) ebx32_entry(ptr, type, member)
-#define eba64_entry(ptr, type, member) ebx64_entry(ptr, type, member)
-#define ebapt_entry(ptr, type, member) ebxpt_entry(ptr, type, member)
-#define ebamb_entry(ptr, type, member) ebxmb_entry(ptr, type, member)
-
 /* we're using absolute pointers for the links */
 typedef void *eba_link_t;
 
