@@ -1,26 +1,26 @@
-/* Compatibility layer for legacy ebtree code in absolute pointer mode.
+/* Mapping of generic ebtree code to absolute pointer code ("eba").
  * Common function names are #defined before including internal files so that
  * their declaration causes the new name to be used instead. This results in
  * new names to appear in .o/.a.
  */
 
-#ifndef _EBSTTREE_H
-#define _EBSTTREE_H
+#ifndef _EBASTTREE_H
+#define _EBASTTREE_H
 
 /* redefine entries for mapping */
 #undef __ebxst_lookup
-#define __ebxst_lookup __ebst_lookup
+#define __ebxst_lookup __ebast_lookup
 #undef __ebxst_insert
-#define __ebxst_insert __ebst_insert
+#define __ebxst_insert __ebast_insert
 
 /* exported functions below */
 #undef ebxst_lookup
-#define ebxst_lookup ebst_lookup
+#define ebxst_lookup ebast_lookup
 #undef ebxst_insert
-#define ebxst_insert ebst_insert
+#define ebxst_insert ebast_insert
 
-#include "ebtree.h"
-#include "ebmbtree.h"
+#include "ebatree.h"
+#include "ebambtree.h"
 #include "ebxsttree.h"
 
 #endif
