@@ -1,4 +1,4 @@
-CFLAGS = -O3 -W -Wall -Wdeclaration-after-statement
+CFLAGS = -O3 -W -Wall -Wdeclaration-after-statement -Wno-unused-parameter
 EXAMPLES = $(basename $(wildcard examples/*.c))
 
 COMMON_DIR = common
