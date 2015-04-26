@@ -389,7 +389,7 @@ __ebx64_insert(struct ebx_root *root, struct ebx64_node *new) {
 	 * would sit on different branches).
 	 */
 	/* note that if EB_NODE_BITS > 1, we should check that it's still >= 0 */
-	new->node.bit = fls64(new->key ^ old->key) - EB_NODE_BITS;
+	new->node.bit = flsnz(new->key ^ old->key) - EB_NODE_BITS;
 	ebx_setlink(&root->b[side], ebx_dotag(&new->node.branches, EB_NODE));
 
 	return new;
@@ -567,7 +567,7 @@ __ebx64i_insert(struct ebx_root *root, struct ebx64_node *new) {
 	 * would sit on different branches).
 	 */
 	/* note that if EB_NODE_BITS > 1, we should check that it's still >= 0 */
-	new->node.bit = fls64(new->key ^ old->key) - EB_NODE_BITS;
+	new->node.bit = flsnz(new->key ^ old->key) - EB_NODE_BITS;
 	ebx_setlink(&root->b[side], ebx_dotag(&new->node.branches, EB_NODE));
 
 	return new;

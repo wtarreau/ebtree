@@ -42,24 +42,15 @@ typedef   signed long long s64;
  * bit manipulation functions *
 \******************************/
 
-static inline int flsnz8_generic(unsigned int x)
-{
-	int ret = 0;
-	if (x >> 4) { x >>= 4; ret += 4; }
-	return ret + ((0xFFFFAA50U >> (x << 1)) & 3) + 1;
-}
-
-/* Note: we never need to run fls on null keys, so we can optimize the fls
- * function by removing a conditional jump.
- */
 #if defined(__i386__) || defined(__x86_64__)
-/* this code is similar on 32 and 64 bit */
-static inline int flsnz(int x)
+
+/* returns 1 to 32 for 1<<0 to 1<<31. Undefined for 0 */
+static inline int flsnz32(unsigned int x)
 {
 	int r;
 	__asm__("bsrl %1,%0\n"
 	        : "=r" (r) : "rm" (x));
-	return r+1;
+	return r + 1;
 }
 
 static inline int flsnz8(unsigned char x)
@@ -68,12 +59,13 @@ static inline int flsnz8(unsigned char x)
 	__asm__("movzbl %%al, %%eax\n"
 		"bsrl %%eax,%0\n"
 	        : "=r" (r) : "a" (x));
-	return r+1;
+	return r + 1;
 }
 
 #else
+
 /* returns 1 to 32 for 1<<0 to 1<<31. Undefined for 0. */
-#define flsnz(___a) ({ \
+#define flsnz32(___a) ({ \
 	register int ___x, ___bits = 0; \
 	___x = (___a); \
 	if (___x & 0xffff0000) { ___x &= 0xffff0000; ___bits += 16;} \
@@ -86,13 +78,27 @@ static inline int flsnz8(unsigned char x)
 
 static inline int flsnz8(unsigned int x)
 {
-	return flsnz8_generic(x);
+	int ret = 0;
+	if (x >> 4) { x >>= 4; ret += 4; }
+	return ret + ((0xFFFFAA50U >> (x << 1)) & 3) + 1;
 }
 
 
 #endif
 
-static inline int fls64(unsigned long long x)
+#if defined(__x86_64__)
+static inline int flsnz64(unsigned long long x)
+{
+	unsigned long long r;
+	__asm__("bsrq %1,%0\n"
+	        : "=r" (r) : "rm" (x));
+	return r + 1;
+}
+
+#else
+
+/* returns 1 to 64 for 1<<0 to 1<<63 */
+static inline int flsnz64(unsigned long long x)
 {
 	unsigned int h;
 	unsigned int bits = 32;
@@ -102,10 +108,11 @@ static inline int fls64(unsigned long long x)
 		h = x;
 		bits = 0;
 	}
-	return flsnz(h) + bits;
+	return flsnz32(h) + bits;
 }
+#endif
 
-#define fls_auto(x) ((sizeof(x) > 4) ? fls64(x) : flsnz(x))
+#define flsnz(x) ((sizeof(x) > 4) ? flsnz64(x) : (sizeof(x) > 1) ? flsnz32(x) : flsnz8(x))
 
 /* Compare blocks <a> and <b> byte-to-byte, from bit <ignore> to bit <len-1>.
  * Return the number of equal bits between strings, assuming that the first
