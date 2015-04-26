@@ -69,15 +69,22 @@
 #include <stddef.h>
 #include "cbaatree.h"
 
-static inline unsigned long xorptr(void *a, void *b)
+/* For absolute pointer addresses, we want a void * for the pointer type and
+ * something large enough to hold an unsigned xor between two pointers.
+ * ptrdiff_t would have been fine but it's signed, so let's use size_t instead.
+ */
+typedef void * cb_link_t;
+typedef size_t cb_ulink_t;
+
+static inline cb_ulink_t xorptr(cb_link_t a, cb_link_t b)
 {
-	return ((unsigned long)a) ^ ((unsigned long)b);
+	return ((cb_ulink_t)a) ^ ((cb_ulink_t)b);
 }
 
 struct cbaa_node *cbaa_insert(struct cbaa_node **root, struct cbaa_node *node)
 {
 	struct cbaa_node *p;
-	unsigned long pxor;
+	cb_ulink_t pxor;
 
 	pxor = 0;
 	p = *root;
@@ -137,7 +144,7 @@ struct cbaa_node *cbaa_insert(struct cbaa_node **root, struct cbaa_node *node)
 struct cbaa_node *cbaa_lookup_le(struct cbaa_node **root, void *data)
 {
 	struct cbaa_node *p, *last_r;
-	unsigned long pxor;
+	cb_ulink_t pxor;
 
 	pxor = 0;
 	p = *root;
@@ -152,7 +159,7 @@ struct cbaa_node *cbaa_lookup_le(struct cbaa_node **root, void *data)
 			 * the entry fits our expectations or we have to
 			 * roll back and go down the opposite direction.
 			 */
-			if ((unsigned long)p > (unsigned long)data)
+			if ((cb_ulink_t)p > (cb_ulink_t)data)
 				break;
 			return p;
 		}
@@ -166,7 +173,7 @@ struct cbaa_node *cbaa_lookup_le(struct cbaa_node **root, void *data)
 			 * a chance to find the largest inferior one below and we
 			 * walk down, or we need to rewind.
 			 */
-			if ((unsigned long)p->l > (unsigned long)data)
+			if ((cb_ulink_t)p->l > (cb_ulink_t)data)
 				break;
 
 			p = p->r;
@@ -203,7 +210,7 @@ struct cbaa_node *cbaa_lookup_le(struct cbaa_node **root, void *data)
 		p = p->r;
 	}
 
-	if ((unsigned long)p > (unsigned long)data)
+	if ((cb_ulink_t)p > (cb_ulink_t)data)
 		return NULL;
 	return p;
 }
@@ -212,7 +219,7 @@ struct cbaa_node *cbaa_lookup_le(struct cbaa_node **root, void *data)
 struct cbaa_node *cbaa_lookup(struct cbaa_node **root, void *data)
 {
 	struct cbaa_node *p;
-	unsigned long pxor;
+	cb_ulink_t pxor;
 
 	pxor = 0;
 	p = *root;
@@ -223,7 +230,7 @@ struct cbaa_node *cbaa_lookup(struct cbaa_node **root, void *data)
 	while (1) {
 		if (!p->l || (xorptr(p->l, p->r) >= pxor && pxor != 0)) {
 			/* first leaf inserted, or regular leaf */
-			if ((unsigned long)p != (unsigned long)data)
+			if ((cb_ulink_t)p != (cb_ulink_t)data)
 				p = NULL;
 			break;
 		}
@@ -256,7 +263,7 @@ struct cbaa_node *cbaa_lookup(struct cbaa_node **root, void *data)
 struct cbaa_node *cbaa_lookup_ge(struct cbaa_node **root, void *data)
 {
 	struct cbaa_node *p, *last_l;
-	unsigned long pxor;
+	cb_ulink_t pxor;
 
 	pxor = 0;
 	p = *root;
@@ -271,7 +278,7 @@ struct cbaa_node *cbaa_lookup_ge(struct cbaa_node **root, void *data)
 			 * the entry fits our expectations or we have to
 			 * roll back and go down the opposite direction.
 			 */
-			if ((unsigned long)p < (unsigned long)data)
+			if ((cb_ulink_t)p < (cb_ulink_t)data)
 				break;
 			return p;
 		}
@@ -285,7 +292,7 @@ struct cbaa_node *cbaa_lookup_ge(struct cbaa_node **root, void *data)
 			 * a chance to find the smallest superior one below and we
 			 * walk down, or we need to rewind.
 			 */
-			if ((unsigned long)p->l < (unsigned long)data)
+			if ((cb_ulink_t)p->l < (cb_ulink_t)data)
 				break;
 
 			p = p->l;
@@ -322,18 +329,18 @@ struct cbaa_node *cbaa_lookup_ge(struct cbaa_node **root, void *data)
 		p = p->l;
 	}
 
-	if ((unsigned long)p < (unsigned long)data)
+	if ((cb_ulink_t)p < (cb_ulink_t)data)
 		return NULL;
 	return p;
 }
 
 /* Dumps a tree through the specified callbacks. */
-void *cbaa_dump_tree(struct cbaa_node *node, unsigned long pxor, void *last,
+void *cbaa_dump_tree(struct cbaa_node *node, cb_ulink_t pxor, void *last,
                     int level,
                     void (*node_dump)(struct cbaa_node *node, int level),
                     void (*leaf_dump)(struct cbaa_node *node, int level))
 {
-	unsigned long xor;
+	cb_ulink_t xor;
 
 	if (!node) /* empty tree */
 		return node;
