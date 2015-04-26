@@ -625,7 +625,6 @@ static inline struct eb_node *eb_next_unique(struct eb_node *node)
  */
 static forceinline void __eb_delete(struct eb_node *node)
 {
-	__label__ delete_unlink;
 	unsigned int pside, gpside, sibtype;
 	struct eb_node *parent;
 	struct eb_root *gparent;
