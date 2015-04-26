@@ -1,5 +1,5 @@
 OBJS = ebtree.o eb32tree.o eb64tree.o ebmbtree.o ebsttree.o ebimtree.o ebistree.o
-CFLAGS = -O3
+CFLAGS = -O3 -W -Wall -Wdeclaration-after-statement
 
 all: libebtree.a
 
