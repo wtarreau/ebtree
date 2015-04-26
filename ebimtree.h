@@ -93,7 +93,7 @@ __ebim_lookup(struct eb_root *root, const void *x, unsigned int len)
 		 * completely check. We stop as soon as we reach the last byte,
 		 * because we must decide to go left/right or abort.
 		 */
-		node_bit = ~node_bit + (pos << 3) + 8; // = (pos<<3) + (7 - node_bit)
+		node_bit = ~node_bit + (pos << 3) + 8; /* = (pos<<3) + (7 - node_bit) */
 		if (node_bit < 0) {
 			/* This surprizing construction gives better performance
 			 * because gcc does not try to reorder the loop. Tested to

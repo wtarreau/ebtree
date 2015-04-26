@@ -285,7 +285,7 @@ static inline int flsnz8(unsigned char x)
 }
 
 #else
-// returns 1 to 32 for 1<<0 to 1<<31. Undefined for 0.
+/* returns 1 to 32 for 1<<0 to 1<<31. Undefined for 0. */
 #define flsnz(___a) ({ \
 	register int ___x, ___bits = 0; \
 	___x = (___a); \
@@ -761,7 +761,7 @@ static forceinline int check_bits(const unsigned char *a,
 	 * and it prevents gcc from reordering the loop since it is already
 	 * properly oriented. Tested to be fine with 2.95 to 4.2.
 	 */
-	bit = ~len + (skip << 3) + 9; // = (skip << 3) + (8 - len)
+	bit = ~len + (skip << 3) + 9; /* = (skip << 3) + (8 - len) */
 	ret = a[skip] ^ b[skip];
 	if (unlikely(bit >= 0))
 		return ret >> bit;

@@ -168,7 +168,7 @@ static forceinline struct ebmb_node *__ebmb_lookup(struct eb_root *root, const v
 		 * completely check. We stop as soon as we reach the last byte,
 		 * because we must decide to go left/right or abort.
 		 */
-		node_bit = ~node_bit + (pos << 3) + 8; // = (pos<<3) + (7 - node_bit)
+		node_bit = ~node_bit + (pos << 3) + 8; /* = (pos<<3) + (7 - node_bit) */
 		if (node_bit < 0) {
 			/* This surprizing construction gives better performance
 			 * because gcc does not try to reorder the loop. Tested to
@@ -412,7 +412,7 @@ static forceinline struct ebmb_node *__ebmb_lookup_longest(struct eb_root *root,
 		}
 
 		node_bit >>= 1; /* strip cover bit */
-		node_bit = ~node_bit + (pos << 3) + 8; // = (pos<<3) + (7 - node_bit)
+		node_bit = ~node_bit + (pos << 3) + 8; /* = (pos<<3) + (7 - node_bit) */
 		if (node_bit < 0) {
 			/* This uncommon construction gives better performance
 			 * because gcc does not try to reorder the loop. Tested to
@@ -506,7 +506,7 @@ static forceinline struct ebmb_node *__ebmb_lookup_prefix(struct eb_root *root, 
 		}
 
 		node_bit >>= 1; /* strip cover bit */
-		node_bit = ~node_bit + (pos << 3) + 8; // = (pos<<3) + (7 - node_bit)
+		node_bit = ~node_bit + (pos << 3) + 8; /* = (pos<<3) + (7 - node_bit) */
 		if (node_bit < 0) {
 			/* This uncommon construction gives better performance
 			 * because gcc does not try to reorder the loop. Tested to
@@ -636,7 +636,7 @@ __ebmb_insert_prefix(struct eb_root *root, struct ebmb_node *new, unsigned int l
 		/* WARNING: for the two blocks below, <bit> is counted in half-bits */
 
 		bit = equal_bits(new->key, old->key, bit, old_node_bit >> 1);
-		bit = (bit << 1) + 1; // assume comparisons with normal nodes
+		bit = (bit << 1) + 1; /* assume comparisons with normal nodes */
 
 		/* we must always check that our prefix is larger than the nodes
 		 * we visit, otherwise we have to stop going down. The following

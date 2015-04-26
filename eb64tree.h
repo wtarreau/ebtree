@@ -390,7 +390,7 @@ __eb64_insert(struct eb_root *root, struct eb64_node *new) {
 	 * bit of new->key and old->key are identical here (otherwise they
 	 * would sit on different branches).
 	 */
-	// note that if EB_NODE_BITS > 1, we should check that it's still >= 0
+	/* note that if EB_NODE_BITS > 1, we should check that it's still >= 0 */
 	new->node.bit = fls64(new->key ^ old->key) - EB_NODE_BITS;
 	root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
 
@@ -568,7 +568,7 @@ __eb64i_insert(struct eb_root *root, struct eb64_node *new) {
 	 * bit of new->key and old->key are identical here (otherwise they
 	 * would sit on different branches).
 	 */
-	// note that if EB_NODE_BITS > 1, we should check that it's still >= 0
+	/* note that if EB_NODE_BITS > 1, we should check that it's still >= 0 */
 	new->node.bit = fls64(new->key ^ old->key) - EB_NODE_BITS;
 	root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
 

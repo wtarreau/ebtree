@@ -312,7 +312,7 @@ __eb32_insert(struct eb_root *root, struct eb32_node *new) {
 	 * would sit on different branches).
 	 */
 
-	// note that if EB_NODE_BITS > 1, we should check that it's still >= 0
+	/* note that if EB_NODE_BITS > 1, we should check that it's still >= 0 */
 	new->node.bit = flsnz(new->key ^ old->key) - EB_NODE_BITS;
 
 	if (new->key == old->key) {
@@ -445,7 +445,7 @@ __eb32i_insert(struct eb_root *root, struct eb32_node *new) {
 	 * would sit on different branches).
 	 */
 
-	// note that if EB_NODE_BITS > 1, we should check that it's still >= 0
+	/* note that if EB_NODE_BITS > 1, we should check that it's still >= 0 */
 	new->node.bit = flsnz(new->key ^ old->key) - EB_NODE_BITS;
 
 	if (new->key == old->key) {
