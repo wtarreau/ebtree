@@ -14,7 +14,7 @@ EB_OBJ = $(EB_SRC:%.c=%.o)
 OBJS = $(CB_OBJ) $(EB_OBJ)
 
 TEST_DIR = tests
-TEST_BIN = $(addprefix $(TEST_DIR)/,test32 test64 testst)
+TEST_BIN = $(addprefix $(TEST_DIR)/,test32 test64 testst testcbaa)
 
 all: libebtree.a
 
