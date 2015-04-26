@@ -2,7 +2,7 @@
 #define _EBCOMMON_H
 
 #include <stddef.h>
-#include "compiler.h"
+#include "../common/compiler.h"
 
 /*****************************************************************************\
  * a few types we need below. Some of these may sometimes already be defined *
