@@ -42,9 +42,12 @@ typedef   signed long long s64;
  * bit manipulation functions *
 \******************************/
 
-#if defined(__i386__) || defined(__x86_64__)
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(__atom__)
 
-/* returns 1 to 32 for 1<<0 to 1<<31. Undefined for 0 */
+/* returns 1 to 32 for 1<<0 to 1<<31. Undefined for 0. DO NOT USE ON ATOM!
+ * The instruction is emulated and is several times slower than doing the
+ * math by hand.
+ */
 static inline int flsnz32(unsigned int x)
 {
 	int r;
