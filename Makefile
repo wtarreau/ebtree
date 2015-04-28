@@ -13,7 +13,7 @@ libebtree.a: $(OBJS)
 	$(CC) $(CFLAGS) -o $@ -c $^
 
 examples/%: examples/%.c libebtree.a
-	$(CC) $(CFLAGS) -I. -o $@ $< -L. -lebtree
+	$(CC) $(CFLAGS) -I. -DSTANDALONE -o $@ $< -L. -lebtree
 
 test: test32 test64 testst
 
