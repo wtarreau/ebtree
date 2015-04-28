@@ -29,17 +29,27 @@
 
 #include "../common/tools.h"
 
-/* absolute pointer version, large size */
+/* For absolute pointer addresses, we want a void * for the pointer type and
+ * something large enough to hold an unsigned xor between two pointers.
+ * ptrdiff_t would have been fine but it's signed, so let's use size_t instead.
+ */
+typedef struct cbaa_head * cb_link_t;
+typedef size_t cb_ulink_t;
+
+struct cbaa_head {
+	cb_link_t l;
+	cb_link_t r;
+}
+
 struct cbaa_node {
-	struct cbaa_node *l;
-	struct cbaa_node *r;
+	struct cbaa_head head;
 };
 
-struct cbaa_node *cbaa_insert(struct cbaa_node **root, struct cbaa_node *data);
-struct cbaa_node *cbaa_lookup(struct cbaa_node **root, void *data);
-struct cbaa_node *cbaa_lookup_le(struct cbaa_node **root, void *data);
-struct cbaa_node *cbaa_lookup_ge(struct cbaa_node **root, void *data);
-void *cbaa_dump_tree(struct cbaa_node *node, unsigned long pxor, void *last,
+struct cbaa_node *cbaa_insert(struct cbaa_head **root, struct cbaa_node *data);
+struct cbaa_node *cbaa_lookup(struct cbaa_head **root, void *data);
+struct cbaa_node *cbaa_lookup_le(struct cbaa_head **root, void *data);
+struct cbaa_node *cbaa_lookup_ge(struct cbaa_head **root, void *data);
+void *cbaa_dump_tree(struct cbaa_head *node, unsigned long pxor, void *last,
                     int level,
                     void (*node_dump)(struct cbaa_node *node, int level),
                     void (*leaf_dump)(struct cbaa_node *node, int level));

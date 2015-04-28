@@ -69,13 +69,6 @@
 #include <stddef.h>
 #include "cbaatree.h"
 
-/* For absolute pointer addresses, we want a void * for the pointer type and
- * something large enough to hold an unsigned xor between two pointers.
- * ptrdiff_t would have been fine but it's signed, so let's use size_t instead.
- */
-typedef void * cb_link_t;
-typedef size_t cb_ulink_t;
-
 static inline cb_ulink_t xorptr(cb_link_t a, cb_link_t b)
 {
 	return ((cb_ulink_t)a) ^ ((cb_ulink_t)b);
