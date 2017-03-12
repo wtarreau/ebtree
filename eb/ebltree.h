@@ -58,6 +58,8 @@ typedef s64 ebl_link_t;
 #define ebx_getroot ebl_getroot
 #undef ebx_link_is_null
 #define ebx_link_is_null ebl_link_is_null
+#undef ebx_is_root
+#define ebx_is_root ebl_is_root
 #undef ebx_first
 #define ebx_first ebl_first
 #undef ebx_last

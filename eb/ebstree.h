@@ -58,6 +58,8 @@ typedef s16 ebs_link_t;
 #define ebx_getroot ebs_getroot
 #undef ebx_link_is_null
 #define ebx_link_is_null ebs_link_is_null
+#undef ebx_is_root
+#define ebx_is_root ebs_is_root
 #undef ebx_first
 #define ebx_first ebs_first
 #undef ebx_last

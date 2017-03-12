@@ -58,6 +58,8 @@ typedef s32 ebm_link_t;
 #define ebx_getroot ebm_getroot
 #undef ebx_link_is_null
 #define ebx_link_is_null ebm_link_is_null
+#undef ebx_is_root
+#define ebx_is_root ebm_is_root
 #undef ebx_first
 #define ebx_first ebm_first
 #undef ebx_last
