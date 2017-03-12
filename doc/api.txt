@@ -1,0 +1,52 @@
+2017-03-12 - EBTree API definition
+----------------------------------
+
+Concurrent accesses
+-------------------
+
+With the introduction of the support for re-entrant operations, it becomes
+mandatory to clearly define the exposed API :
+  - some functions will probably need to exist in locked and in unlocked form.
+    For example, eb_insert_dup() might be called from within certain internal
+    functions which already hold a lock while some application code makes use
+    of it.
+
+  - some functions will require knowledge of the root while it used not to be
+    the case in the past (eg: eb_next, eb_first, eb_delete, ...)
+
+It seems reasonable to consider that all __eb* variants will expect to be
+called with whatever lock held, also saving some of them from needing access
+to the root. Rare application code making use of these functions expects them
+to be inlined and fast, and will very likely run under its own lock when
+converted to multi-threading.
+
+The code needs to be updated so that we don't call any non __eb* variant from
+within the code.
+
+All __eb* variants will have to be modified to support a root. This also means
+that the eba_delete() API will have to change. However as long as we enforce
+the fact that the root is not used in non-reentrant code, it is possible to
+map eb32_delete(node) and friends to eba32_delete(NULL, node) for backwards
+compatibility.
+
+
+API Hierarchy
+-------------
+
+At the moment the mapping between the old an the new API looks like this :
+
+      eb32   eb64   ebim   ebis   ebmb   ebpt   ebst   [Old user-facing API]
+       |      |      |      |      |      |      |
+     eba32  eba64  ebaim  ebais  ebamb  ebapt  ebast   [New user-facing API]
+       |      |      |      |      |      |      |
+       +------+------+------+------+------+------+
+                            |
+        [Memory Model]     eba           ebl           ebm           ebs
+                            |             |             |             |
+                            +-------------+------+------+-------------+
+                                                 |
+        [Indexation algorithm]                  ebx                         cbx
+                                                 |                           |
+                                                 +-------------+-------------+
+                                                               |
+        [Family]                                             ebtree
