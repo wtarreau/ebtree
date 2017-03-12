@@ -33,7 +33,7 @@
 #define eba_getroot(a) (*(a))
 
 /* an absolute pointer is NULL only when exactly NULL (no tag) */
-#define eba_link_is_null(a) ((void *)a <= (void *)1)
+#define eba_link_is_null(a) (a == NULL)
 
 /* an absolute pointer designates the ROOT if its right branch is NULL. */
 #define eba_is_root(a) ((void *)((a)->b[EB_RGHT]) <= (void *)1)

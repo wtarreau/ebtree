@@ -359,7 +359,7 @@ static inline ebx_troot_t *ebx_getroot(const ebx_link_t *src)
  */
 static inline int ebx_link_is_null(ebx_link_t link)
 {
-	return link <= 1;
+	return link == 0;
 }
 
 /* A pointer designates the ROOT if its right branch is NULL. */
