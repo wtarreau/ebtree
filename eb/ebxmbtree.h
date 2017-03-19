@@ -339,7 +339,7 @@ __ebxmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 		if (ebx_gettag(troot) != EB_LEAF) {
 			/* there was already a dup tree below */
 			struct ebx_node *ret;
-			ret = ebx_insert_dup(&old->node, &new->node);
+			ret = __ebx_insert_dup(&old->node, &new->node);
 			return container_of(ret, struct ebxmb_node, node);
 		}
 		/* otherwise fall through */
@@ -771,7 +771,7 @@ __ebxmb_insert_prefix(struct ebx_root *root, struct ebxmb_node *new, unsigned in
 			if (ebx_gettag(troot) != EB_LEAF) {
 				/* there was already a dup tree below */
 				struct ebx_node *ret;
-				ret = ebx_insert_dup(&old->node, &new->node);
+				ret = __ebx_insert_dup(&old->node, &new->node);
 				return container_of(ret, struct ebxmb_node, node);
 			}
 			/* otherwise fall through to insert first duplicate */

@@ -354,7 +354,7 @@ __ebx64_insert(struct ebx_root *root, struct ebx64_node *new) {
 			}
 			else {
 				struct ebx_node *ret;
-				ret = ebx_insert_dup(&old->node, &new->node);
+				ret = __ebx_insert_dup(&old->node, &new->node);
 				return container_of(ret, struct ebx64_node, node);
 			}
 			break;
@@ -532,7 +532,7 @@ __ebx64i_insert(struct ebx_root *root, struct ebx64_node *new) {
 			}
 			else {
 				struct ebx_node *ret;
-				ret = ebx_insert_dup(&old->node, &new->node);
+				ret = __ebx_insert_dup(&old->node, &new->node);
 				return container_of(ret, struct ebx64_node, node);
 			}
 			break;

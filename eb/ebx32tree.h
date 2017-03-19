@@ -328,7 +328,7 @@ __ebx32_insert(struct ebx_root *root, struct ebx32_node *new)
 		if (ebx_gettag(troot) != EB_LEAF) {
 			/* there was already a dup tree below */
 			struct ebx_node *ret;
-			ret = ebx_insert_dup(&old->node, &new->node);
+			ret = __ebx_insert_dup(&old->node, &new->node);
 			return container_of(ret, struct ebx32_node, node);
 		}
 		/* otherwise fall through */
@@ -463,7 +463,7 @@ __ebx32i_insert(struct ebx_root *root, struct ebx32_node *new)
 		if (ebx_gettag(troot) != EB_LEAF) {
 			/* there was already a dup tree below */
 			struct ebx_node *ret;
-			ret = ebx_insert_dup(&old->node, &new->node);
+			ret = __ebx_insert_dup(&old->node, &new->node);
 			return container_of(ret, struct ebx32_node, node);
 		}
 		/* otherwise fall through */
