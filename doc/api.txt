@@ -175,8 +175,8 @@ static inline struct ebx_node *ebx_insert_dup(struct ebx_root *root, struct ebx_
 static inline int ebx_is_empty(struct ebx_root *root)
   => external use only, reads from <src>, must be done under READ LOCK, possibly also lockless.
 
-static inline int ebx_is_dup(struct ebx_node *node)
-  => never used, reads <node>, so lockless.
+static inline int __ebx_is_dup(struct ebx_node *node)
+  => internal use only, reads <node>, so lockless.
 
 static inline struct ebx_node *ebx_first(struct ebx_root *root)
   => used by eb*_first(), uses __ebx_walk_down()

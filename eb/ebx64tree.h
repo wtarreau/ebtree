@@ -153,7 +153,7 @@ static forceinline struct ebx64_node *__ebx64_lookup(struct ebx_root *root, u64 
 			 * we have a dup tree. In the later case, we have to
 			 * walk it down left to get the first entry.
 			 */
-			if (node->node.bit < 0) {
+			if (__ebx_is_dup(&node->node)) {
 				troot = __ebx_getroot(&node->node.branches.b[EB_LEFT]);
 				while (__ebx_gettag(troot) != EB_LEAF)
 					troot = __ebx_getroot(&(__ebx_untag(troot, EB_NODE))->b[EB_LEFT]);
@@ -204,7 +204,7 @@ static forceinline struct ebx64_node *__ebx64i_lookup(struct ebx_root *root, s64
 			 * we have a dup tree. In the later case, we have to
 			 * walk it down left to get the first entry.
 			 */
-			if (node->node.bit < 0) {
+			if (__ebx_is_dup(&node->node)) {
 				troot = __ebx_getroot(&node->node.branches.b[EB_LEFT]);
 				while (__ebx_gettag(troot) != EB_LEAF)
 					troot = __ebx_getroot(&(__ebx_untag(troot, EB_NODE))->b[EB_LEFT]);

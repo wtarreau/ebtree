@@ -52,8 +52,8 @@ typedef void *eba_link_t;
 #define ebx_link_t eba_link_t
 #undef ebx_is_empty
 #define ebx_is_empty eba_is_empty
-#undef ebx_is_dup
-#define ebx_is_dup eba_is_dup
+#undef  __ebx_is_dup
+#define __ebx_is_dup __eba_is_dup
 #undef  __ebx_untag
 #define __ebx_untag __eba_untag
 #undef  __ebx_dotag

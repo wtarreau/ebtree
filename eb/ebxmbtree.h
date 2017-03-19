@@ -274,7 +274,7 @@ __ebxmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 				   struct ebxmb_node, node.branches);
 		old_node_bit = old->node.bit;
 
-		if (unlikely(old->node.bit < 0)) {
+		if (unlikely(__ebx_is_dup(&old->node))) {
 			/* We're above a duplicate tree, so we must compare the whole value */
 			__ebx_setlink(&new->node.node_p, __ebx_getroot(&old->node.node_p));
 			up_ptr = &old->node.node_p;

@@ -40,8 +40,8 @@ typedef s32 ebm_link_t;
 #define ebx_link_t ebm_link_t
 #undef ebx_is_empty
 #define ebx_is_empty ebm_is_empty
-#undef ebx_is_dup
-#define ebx_is_dup ebm_is_dup
+#undef  __ebx_is_dup
+#define __ebx_is_dup __ebm_is_dup
 #undef  __ebx_untag
 #define __ebx_untag __ebm_untag
 #undef  __ebx_dotag

@@ -40,8 +40,8 @@ typedef s16 ebs_link_t;
 #define ebx_link_t ebs_link_t
 #undef ebx_is_empty
 #define ebx_is_empty ebs_is_empty
-#undef ebx_is_dup
-#define ebx_is_dup ebs_is_dup
+#undef  __ebx_is_dup
+#define __ebx_is_dup __ebs_is_dup
 #undef  __ebx_untag
 #define __ebx_untag __ebs_untag
 #undef  __ebx_dotag

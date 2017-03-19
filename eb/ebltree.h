@@ -40,8 +40,8 @@ typedef s64 ebl_link_t;
 #define ebx_link_t ebl_link_t
 #undef ebx_is_empty
 #define ebx_is_empty ebl_is_empty
-#undef ebx_is_dup
-#define ebx_is_dup ebl_is_dup
+#undef  __ebx_is_dup
+#define __ebx_is_dup __ebl_is_dup
 #undef  __ebx_untag
 #define __ebx_untag __ebl_untag
 #undef  __ebx_dotag

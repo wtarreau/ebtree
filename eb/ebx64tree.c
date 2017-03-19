@@ -77,7 +77,7 @@ REGPRM2 struct ebx64_node *ebx64_lookup_le(struct ebx_root *root, u64 x)
 		node = container_of(__ebx_untag(troot, EB_NODE),
 				    struct ebx64_node, node.branches);
 
-		if (node->node.bit < 0) {
+		if (__ebx_is_dup(&node->node)) {
 			/* We're at the top of a dup tree. Either we got a
 			 * matching value and we return the rightmost node, or
 			 * we don't and we skip the whole subtree to return the
@@ -166,7 +166,7 @@ REGPRM2 struct ebx64_node *ebx64_lookup_ge(struct ebx_root *root, u64 x)
 		node = container_of(__ebx_untag(troot, EB_NODE),
 				    struct ebx64_node, node.branches);
 
-		if (node->node.bit < 0) {
+		if (__ebx_is_dup(&node->node)) {
 			/* We're at the top of a dup tree. Either we got a
 			 * matching value and we return the leftmost node, or
 			 * we don't and we skip the whole subtree to return the

@@ -399,7 +399,7 @@ static inline int ebx_is_empty(struct ebx_root *root)
 }
 
 /* Return non-zero if the node is a duplicate, otherwise zero */
-static inline int ebx_is_dup(struct ebx_node *node)
+static inline int __ebx_is_dup(struct ebx_node *node)
 {
 	return node->bit < 0;
 }
