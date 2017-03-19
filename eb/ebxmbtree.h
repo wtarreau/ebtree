@@ -92,12 +92,12 @@ static forceinline struct ebxmb_node *ebxmb_prev_unique(struct ebxmb_node *ebmb)
 	return eb_entry(ebx_prev_unique(&ebmb->node), struct ebxmb_node, node);
 }
 
-/* Delete node from the tree if it was linked in. Mark the node unused. Note
- * that this function relies on a non-inlined generic function: ebx_delete.
+/* Delete node from the tree if it was linked in. Mark the node unused. The
+ * tree's root is only used with the re-entrant variants.
  */
-static forceinline void ebxmb_delete(struct ebxmb_node *ebmb)
+static forceinline void ebxmb_delete(struct ebx_root *root, struct ebxmb_node *ebmb)
 {
-	ebx_delete(&ebmb->node);
+	ebx_delete(root, &ebmb->node);
 }
 
 /* The following functions are not inlined by default. They are declared
@@ -113,7 +113,9 @@ REGPRM3 struct ebxmb_node *ebxmb_insert_prefix(struct ebx_root *root, struct ebx
  * code is larger. The non-inlined version is preferred.
  */
 
-/* Delete node from the tree if it was linked in. Mark the node unused. */
+/* Delete node from the tree if it was linked in. Mark the node unused. This
+ * version is not re-entrant.
+ */
 static forceinline void __ebxmb_delete(struct ebxmb_node *ebmb)
 {
 	__ebx_delete(&ebmb->node);

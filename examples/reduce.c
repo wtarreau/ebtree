@@ -64,7 +64,7 @@ void insert_net(unsigned addr, unsigned cidr)
 	if ((node = ebamb_lookup_longest(&tree, &addr)) != NULL) {
 		if (node->node.pfx <= cidr)
 			return;
-		ebamb_delete(node);
+		__ebamb_delete(node);
 		free(node);
 	}
 
@@ -80,7 +80,7 @@ void insert_net(unsigned addr, unsigned cidr)
 
 		if (node) {
 			/* we can merge both entries at cidr - 1 */
-			ebamb_delete(node);
+			__ebamb_delete(node);
 			free(eb_entry(node, struct one_net, eb_node));
 			addr &= addr2; /* clear varying bit */
 			cidr--;
@@ -105,7 +105,7 @@ void insert_net(unsigned addr, unsigned cidr)
 		if ((addr & mask) != (net->addr.s_addr & mask))
 			break;
 		node = ebamb_next(&net->eb_node);
-		ebamb_delete(&net->eb_node);
+		__ebamb_delete(&net->eb_node);
 	}
 
 }

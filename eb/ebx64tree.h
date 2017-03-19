@@ -88,12 +88,12 @@ static inline struct ebx64_node *ebx64_prev_unique(struct ebx64_node *eb64)
 	return eb_entry(ebx_prev_unique(&eb64->node), struct ebx64_node, node);
 }
 
-/* Delete node from the tree if it was linked in. Mark the node unused. Note
- * that this function relies on a non-inlined generic function: ebx_delete.
+/* Delete node from the tree if it was linked in. Mark the node unused. The
+ * tree's root is only used with the re-entrant variants.
  */
-static inline void ebx64_delete(struct ebx64_node *eb64)
+static inline void ebx64_delete(struct ebx_root *root, struct ebx64_node *eb64)
 {
-	ebx_delete(&eb64->node);
+	ebx_delete(root, &eb64->node);
 }
 
 /*
@@ -112,7 +112,9 @@ REGPRM2 struct ebx64_node *ebx64i_insert(struct ebx_root *root, struct ebx64_nod
  * code is larger. The non-inlined version is preferred.
  */
 
-/* Delete node from the tree if it was linked in. Mark the node unused. */
+/* Delete node from the tree if it was linked in. Mark the node unused. This
+ * version is not re-entrant.
+ */
 static forceinline void __ebx64_delete(struct ebx64_node *eb64)
 {
 	__ebx_delete(&eb64->node);

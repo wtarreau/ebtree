@@ -35,8 +35,9 @@
 #define eb_prev_unique eba_prev_unique
 #define eb_walk_down eba_walk_down
 
+/* These two functions are not inlined and take no root */
 #define __eb_delete __eba_delete
-#define eb_delete eba_delete
+#define eb_delete   __eba_delete
 
 /* These two functions are not inlined and take no root */
 #define __eb_insert_dup __eba_insert_dup
@@ -62,7 +63,7 @@
 #define __eb32_insert __eba32_insert
 #define __eb32i_insert __eba32i_insert
 
-#define eb32_delete eba32_delete
+#define eb32_delete __eba32_delete
 #define eb32_lookup eba32_lookup
 #define eb32i_lookup eba32i_lookup
 #define eb32_insert eba32_insert
@@ -92,7 +93,7 @@
 #define __eb64_insert __eba64_insert
 #define __eb64i_insert __eba64i_insert
 
-#define eb64_delete eba64_delete
+#define eb64_delete __eba64_delete
 #define eb64_lookup eba64_lookup
 #define eb64i_lookup eba64i_lookup
 #define eb64_insert eba64_insert
@@ -120,7 +121,7 @@
 #define __ebpt_lookup __ebapt_lookup
 #define __ebpt_insert __ebapt_insert
 
-#define ebpt_delete ebapt_delete
+#define ebpt_delete __ebapt_delete
 #define ebpt_lookup ebapt_lookup
 #define ebpt_insert ebapt_insert
 #define ebpt_lookup_le ebapt_lookup_le
@@ -149,7 +150,7 @@
 #define __ebmb_lookup_prefix __ebamb_lookup_prefix
 #define __ebmb_insert_prefix __ebamb_insert_prefix
 
-#define ebmb_delete ebamb_delete
+#define ebmb_delete __ebamb_delete
 #define ebmb_lookup_longest ebamb_lookup_longest
 #define ebmb_lookup ebamb_lookup
 #define ebmb_insert ebamb_insert

@@ -88,12 +88,12 @@ static inline struct ebx32_node *ebx32_prev_unique(struct ebx32_node *eb32)
 	return eb_entry(ebx_prev_unique(&eb32->node), struct ebx32_node, node);
 }
 
-/* Delete node from the tree if it was linked in. Mark the node unused. Note
- * that this function relies on a non-inlined generic function: ebx_delete.
+/* Delete node from the tree if it was linked in. Mark the node unused. The
+ * tree's root is only used with the re-entrant variants.
  */
-static inline void ebx32_delete(struct ebx32_node *eb32)
+static inline void ebx32_delete(struct ebx_root *root, struct ebx32_node *eb32)
 {
-	ebx_delete(&eb32->node);
+	ebx_delete(root, &eb32->node);
 }
 
 /*
@@ -112,7 +112,9 @@ REGPRM2 struct ebx32_node *ebx32i_insert(struct ebx_root *root, struct ebx32_nod
  * code is larger. The non-inlined version is preferred.
  */
 
-/* Delete node from the tree if it was linked in. Mark the node unused. */
+/* Delete node from the tree if it was linked in. Mark the node unused. This
+ * version is not re-entrant.
+ */
 static forceinline void __ebx32_delete(struct ebx32_node *eb32)
 {
 	__ebx_delete(&eb32->node);
