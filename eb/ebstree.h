@@ -50,16 +50,16 @@ typedef s16 ebs_link_t;
 #define __ebx_clrtag __ebs_clrtag
 #undef  __ebx_gettag
 #define __ebx_gettag __ebs_gettag
-#undef ebx_root_to_node
-#define ebx_root_to_node ebs_root_to_node
-#undef ebx_setlink
-#define ebx_setlink ebs_setlink
-#undef ebx_getroot
-#define ebx_getroot ebs_getroot
-#undef ebx_link_is_null
-#define ebx_link_is_null ebs_link_is_null
-#undef ebx_is_root
-#define ebx_is_root ebs_is_root
+#undef  __ebx_root_to_node
+#define __ebx_root_to_node __ebs_root_to_node
+#undef  __ebx_setlink
+#define __ebx_setlink __ebs_setlink
+#undef  __ebx_getroot
+#define __ebx_getroot __ebs_getroot
+#undef  __ebx_link_is_null
+#define __ebx_link_is_null __ebs_link_is_null
+#undef  __ebx_is_root
+#define __ebx_is_root __ebs_is_root
 #undef ebx_first
 #define ebx_first ebs_first
 #undef ebx_last

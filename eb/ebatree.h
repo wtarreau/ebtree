@@ -27,16 +27,16 @@
 	struct eba_root name = EBA_ROOT
 
 /* Assigns a pointer to a link */
-#define eba_setlink(dest, troot) do { *(dest) = (troot); } while (0)
+#define __eba_setlink(dest, troot) do { *(dest) = (troot); } while (0)
 
 /* Returns the pointer from a link */
-#define eba_getroot(a) (*(a))
+#define __eba_getroot(a) (*(a))
 
 /* an absolute pointer is NULL only when exactly NULL (no tag) */
-#define eba_link_is_null(a) (a == NULL)
+#define __eba_link_is_null(a) (a == NULL)
 
 /* an absolute pointer designates the ROOT if its right branch is NULL. */
-#define eba_is_root(a) ((void *)((a)->b[EB_RGHT]) <= (void *)1)
+#define __eba_is_root(a) ((void *)((a)->b[EB_RGHT]) <= (void *)1)
 
 /* we're using absolute pointers for the links */
 typedef void *eba_link_t;
@@ -62,16 +62,16 @@ typedef void *eba_link_t;
 #define __ebx_clrtag __eba_clrtag
 #undef  __ebx_gettag
 #define __ebx_gettag __eba_gettag
-#undef ebx_root_to_node
-#define ebx_root_to_node eba_root_to_node
-#undef ebx_setlink
-#define ebx_setlink eba_setlink
-#undef ebx_getroot
-#define ebx_getroot eba_getroot
-#undef ebx_link_is_null
-#define ebx_link_is_null eba_link_is_null
-#undef ebx_is_root
-#define ebx_is_root eba_is_root
+#undef  __ebx_root_to_node
+#define __ebx_root_to_node __eba_root_to_node
+#undef  __ebx_setlink
+#define __ebx_setlink __eba_setlink
+#undef  __ebx_getroot
+#define __ebx_getroot __eba_getroot
+#undef  __ebx_link_is_null
+#define __ebx_link_is_null __eba_link_is_null
+#undef  __ebx_is_root
+#define __ebx_is_root __eba_is_root
 #undef ebx_first
 #define ebx_first eba_first
 #undef ebx_last

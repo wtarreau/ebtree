@@ -50,16 +50,16 @@ typedef s64 ebl_link_t;
 #define __ebx_clrtag __ebl_clrtag
 #undef  __ebx_gettag
 #define __ebx_gettag __ebl_gettag
-#undef ebx_root_to_node
-#define ebx_root_to_node ebl_root_to_node
-#undef ebx_setlink
-#define ebx_setlink ebl_setlink
-#undef ebx_getroot
-#define ebx_getroot ebl_getroot
-#undef ebx_link_is_null
-#define ebx_link_is_null ebl_link_is_null
-#undef ebx_is_root
-#define ebx_is_root ebl_is_root
+#undef  __ebx_root_to_node
+#define __ebx_root_to_node __ebl_root_to_node
+#undef  __ebx_setlink
+#define __ebx_setlink __ebl_setlink
+#undef  __ebx_getroot
+#define __ebx_getroot __ebl_getroot
+#undef  __ebx_link_is_null
+#define __ebx_link_is_null __ebl_link_is_null
+#undef  __ebx_is_root
+#define __ebx_is_root __ebl_is_root
 #undef ebx_first
 #define ebx_first ebl_first
 #undef ebx_last

@@ -50,16 +50,16 @@ typedef s32 ebm_link_t;
 #define __ebx_clrtag __ebm_clrtag
 #undef  __ebx_gettag
 #define __ebx_gettag __ebm_gettag
-#undef ebx_root_to_node
-#define ebx_root_to_node ebm_root_to_node
-#undef ebx_setlink
-#define ebx_setlink ebm_setlink
-#undef ebx_getroot
-#define ebx_getroot ebm_getroot
-#undef ebx_link_is_null
-#define ebx_link_is_null ebm_link_is_null
-#undef ebx_is_root
-#define ebx_is_root ebm_is_root
+#undef  __ebx_root_to_node
+#define __ebx_root_to_node __ebm_root_to_node
+#undef  __ebx_setlink
+#define __ebx_setlink __ebm_setlink
+#undef  __ebx_getroot
+#define __ebx_getroot __ebm_getroot
+#undef  __ebx_link_is_null
+#define __ebx_link_is_null __ebm_link_is_null
+#undef  __ebx_is_root
+#define __ebx_is_root __ebm_is_root
 #undef ebx_first
 #define ebx_first ebm_first
 #undef ebx_last
