@@ -390,9 +390,11 @@ static inline struct ebx_node *ebx_walk_down(ebx_troot_t *start, unsigned int si
 
 /* This function is used to build a tree of duplicates by adding a new node to
  * a subtree of at least 2 entries. This is the version for end users, as the
- * internal functions use __ebx_insert_dup() instead.
+ * internal functions use __ebx_insert_dup() instead. <root> is only used with
+ * the re-entrant variants.
  */
-static inline struct ebx_node *ebx_insert_dup(struct ebx_node *sub, struct ebx_node *new)
+static inline struct ebx_node *ebx_insert_dup(struct ebx_root *root,
+                                              struct ebx_node *sub, struct ebx_node *new)
 {
 	return __ebx_insert_dup(sub, new);
 }

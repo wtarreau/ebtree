@@ -174,7 +174,7 @@ static inline struct ebx_node *ebx_walk_down(ebx_troot_t *start, unsigned int si
 REGPRM1 struct ebx_node *__ebx_insert_dup(struct ebx_node *sub, struct ebx_node *new)
   ==> internal only
 
-static inline struct ebx_node *ebx_insert_dup(struct ebx_node *sub, struct ebx_node *new)
+static inline struct ebx_node *ebx_insert_dup(struct ebx_root *root, struct ebx_node *sub, struct ebx_node *new)
   ==> not used internally, only exported
 
 static inline int ebx_is_empty(struct ebx_root *root)

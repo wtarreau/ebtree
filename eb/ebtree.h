@@ -36,10 +36,11 @@
 #define eb_walk_down eba_walk_down
 
 #define __eb_delete __eba_delete
-#define __eb_insert_dup __eba_insert_dup
-
 #define eb_delete eba_delete
-#define eb_insert_dup eba_insert_dup
+
+/* These two functions are not inlined and take no root */
+#define __eb_insert_dup __eba_insert_dup
+#define eb_insert_dup   __eba_insert_dup
 
 #define EB32_ROOT       EB_ROOT
 #define EB32_TREE_HEAD	EB_TREE_HEAD
