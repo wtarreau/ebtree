@@ -134,9 +134,6 @@ REGPRM2 struct ebx32_node *ebx32_insert(struct ebx_root *root, struct ebx32_node
 REGPRM2 struct ebx32_node *ebx32i_insert(struct ebx_root *root, struct ebx32_node *new);
   ==> not used internally, only exported
 
-REGPRM1 struct ebx_node *ebx_insert_dup(struct ebx_node *sub, struct ebx_node *new)
-  ==> INTERNAL AND EXTERNAL (__ebx*_insert)
-
 
 Warning, ebxpt_lookup{,_le,_ge} relies on ebx{32,64}_* depending on the pointer
 size.
@@ -174,8 +171,11 @@ static inline int ebx_is_root(struct ebx_root *root)
 static inline struct ebx_node *ebx_walk_down(ebx_troot_t *start, unsigned int side)
   => internal use only, reads from <start>, must be done under READ LOCK
 
-static forceinline struct ebx_node *__ebx_insert_dup(struct ebx_node *sub, struct ebx_node *new)
-  => only used by ebx_insert_dup(), both internal and external
+REGPRM1 struct ebx_node *__ebx_insert_dup(struct ebx_node *sub, struct ebx_node *new)
+  ==> internal only
+
+static inline struct ebx_node *ebx_insert_dup(struct ebx_node *sub, struct ebx_node *new)
+  ==> not used internally, only exported
 
 static inline int ebx_is_empty(struct ebx_root *root)
   => external use only, reads from <src>, must be done under READ LOCK, possibly also lockless.
