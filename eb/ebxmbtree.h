@@ -462,7 +462,7 @@ static forceinline struct ebxmb_node *__ebxmb_lookup_longest(struct ebx_root *ro
 
  not_found:
 	/* Walk down last cover tre if it exists. It does not matter if cover is NULL */
-	return eb_entry(ebx_walk_down(cover, EB_LEFT), struct ebxmb_node, node);
+	return eb_entry(__ebx_walk_down(cover, EB_LEFT), struct ebxmb_node, node);
 }
 
 

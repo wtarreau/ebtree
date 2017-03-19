@@ -88,8 +88,8 @@ typedef void *eba_link_t;
 #define ebx_prev_dup eba_prev_dup
 #undef ebx_prev_unique
 #define ebx_prev_unique eba_prev_unique
-#undef ebx_walk_down
-#define ebx_walk_down eba_walk_down
+#undef  __ebx_walk_down
+#define __ebx_walk_down __eba_walk_down
 #undef __ebx_delete
 #define __ebx_delete __eba_delete
 #undef __ebx_insert_dup

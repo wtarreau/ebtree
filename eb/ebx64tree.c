@@ -105,7 +105,7 @@ REGPRM2 struct ebx64_node *ebx64_lookup_le(struct ebx_root *root, u64 x)
 			 */
 			if ((node->key >> node->node.bit) < (x >> node->node.bit)) {
 				troot = __ebx_getroot(&node->node.branches.b[EB_RGHT]);
-				return eb_entry(ebx_walk_down(troot, EB_RGHT), struct ebx64_node, node);
+				return eb_entry(__ebx_walk_down(troot, EB_RGHT), struct ebx64_node, node);
 			}
 
 			/* Further values will be too high here, so return the prev
@@ -131,7 +131,7 @@ REGPRM2 struct ebx64_node *ebx64_lookup_le(struct ebx_root *root, u64 x)
 	}
 	/* Note that <troot> cannot be NULL at this stage */
 	troot = __ebx_getroot(&(__ebx_untag(troot, EB_RGHT))->b[EB_LEFT]);
-	node = eb_entry(ebx_walk_down(troot, EB_RGHT), struct ebx64_node, node);
+	node = eb_entry(__ebx_walk_down(troot, EB_RGHT), struct ebx64_node, node);
 	return node;
 }
 
@@ -194,7 +194,7 @@ REGPRM2 struct ebx64_node *ebx64_lookup_ge(struct ebx_root *root, u64 x)
 			 */
 			if ((node->key >> node->node.bit) > (x >> node->node.bit)) {
 				troot = __ebx_getroot(&node->node.branches.b[EB_LEFT]);
-				return eb_entry(ebx_walk_down(troot, EB_LEFT), struct ebx64_node, node);
+				return eb_entry(__ebx_walk_down(troot, EB_LEFT), struct ebx64_node, node);
 			}
 
 			/* Further values will be too low here, so return the next
@@ -219,6 +219,6 @@ REGPRM2 struct ebx64_node *ebx64_lookup_ge(struct ebx_root *root, u64 x)
 		return NULL;
 
 	troot = __ebx_getroot(&(__ebx_untag(troot, EB_LEFT))->b[EB_RGHT]);
-	node = eb_entry(ebx_walk_down(troot, EB_LEFT), struct ebx64_node, node);
+	node = eb_entry(__ebx_walk_down(troot, EB_LEFT), struct ebx64_node, node);
 	return node;
 }

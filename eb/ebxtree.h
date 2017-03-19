@@ -378,7 +378,7 @@ static inline int __ebx_is_root(struct ebx_root *root)
  * or NULL if no leaf is found. <start> may either be NULL or a branch pointer.
  * The pointer to the leaf (or NULL) is returned.
  */
-static inline struct ebx_node *ebx_walk_down(ebx_troot_t *start, unsigned int side)
+static inline struct ebx_node *__ebx_walk_down(ebx_troot_t *start, unsigned int side)
 {
 	/* A NULL pointer on an empty tree root will be returned as-is */
 	while (__ebx_gettag(start) == EB_NODE)
@@ -409,7 +409,7 @@ static inline struct ebx_node *ebx_first(struct ebx_root *root)
 {
 	if (__ebx_link_is_null(root->b[EB_LEFT]))
 		return NULL;
-	return ebx_walk_down(__ebx_getroot(&root->b[0]), EB_LEFT);
+	return __ebx_walk_down(__ebx_getroot(&root->b[0]), EB_LEFT);
 }
 
 /* Return the last leaf in the tree starting at <root>, or NULL if none */
@@ -417,7 +417,7 @@ static inline struct ebx_node *ebx_last(struct ebx_root *root)
 {
 	if (__ebx_link_is_null(root->b[EB_LEFT]))
 		return NULL;
-	return ebx_walk_down(__ebx_getroot(&root->b[0]), EB_RGHT);
+	return __ebx_walk_down(__ebx_getroot(&root->b[0]), EB_RGHT);
 }
 
 /* Return previous leaf node before an existing leaf node, or NULL if none. */
@@ -435,7 +435,7 @@ static inline struct ebx_node *ebx_prev(struct ebx_node *node)
 	}
 	/* Note that <t> cannot be NULL at this stage */
 	t = __ebx_getroot(&(__ebx_untag(t, EB_RGHT))->b[EB_LEFT]);
-	return ebx_walk_down(t, EB_RGHT);
+	return __ebx_walk_down(t, EB_RGHT);
 }
 
 /* Return next leaf node after an existing leaf node, or NULL if none. */
@@ -452,7 +452,7 @@ static inline struct ebx_node *ebx_next(struct ebx_node *node)
 		return NULL;
 
 	t = __ebx_getroot(&(__ebx_untag(t, EB_LEFT))->b[EB_RGHT]);
-	return ebx_walk_down(t, EB_LEFT);
+	return __ebx_walk_down(t, EB_LEFT);
 }
 
 /* Return previous leaf node within a duplicate sub-tree, or NULL if none. */
@@ -475,7 +475,7 @@ static inline struct ebx_node *ebx_prev_dup(struct ebx_node *node)
 	if ((__ebx_root_to_node(__ebx_untag(t, EB_RGHT)))->bit >= 0)
 		return NULL;
 	t = __ebx_getroot(&(__ebx_untag(t, EB_RGHT))->b[EB_LEFT]);
-	return ebx_walk_down(t, EB_RGHT);
+	return __ebx_walk_down(t, EB_RGHT);
 }
 
 /* Return next leaf node within a duplicate sub-tree, or NULL if none. */
@@ -499,7 +499,7 @@ static inline struct ebx_node *ebx_next_dup(struct ebx_node *node)
 		return NULL;
 
 	t = __ebx_getroot(&(__ebx_untag(t, EB_LEFT))->b[EB_RGHT]);
-	return ebx_walk_down(t, EB_LEFT);
+	return __ebx_walk_down(t, EB_LEFT);
 }
 
 /* Return previous leaf node before an existing leaf node, skipping duplicates,
@@ -527,7 +527,7 @@ static inline struct ebx_node *ebx_prev_unique(struct ebx_node *node)
 	}
 	/* Note that <t> cannot be NULL at this stage */
 	t = __ebx_getroot(&(__ebx_untag(t, EB_RGHT))->b[EB_LEFT]);
-	return ebx_walk_down(t, EB_RGHT);
+	return __ebx_walk_down(t, EB_RGHT);
 }
 
 /* Return next leaf node after an existing leaf node, skipping duplicates, or
@@ -558,7 +558,7 @@ static inline struct ebx_node *ebx_next_unique(struct ebx_node *node)
 		return NULL;
 
 	t = __ebx_getroot(&(__ebx_untag(t, EB_LEFT))->b[EB_RGHT]);
-	return ebx_walk_down(t, EB_LEFT);
+	return __ebx_walk_down(t, EB_LEFT);
 }
 
 

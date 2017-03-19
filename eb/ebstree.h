@@ -76,8 +76,8 @@ typedef s16 ebs_link_t;
 #define ebx_prev_dup ebs_prev_dup
 #undef ebx_prev_unique
 #define ebx_prev_unique ebs_prev_unique
-#undef ebx_walk_down
-#define ebx_walk_down ebs_walk_down
+#undef  __ebx_walk_down
+#define __ebx_walk_down __ebs_walk_down
 #undef __ebx_delete
 #define __ebx_delete __ebs_delete
 #undef __ebx_insert_dup
