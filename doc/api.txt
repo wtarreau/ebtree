@@ -50,3 +50,162 @@ At the moment the mapping between the old an the new API looks like this :
                                                  +-------------+-------------+
                                                                |
         [Family]                                             ebtree
+
+
+API updates
+-----------
+
+{,__}eb{32,64,mb,pt,}_delete are defined to their {,__}eba*_delete equivalent.
+{,__}eba{*}_delete are declared based on their {,__}ebx* generators.
+
+  __ebx_delete() is static inline.
+  ebx_delete() is a function.
+  __ebx32_delete() is a static inline calling __ebx_delete()
+  ebx32_delete() is a static inline calling ebx_delete()
+  etc.
+
+Eg for 32-bit, list of available inline functions :
+
+static inline struct ebx32_node *ebx32_first(struct ebx_root *root)
+  ==> not used internally, only exported
+
+static inline struct ebx32_node *ebx32_last(struct ebx_root *root)
+  ==> not used internally, only exported
+
+static inline struct ebx32_node *ebx32_next(struct ebx32_node *eb32)
+  ==> not used internally, only exported
+  ==> needs to be adapted to take a root (down to ebx_next)
+
+static inline struct ebx32_node *ebx32_prev(struct ebx32_node *eb32)
+  ==> not used internally, only exported
+  ==> needs to be adapted to take a root (down to ebx_prev)
+
+static inline struct ebx32_node *ebx32_next_dup(struct ebx32_node *eb32)
+  ==> not used internally, only exported
+  ==> needs to be adapted to take a root (down to ebx_next_dup)
+
+static inline struct ebx32_node *ebx32_prev_dup(struct ebx32_node *eb32)
+  ==> not used internally, only exported
+  ==> needs to be adapted to take a root (down to ebx_prev_dup)
+
+static inline struct ebx32_node *ebx32_next_unique(struct ebx32_node *eb32)
+  ==> not used internally, only exported
+  ==> needs to be adapted to take a root (down to ebx_next_unique)
+
+static inline struct ebx32_node *ebx32_prev_unique(struct ebx32_node *eb32)
+  ==> not used internally, only exported
+  ==> needs to be adapted to take a root (down to ebx_prev_unique)
+
+static inline void ebx32_delete(struct ebx32_node *eb32)
+  ==> not used internally, only exported
+  ==> needs to be adapted to take a root (down to __ebx_delete)
+
+static forceinline void __ebx32_delete(struct ebx32_node *eb32)
+  ==> not used internally, only exported
+  ==> needs to be adapted to take a root (down to __ebx_delete)
+
+static forceinline struct ebx32_node *__ebx32_lookup(struct ebx_root *root, u32 x)
+  ==> not used internally, only exported
+
+static forceinline struct ebx32_node *__ebx32i_lookup(struct ebx_root *root, s32 x)
+  ==> not used internally, only exported
+
+static forceinline struct ebx32_node *__ebx32_insert(struct ebx_root *root, struct ebx32_node *new)
+  ==> not used internally, only exported
+
+static forceinline struct ebx32_node *__ebx32i_insert(struct ebx_root *root, struct ebx32_node *new)
+  ==> not used internally, only exported
+
+REGPRM2 struct ebx32_node *ebx32_lookup(struct ebx_root *root, u32 x);
+  ==> not used internally, only exported
+
+REGPRM2 struct ebx32_node *ebx32i_lookup(struct ebx_root *root, s32 x);
+  ==> not used internally, only exported
+
+REGPRM2 struct ebx32_node *ebx32_lookup_le(struct ebx_root *root, u32 x);
+  ==> not used internally, only exported
+
+REGPRM2 struct ebx32_node *ebx32_lookup_ge(struct ebx_root *root, u32 x);
+  ==> not used internally, only exported
+
+REGPRM2 struct ebx32_node *ebx32_insert(struct ebx_root *root, struct ebx32_node *new);
+  ==> not used internally, only exported
+
+REGPRM2 struct ebx32_node *ebx32i_insert(struct ebx_root *root, struct ebx32_node *new);
+  ==> not used internally, only exported
+
+REGPRM1 struct ebx_node *ebx_insert_dup(struct ebx_node *sub, struct ebx_node *new)
+  ==> INTERNAL AND EXTERNAL (__ebx*_insert)
+
+
+Warning, ebxpt_lookup{,_le,_ge} relies on ebx{32,64}_* depending on the pointer
+size.
+
+
+Most internal functions are in the generic ebxtree.h file :
+
+static inline ebx_troot_t *ebx_dotag(const struct ebx_root *root, const int tag)
+  => internal use only, only manipulates pointers
+
+static inline struct ebx_root *ebx_untag(const ebx_troot_t *troot, const int tag)
+  => internal use only, only manipulates pointers
+
+static inline int ebx_gettag(ebx_troot_t *troot)
+  => internal use only, only manipulates pointers
+
+static inline struct ebx_root *ebx_clrtag(const ebx_troot_t *troot)
+  => internal use only, only manipulates pointers
+
+static inline struct ebx_node *ebx_root_to_node(struct ebx_root *root)
+  => internal use only, only manipulates pointers
+
+static inline void ebx_setlink(ebx_link_t *dest, const ebx_troot_t *troot)
+  => internal use only, writes to <dest>, must be done under WRITE LOCK
+
+static inline ebx_troot_t *ebx_getroot(const ebx_link_t *src)
+  => internal use only, reads from <src>, must be done under READ LOCK
+
+static inline int ebx_link_is_null(ebx_link_t link)
+  => internal use only, only manipulates pointers
+
+static inline int ebx_is_root(struct ebx_root *root)
+  => internal use only, reads from <root>, must be done under READ LOCK, possibly also lockless.
+
+static inline struct ebx_node *ebx_walk_down(ebx_troot_t *start, unsigned int side)
+  => internal use only, reads from <start>, must be done under READ LOCK
+
+static forceinline struct ebx_node *__ebx_insert_dup(struct ebx_node *sub, struct ebx_node *new)
+  => only used by ebx_insert_dup(), both internal and external
+
+static inline int ebx_is_empty(struct ebx_root *root)
+  => external use only, reads from <src>, must be done under READ LOCK, possibly also lockless.
+
+static inline int ebx_is_dup(struct ebx_node *node)
+  => never used, reads <node>, so lockless.
+
+static inline struct ebx_node *ebx_first(struct ebx_root *root)
+  => used by eb*_first(), uses ebx_walk_down()
+
+static inline struct ebx_node *ebx_last(struct ebx_root *root)
+  => used by eb*_last(), uses ebx_walk_down()
+
+static inline struct ebx_node *ebx_prev(struct ebx_node *node)
+  => used by eb*_prev(), uses ebx_walk_down(), ebx_getroot, ebx_is_root
+
+static inline struct ebx_node *ebx_next(struct ebx_node *node)
+  => used by eb*_next(), uses ebx_walk_down(), ebx_getroot, ebx_is_root
+
+static inline struct ebx_node *ebx_prev_dup(struct ebx_node *node)
+  => used by eb*_prev_dup(), uses ebx_walk_down(), ebx_getroot, ebx_is_root
+
+static inline struct ebx_node *ebx_next_dup(struct ebx_node *node)
+  => used by eb*_next_dup(), uses ebx_walk_down(), ebx_getroot, ebx_is_root
+
+static inline struct ebx_node *ebx_prev_unique(struct ebx_node *node)
+  => used by eb*_prev_unique(), uses ebx_walk_down(), ebx_getroot, ebx_is_root
+
+static inline struct ebx_node *ebx_next_unique(struct ebx_node *node)
+  => used by eb*_next_unique(), uses ebx_walk_down(), ebx_getroot, ebx_is_root
+
+static forceinline void __ebx_delete(struct ebx_node *node)
+  => only used by __ebx*_delete() ; external use only
