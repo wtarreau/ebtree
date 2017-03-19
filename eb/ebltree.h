@@ -42,14 +42,14 @@ typedef s64 ebl_link_t;
 #define ebx_is_empty ebl_is_empty
 #undef ebx_is_dup
 #define ebx_is_dup ebl_is_dup
-#undef ebx_untag
-#define ebx_untag ebl_untag
-#undef ebx_dotag
-#define ebx_dotag ebl_dotag
-#undef ebx_clrtag
-#define ebx_clrtag ebl_clrtag
-#undef ebx_gettag
-#define ebx_gettag ebl_gettag
+#undef  __ebx_untag
+#define __ebx_untag __ebl_untag
+#undef  __ebx_dotag
+#define __ebx_dotag __ebl_dotag
+#undef  __ebx_clrtag
+#define __ebx_clrtag __ebl_clrtag
+#undef  __ebx_gettag
+#define __ebx_gettag __ebl_gettag
 #undef ebx_root_to_node
 #define ebx_root_to_node ebl_root_to_node
 #undef ebx_setlink

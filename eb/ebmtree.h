@@ -42,14 +42,14 @@ typedef s32 ebm_link_t;
 #define ebx_is_empty ebm_is_empty
 #undef ebx_is_dup
 #define ebx_is_dup ebm_is_dup
-#undef ebx_untag
-#define ebx_untag ebm_untag
-#undef ebx_dotag
-#define ebx_dotag ebm_dotag
-#undef ebx_clrtag
-#define ebx_clrtag ebm_clrtag
-#undef ebx_gettag
-#define ebx_gettag ebm_gettag
+#undef  __ebx_untag
+#define __ebx_untag __ebm_untag
+#undef  __ebx_dotag
+#define __ebx_dotag __ebm_dotag
+#undef  __ebx_clrtag
+#define __ebx_clrtag __ebm_clrtag
+#undef  __ebx_gettag
+#define __ebx_gettag __ebm_gettag
 #undef ebx_root_to_node
 #define ebx_root_to_node ebm_root_to_node
 #undef ebx_setlink

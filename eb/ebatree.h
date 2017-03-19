@@ -54,14 +54,14 @@ typedef void *eba_link_t;
 #define ebx_is_empty eba_is_empty
 #undef ebx_is_dup
 #define ebx_is_dup eba_is_dup
-#undef ebx_untag
-#define ebx_untag eba_untag
-#undef ebx_dotag
-#define ebx_dotag eba_dotag
-#undef ebx_clrtag
-#define ebx_clrtag eba_clrtag
-#undef ebx_gettag
-#define ebx_gettag eba_gettag
+#undef  __ebx_untag
+#define __ebx_untag __eba_untag
+#undef  __ebx_dotag
+#define __ebx_dotag __eba_dotag
+#undef  __ebx_clrtag
+#define __ebx_clrtag __eba_clrtag
+#undef  __ebx_gettag
+#define __ebx_gettag __eba_gettag
 #undef ebx_root_to_node
 #define ebx_root_to_node eba_root_to_node
 #undef ebx_setlink

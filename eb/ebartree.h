@@ -55,14 +55,14 @@ typedef void *ebar_link_t;
 #define ebx_is_empty ebar_is_empty
 #undef ebx_is_dup
 #define ebx_is_dup ebar_is_dup
-#undef ebx_untag
-#define ebx_untag ebar_untag
-#undef ebx_dotag
-#define ebx_dotag ebar_dotag
-#undef ebx_clrtag
-#define ebx_clrtag ebar_clrtag
-#undef ebx_gettag
-#define ebx_gettag ebar_gettag
+#undef  __ebx_untag
+#define __ebx_untag __ebar_untag
+#undef  __ebx_dotag
+#define __ebx_dotag __ebar_dotag
+#undef  __ebx_clrtag
+#define __ebx_clrtag __ebar_clrtag
+#undef  __ebx_gettag
+#define __ebx_gettag __ebar_gettag
 #undef ebx_root_to_node
 #define ebx_root_to_node ebar_root_to_node
 #undef ebx_setlink

@@ -42,14 +42,14 @@ typedef s16 ebs_link_t;
 #define ebx_is_empty ebs_is_empty
 #undef ebx_is_dup
 #define ebx_is_dup ebs_is_dup
-#undef ebx_untag
-#define ebx_untag ebs_untag
-#undef ebx_dotag
-#define ebx_dotag ebs_dotag
-#undef ebx_clrtag
-#define ebx_clrtag ebs_clrtag
-#undef ebx_gettag
-#define ebx_gettag ebs_gettag
+#undef  __ebx_untag
+#define __ebx_untag __ebs_untag
+#undef  __ebx_dotag
+#define __ebx_dotag __ebs_dotag
+#undef  __ebx_clrtag
+#define __ebx_clrtag __ebs_clrtag
+#undef  __ebx_gettag
+#define __ebx_gettag __ebs_gettag
 #undef ebx_root_to_node
 #define ebx_root_to_node ebs_root_to_node
 #undef ebx_setlink

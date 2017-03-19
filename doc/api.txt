@@ -130,16 +130,16 @@ size.
 
 Most internal functions are in the generic ebxtree.h file :
 
-static inline ebx_troot_t *ebx_dotag(const struct ebx_root *root, const int tag)
+static inline ebx_troot_t *__ebx_dotag(const struct ebx_root *root, const int tag)
   => internal use only, only manipulates pointers
 
-static inline struct ebx_root *ebx_untag(const ebx_troot_t *troot, const int tag)
+static inline struct ebx_root *__ebx_untag(const ebx_troot_t *troot, const int tag)
   => internal use only, only manipulates pointers
 
-static inline int ebx_gettag(ebx_troot_t *troot)
+static inline int __ebx_gettag(ebx_troot_t *troot)
   => internal use only, only manipulates pointers
 
-static inline struct ebx_root *ebx_clrtag(const ebx_troot_t *troot)
+static inline struct ebx_root *__ebx_clrtag(const ebx_troot_t *troot)
   => internal use only, only manipulates pointers
 
 static inline struct ebx_node *ebx_root_to_node(struct ebx_root *root)

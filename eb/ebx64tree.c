@@ -61,12 +61,12 @@ REGPRM2 struct ebx64_node *ebx64_lookup_le(struct ebx_root *root, u64 x)
 	troot = ebx_getroot(&root->b[EB_LEFT]);
 
 	while (1) {
-		if ((ebx_gettag(troot) == EB_LEAF)) {
+		if ((__ebx_gettag(troot) == EB_LEAF)) {
 			/* We reached a leaf, which means that the whole upper
 			 * parts were common. We will return either the current
 			 * node or its next one if the former is too small.
 			 */
-			node = container_of(ebx_untag(troot, EB_LEAF),
+			node = container_of(__ebx_untag(troot, EB_LEAF),
 					    struct ebx64_node, node.branches);
 			if (node->key <= x)
 				return node;
@@ -74,7 +74,7 @@ REGPRM2 struct ebx64_node *ebx64_lookup_le(struct ebx_root *root, u64 x)
 			troot = ebx_getroot(&node->node.leaf_p);
 			break;
 		}
-		node = container_of(ebx_untag(troot, EB_NODE),
+		node = container_of(__ebx_untag(troot, EB_NODE),
 				    struct ebx64_node, node.branches);
 
 		if (node->node.bit < 0) {
@@ -88,9 +88,9 @@ REGPRM2 struct ebx64_node *ebx64_lookup_le(struct ebx_root *root, u64 x)
 			 */
 			if (node->key <= x) {
 				troot = ebx_getroot(&node->node.branches.b[EB_RGHT]);
-				while (ebx_gettag(troot) != EB_LEAF)
-					troot = ebx_getroot(&(ebx_untag(troot, EB_NODE))->b[EB_RGHT]);
-				return container_of(ebx_untag(troot, EB_LEAF),
+				while (__ebx_gettag(troot) != EB_LEAF)
+					troot = ebx_getroot(&(__ebx_untag(troot, EB_NODE))->b[EB_RGHT]);
+				return container_of(__ebx_untag(troot, EB_LEAF),
 						    struct ebx64_node, node.branches);
 			}
 			/* return prev */
@@ -121,16 +121,16 @@ REGPRM2 struct ebx64_node *ebx64_lookup_le(struct ebx_root *root, u64 x)
 	 * current one which is not above. <troot> is already initialised to
 	 * the parent's branches.
 	 */
-	while (ebx_gettag(troot) == EB_LEFT) {
+	while (__ebx_gettag(troot) == EB_LEFT) {
 		/* Walking up from left branch. We must ensure that we never
 		 * walk beyond root.
 		 */
-		if (unlikely(ebx_is_root(ebx_untag(troot, EB_LEFT))))
+		if (unlikely(ebx_is_root(__ebx_untag(troot, EB_LEFT))))
 			return NULL;
-		troot = ebx_getroot(&(ebx_root_to_node(ebx_untag(troot, EB_LEFT)))->node_p);
+		troot = ebx_getroot(&(ebx_root_to_node(__ebx_untag(troot, EB_LEFT)))->node_p);
 	}
 	/* Note that <troot> cannot be NULL at this stage */
-	troot = ebx_getroot(&(ebx_untag(troot, EB_RGHT))->b[EB_LEFT]);
+	troot = ebx_getroot(&(__ebx_untag(troot, EB_RGHT))->b[EB_LEFT]);
 	node = eb_entry(ebx_walk_down(troot, EB_RGHT), struct ebx64_node, node);
 	return node;
 }
@@ -150,12 +150,12 @@ REGPRM2 struct ebx64_node *ebx64_lookup_ge(struct ebx_root *root, u64 x)
 	troot = ebx_getroot(&root->b[EB_LEFT]);
 
 	while (1) {
-		if ((ebx_gettag(troot) == EB_LEAF)) {
+		if ((__ebx_gettag(troot) == EB_LEAF)) {
 			/* We reached a leaf, which means that the whole upper
 			 * parts were common. We will return either the current
 			 * node or its next one if the former is too small.
 			 */
-			node = container_of(ebx_untag(troot, EB_LEAF),
+			node = container_of(__ebx_untag(troot, EB_LEAF),
 					    struct ebx64_node, node.branches);
 			if (node->key >= x)
 				return node;
@@ -163,7 +163,7 @@ REGPRM2 struct ebx64_node *ebx64_lookup_ge(struct ebx_root *root, u64 x)
 			troot = ebx_getroot(&node->node.leaf_p);
 			break;
 		}
-		node = container_of(ebx_untag(troot, EB_NODE),
+		node = container_of(__ebx_untag(troot, EB_NODE),
 				    struct ebx64_node, node.branches);
 
 		if (node->node.bit < 0) {
@@ -177,9 +177,9 @@ REGPRM2 struct ebx64_node *ebx64_lookup_ge(struct ebx_root *root, u64 x)
 			 */
 			if (node->key >= x) {
 				troot = ebx_getroot(&node->node.branches.b[EB_LEFT]);
-				while (ebx_gettag(troot) != EB_LEAF)
-					troot = ebx_getroot(&(ebx_untag(troot, EB_NODE))->b[EB_LEFT]);
-				return container_of(ebx_untag(troot, EB_LEAF),
+				while (__ebx_gettag(troot) != EB_LEAF)
+					troot = ebx_getroot(&(__ebx_untag(troot, EB_NODE))->b[EB_LEFT]);
+				return container_of(__ebx_untag(troot, EB_LEAF),
 						    struct ebx64_node, node.branches);
 			}
 			/* return next */
@@ -210,15 +210,15 @@ REGPRM2 struct ebx64_node *ebx64_lookup_ge(struct ebx_root *root, u64 x)
 	 * current one which is not below. <troot> is already initialised
 	 * to the parent's branches.
 	 */
-	while (ebx_gettag(troot) != EB_LEFT)
+	while (__ebx_gettag(troot) != EB_LEFT)
 		/* Walking up from right branch, so we cannot be below root */
-		troot = ebx_getroot(&(ebx_root_to_node(ebx_untag(troot, EB_RGHT)))->node_p);
+		troot = ebx_getroot(&(ebx_root_to_node(__ebx_untag(troot, EB_RGHT)))->node_p);
 
 	/* Note that <troot> cannot be NULL at this stage */
-	if (ebx_is_root(ebx_untag(troot, EB_LEFT)))
+	if (ebx_is_root(__ebx_untag(troot, EB_LEFT)))
 		return NULL;
 
-	troot = ebx_getroot(&(ebx_untag(troot, EB_LEFT))->b[EB_RGHT]);
+	troot = ebx_getroot(&(__ebx_untag(troot, EB_LEFT))->b[EB_RGHT]);
 	node = eb_entry(ebx_walk_down(troot, EB_LEFT), struct ebx64_node, node);
 	return node;
 }

@@ -20,11 +20,6 @@
 #define eb_is_empty eba_is_empty
 #define eb_is_dup eba_is_dup
 
-#define eb_untag eba_untag
-#define eb_dotag eba_dotag
-#define eb_clrtag eba_clrtag
-#define eb_gettag eba_gettag
-
 #define eb_first eba_first
 #define eb_last eba_last
 #define eb_next eba_next
