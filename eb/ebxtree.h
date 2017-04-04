@@ -308,7 +308,7 @@ REGPRM1 struct ebx_node *__ebx_insert_dup(struct ebx_node *sub, struct ebx_node 
  */
 static inline ebx_troot_t *__ebx_dotag(const struct ebx_root *root, const int tag)
 {
-	return (ebx_troot_t *)((char *)root + tag);
+	return (ebx_troot_t *)((char *)root + tag + 2);
 }
 
 /* Converts an ebx_troot_t pointer pointer to its equivalent ebx_root pointer,
@@ -318,7 +318,7 @@ static inline ebx_troot_t *__ebx_dotag(const struct ebx_root *root, const int ta
  */
 static inline struct ebx_root *__ebx_untag(const ebx_troot_t *troot, const int tag)
 {
-	return (struct ebx_root *)((char *)troot - tag);
+	return (struct ebx_root *)((char *)troot - tag - 2);
 }
 
 /* returns the tag associated with an ebx_troot_t pointer */
@@ -332,7 +332,7 @@ static inline int __ebx_gettag(ebx_troot_t *troot)
  */
 static inline struct ebx_root *__ebx_clrtag(const ebx_troot_t *troot)
 {
-	return (struct ebx_root *)((unsigned long)troot & ~1UL);
+	return (struct ebx_root *)((unsigned long)troot & ~3UL);
 }
 
 /* Returns a pointer to the ebx_node holding <root>, where <root> is stored at <base> */
@@ -366,10 +366,10 @@ static inline int __ebx_link_is_null(ebx_link_t link)
 	return link == 0;
 }
 
-/* A pointer designates the ROOT if its right branch is NULL. */
+/* A pointer designates the ROOT if its right branch has bit 1 clear. */
 static inline int __ebx_is_root(struct ebx_root *root)
 {
-	return root->b[EB_RGHT] <= 1;
+	return (root->b[EB_RGHT] & 2) == 0;
 }
 #endif
 

@@ -35,8 +35,8 @@
 /* an absolute pointer is NULL only when exactly NULL (no tag) */
 #define __eba_link_is_null(a) (a == NULL)
 
-/* an absolute pointer designates the ROOT if its right branch is NULL. */
-#define __eba_is_root(a) ((void *)((a)->b[EB_RGHT]) <= (void *)1)
+/* a pointer designates the ROOT if its right branch has bit 1 clear. */
+#define __eba_is_root(a) (((size_t)((a)->b[EB_RGHT]) & 2) == 0)
 
 /* we're using absolute pointers for the links */
 typedef void *eba_link_t;

@@ -10,18 +10,18 @@
 #include "ebcommon.h"
 
 /* The root of a tree is an ebar_root initialized with left pointer NULL
- * and the right one having bit 1 set. During its life, only the left
- * pointer will change, always keeping bit 1 cleared. The right one will
- * always remain set, which is the way we detect it.
+ * and the right one having bit 1 clear. During its life, only the left
+ * pointer will change, always keeping bit 1 set. The right one will
+ * always remain clear, which is the way we detect it.
  */
 #define EBAR_ROOT					\
 	(struct ebar_root) {				\
-		.b = {[0] = 0, [1] = (ebar_link_t)2 },	\
+		.b = {[0] = 0, [1] = (ebar_link_t)0 },	\
 	}
 
 #define EBAR_ROOT_UNIQUE					\
 	(struct ebar_root) {				\
-		.b = {[0] = 0, [1] = (ebar_link_t)3 },	\
+		.b = {[0] = 0, [1] = (ebar_link_t)1 },	\
 	}
 
 #define EBAR_TREE_HEAD(name)				\
@@ -36,8 +36,8 @@
 /* an absolute pointer is NULL only when exactly NULL (no tag) */
 #define __ebar_link_is_null(a) (a == NULL)
 
-/* an absolute pointer designates the ROOT if its right branch is NULL. */
-#define __ebar_is_root(a) ((size_t)((a)->b[EB_RGHT]) & 2)
+/* a pointer designates the ROOT if its right branch has bit 1 clear. */
+#define __ebar_is_root(a) (((size_t)((a)->b[EB_RGHT]) & 2) == 0)
 
 /* we're using absolute pointers for the links */
 typedef void *ebar_link_t;
