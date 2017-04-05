@@ -1,0 +1,58 @@
+2017-04-05 - EBTree Root Detection
+----------------------------------
+
+In legacy versions, we used to detect the root using the fact that the root was
+the only couple of branches where the right was NULL (+/- 1 to mark the intent
+to only store unique nodes).
+
+With the arrival of threading and the need to store some locking information in
+this place, the NULL cannot be guaranteed anymore. It's still possible however
+to ensure that bit 1 is always set (since all pointers being aligned, they never
+have bit 1 set on 32/64 bit archs, just like they never have bit 2 set on 64 bit
+archs). But doing so requires an explicit initialisation of the root, something
+that most applications did not do in the past, leaving it totally cleared after
+a calloc().
+
+Another approach consists in mangling all pointers so that all pointers have
+bit 1 set except the root. That solves all these issues but needlessly adds
+some complexity, as pointers to lower branches don't need such a tag so we'd
+rather use two distinct set of tags (and functions) to retrieve upper tags and
+lower tags. Also a stress test with lookup+insertion+removal shows that there
+is a small performance hit by doing this (about 1.5%).
+
+In the past we've already solved the risk of seeing NULL pointers by having
+each node/leaf parent and each branch pointer point to the branches storage
+instead of the node itself. In fact we can further improve this mechanism :
+
+  - we can directly tag upper pointers to mention that they're pointing to
+    the root. Right now they only use bit 0 to mention left vs right, but on
+    the root it's always left. So we could have 0=EB_LEFT, 1=EB_RIGHT,
+    2=EB_ROOT. Since the root check is always performed on the upwards walk,
+    it's only needed when checking such a pointer and not the couple of
+    branches itself in fact.
+
+  - doing so also removes the need to *access* the right branch when going up,
+    which will save on memory accesses, and possibly a bit during removal ;
+
+  - going a bit further, most malloc() implementations return pointers that
+    are aligned on 2*sizeof(void*). This is a very interesting propery because
+    instead of explicitly tagging upper pointers left/right, we could simply
+    observe their bit2 (32-bit) or bit3 (64-bit) and immediately know whether
+    the pointer is pointing to the left or to the right entry of the branch.
+    In this case the upper pointers would have to point directly to their
+    storage location and not to the branch array. The first benefit is that
+    when going up we don't need to check whether we want to subtract a value
+    or not, we always apply a logical AND to the pointer to mask its lower
+    bits. And for insertion/removal, pointers can be copied as-is between
+    their respective locations. The root pointer would still use a bit to
+    designate the root.
+
+  - it is possible that by just changing the tag functions and the bit
+    values to match what the architecture supports, the compiler may
+    automatically cancel the offsets between tags and pointers themselves.
+
+It's worth noting that the same principle can exist for downward links : if the
+branch points to &node_p, it's a node link, if it points to &leaf_p, it's a
+leaf link. It also solves the special case for relative nodes which do not need
+anymore to be declared differently to avoid the NULL in the right branch since
+it cannot happen by definition.
