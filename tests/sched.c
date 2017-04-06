@@ -151,7 +151,8 @@ static inline struct task *task_pick_next()
 #endif
 	node = eb32_lookup_ge(&run_queue, rq_idx - (1U << 31));
 	if (!node)
-		node = eb32_first(&run_queue);
+		//node = eb32_first(&run_queue);
+		node = eb32_lookup_ge(&run_queue, 0);
 	if (node)
 		eba32_delete(&run_queue, node);
 #ifdef USE_MUTEX

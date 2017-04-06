@@ -95,11 +95,14 @@ static inline struct ebx32_node *ebx32_prev_unique(struct ebx32_node *eb32)
 }
 
 /* Delete node from the tree if it was linked in. Mark the node unused. The
- * tree's root is only used with the re-entrant variants.
+ * tree's root is only used with the re-entrant variants. It expects to be
+ * called with the FR lock held.
  */
 static inline void ebx32_delete(struct ebx_root *root, struct ebx32_node *eb32)
 {
-	pl_take_wx((unsigned long *)&root->b[1]);
+	//pl_drop_fr((unsigned long *)&root->b[1]);
+	//pl_take_wx((unsigned long *)&root->b[1]);
+	pl_take_wr((unsigned long *)&root->b[1]);
 	ebx_delete(root, &eb32->node);
 	pl_drop_wx((unsigned long *)&root->b[1]);
 }
@@ -338,6 +341,7 @@ __ebx32_insert(struct ebx_root *root, struct ebx32_node *new)
 			/* we refuse to duplicate this key if the tree is
 			 * tagged as containing only unique keys.
 			 */
+			pl_drop_fr(lock);
 			return old;
 		}
 
@@ -352,6 +356,7 @@ __ebx32_insert(struct ebx_root *root, struct ebx32_node *new)
 		/* otherwise fall through */
 	}
 
+	/* the two existing paths below take the WR lock */
 	if (new->key >= old->key) {
 		__ebx_setlink(&new->node.branches.b[EB_SIDE_LEFT], troot);
 		__ebx_setlink(&new->node.branches.b[EB_SIDE_RGHT], new_leaf);

@@ -134,7 +134,8 @@ REGPRM2 struct ebx32_node *ebx32_lookup_le(struct ebx_root *root, u32 x)
 
 /*
  * Find the first occurrence of the lowest key in the tree <root>, which is
- * equal to or greater than <x>. NULL is returned is no key matches.
+ * equal to or greater than <x>. NULL is returned is no key matches. It grabs
+ * the FR lock and keeps it if a node is returned.
  */
 REGPRM2 struct ebx32_node *ebx32_lookup_ge(struct ebx_root *root, u32 x)
 {
@@ -142,9 +143,9 @@ REGPRM2 struct ebx32_node *ebx32_lookup_ge(struct ebx_root *root, u32 x)
 	unsigned long *lock = (unsigned long *)&root->b[1];
 	ebx_troot_t *troot;
 
-	pl_take_rd(lock);
+	pl_take_fr(lock);
 	if (unlikely(ebx_is_empty(root))) {
-		pl_drop_rd(lock);
+		pl_drop_fr(lock);
 		return NULL;
 	}
 
@@ -159,7 +160,7 @@ REGPRM2 struct ebx32_node *ebx32_lookup_ge(struct ebx_root *root, u32 x)
 			node = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 					    struct ebx32_node, node.branches);
 			if (node->key >= x) {
-				pl_drop_rd(lock);
+				//pl_drop_fr(lock);
 				return node;
 			}
 			/* return next */
@@ -182,7 +183,7 @@ REGPRM2 struct ebx32_node *ebx32_lookup_ge(struct ebx_root *root, u32 x)
 				troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_LEFT]);
 				while (__ebx_get_branch_type(troot) != EB_TYPE_LEAF)
 					troot = __ebx_getroot(&(__ebx_untag(troot, EB_TYPE_NODE))->b[EB_SIDE_LEFT]);
-				pl_drop_rd(lock);
+				//pl_drop_fr(lock);
 				return container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 						    struct ebx32_node, node.branches);
 			}
@@ -198,7 +199,7 @@ REGPRM2 struct ebx32_node *ebx32_lookup_ge(struct ebx_root *root, u32 x)
 			 */
 			if ((node->key >> node->node.bit) > (x >> node->node.bit)) {
 				troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_LEFT]);
-				pl_drop_rd(lock);
+				//pl_drop_fr(lock);
 				return eb_entry(__ebx_walk_down(troot, EB_SIDE_LEFT), struct ebx32_node, node);
 			}
 
@@ -219,12 +220,12 @@ REGPRM2 struct ebx32_node *ebx32_lookup_ge(struct ebx_root *root, u32 x)
 		troot = __ebx_getroot(&(__ebx_root_to_node(__ebx_untag(troot, EB_SIDE_RGHT)))->node_p);
 
 	if (__ebx_get_parent_side(troot) == EB_SIDE_ROOT) {
-		pl_drop_rd(lock);
+		pl_drop_fr(lock);
 		return NULL;
 	}
 
 	troot = __ebx_getroot(&(__ebx_untag(troot, EB_SIDE_LEFT))->b[EB_SIDE_RGHT]);
 	node = eb_entry(__ebx_walk_down(troot, EB_SIDE_LEFT), struct ebx32_node, node);
-	pl_drop_rd(lock);
+	//pl_drop_fr(lock);
 	return node;
 }
