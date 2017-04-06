@@ -375,7 +375,7 @@ static inline struct ebx_root *__ebx_untag(const ebx_troot_t *troot, const int t
 }
 
 /* returns the side in the parent (troot) the current node is attached to among
- * EB_SIDE_LEFT and EB_SIDE_RGHT.
+ * EB_SIDE_LEFT, EB_SIDE_RGHT and EB_SIDE_ROOT.
  */
 static inline unsigned int __ebx_get_parent_side(ebx_troot_t *troot)
 {
@@ -480,15 +480,12 @@ static inline struct ebx_node *ebx_prev(struct ebx_node *node)
 {
 	ebx_troot_t *t = __ebx_getroot(&node->leaf_p);
 
-	while (__ebx_get_parent_side(t) == EB_SIDE_LEFT) {
-		/* Walking up from left branch. We must ensure that we never
-		 * walk beyond root.
-		 */
-		if (unlikely(__ebx_is_root(__ebx_untag(t, EB_SIDE_LEFT))))
-			return NULL;
+	while (__ebx_get_parent_side(t) == EB_SIDE_LEFT)
 		t = __ebx_getroot(&(__ebx_root_to_node(__ebx_untag(t, EB_SIDE_LEFT)))->node_p);
-	}
-	/* Note that <t> cannot be NULL at this stage */
+
+	if (__ebx_get_parent_side(t) == EB_SIDE_ROOT)
+		return NULL;
+
 	t = __ebx_getroot(&(__ebx_untag(t, EB_SIDE_RGHT))->b[EB_SIDE_LEFT]);
 	return __ebx_walk_down(t, EB_SIDE_RGHT);
 }
@@ -498,12 +495,10 @@ static inline struct ebx_node *ebx_next(struct ebx_node *node)
 {
 	ebx_troot_t *t = __ebx_getroot(&node->leaf_p);
 
-	while (__ebx_get_parent_side(t) != EB_SIDE_LEFT)
-		/* Walking up from right branch, so we cannot be below root */
+	while (__ebx_get_parent_side(t) == EB_SIDE_RGHT)
 		t = __ebx_getroot(&(__ebx_root_to_node(__ebx_untag(t, EB_SIDE_RGHT)))->node_p);
 
-	/* Note that <t> cannot be NULL at this stage */
-	if (__ebx_is_root(__ebx_untag(t, EB_SIDE_LEFT)))
+	if (__ebx_get_parent_side(t) == EB_SIDE_ROOT)
 		return NULL;
 
 	t = __ebx_getroot(&(__ebx_untag(t, EB_SIDE_LEFT))->b[EB_SIDE_RGHT]);
@@ -516,17 +511,15 @@ static inline struct ebx_node *ebx_prev_dup(struct ebx_node *node)
 	ebx_troot_t *t = __ebx_getroot(&node->leaf_p);
 
 	while (__ebx_get_parent_side(t) == EB_SIDE_LEFT) {
-		/* Walking up from left branch. We must ensure that we never
-		 * walk beyond root.
-		 */
-		if (unlikely(__ebx_is_root(__ebx_untag(t, EB_SIDE_LEFT))))
-			return NULL;
 		/* if the current node leaves a dup tree, quit */
 		if ((__ebx_root_to_node(__ebx_untag(t, EB_SIDE_LEFT)))->bit >= 0)
 			return NULL;
 		t = __ebx_getroot(&(__ebx_root_to_node(__ebx_untag(t, EB_SIDE_LEFT)))->node_p);
 	}
-	/* Note that <t> cannot be NULL at this stage */
+
+	if (__ebx_get_parent_side(t) == EB_SIDE_ROOT)
+		return NULL;
+
 	if ((__ebx_root_to_node(__ebx_untag(t, EB_SIDE_RGHT)))->bit >= 0)
 		return NULL;
 	t = __ebx_getroot(&(__ebx_untag(t, EB_SIDE_RGHT))->b[EB_SIDE_LEFT]);
@@ -538,19 +531,17 @@ static inline struct ebx_node *ebx_next_dup(struct ebx_node *node)
 {
 	ebx_troot_t *t = __ebx_getroot(&node->leaf_p);
 
-	while (__ebx_get_parent_side(t) != EB_SIDE_LEFT) {
-		/* Walking up from right branch, so we cannot be below root */
+	while (__ebx_get_parent_side(t) == EB_SIDE_RGHT) {
 		/* if the current node leaves a dup tree, quit */
 		if ((__ebx_root_to_node(__ebx_untag(t, EB_SIDE_RGHT)))->bit >= 0)
 			return NULL;
 		t = __ebx_getroot(&(__ebx_root_to_node(__ebx_untag(t, EB_SIDE_RGHT)))->node_p);
 	}
 
-	/* Note that <t> cannot be NULL at this stage */
-	if ((__ebx_root_to_node(__ebx_untag(t, EB_SIDE_LEFT)))->bit >= 0)
+	if (__ebx_get_parent_side(t) == EB_SIDE_ROOT)
 		return NULL;
 
-	if (unlikely(__ebx_is_root(__ebx_untag(t, EB_SIDE_LEFT))))
+	if ((__ebx_root_to_node(__ebx_untag(t, EB_SIDE_LEFT)))->bit >= 0)
 		return NULL;
 
 	t = __ebx_getroot(&(__ebx_untag(t, EB_SIDE_LEFT))->b[EB_SIDE_RGHT]);
@@ -564,23 +555,21 @@ static inline struct ebx_node *ebx_prev_unique(struct ebx_node *node)
 	ebx_troot_t *t = __ebx_getroot(&node->leaf_p);
 
 	while (1) {
-		if (__ebx_get_parent_side(t) != EB_SIDE_LEFT) {
+		if (__ebx_get_parent_side(t) == EB_SIDE_RGHT) {
 			node = __ebx_root_to_node(__ebx_untag(t, EB_SIDE_RGHT));
 			/* if we're right and not in duplicates, stop here */
 			if (node->bit >= 0)
 				break;
 			t = __ebx_getroot(&node->node_p);
 		}
+		else if (__ebx_get_parent_side(t) == EB_SIDE_ROOT) {
+			return NULL;
+		}
 		else {
-			/* Walking up from left branch. We must ensure that we never
-			 * walk beyond root.
-			 */
-			if (unlikely(__ebx_is_root(__ebx_untag(t, EB_SIDE_LEFT))))
-				return NULL;
 			t = __ebx_getroot(&(__ebx_root_to_node(__ebx_untag(t, EB_SIDE_LEFT)))->node_p);
 		}
 	}
-	/* Note that <t> cannot be NULL at this stage */
+
 	t = __ebx_getroot(&(__ebx_untag(t, EB_SIDE_RGHT))->b[EB_SIDE_LEFT]);
 	return __ebx_walk_down(t, EB_SIDE_RGHT);
 }
@@ -594,23 +583,20 @@ static inline struct ebx_node *ebx_next_unique(struct ebx_node *node)
 
 	while (1) {
 		if (__ebx_get_parent_side(t) == EB_SIDE_LEFT) {
-			if (unlikely(__ebx_is_root(__ebx_untag(t, EB_SIDE_LEFT))))
-				return NULL;	/* we reached root */
 			node = __ebx_root_to_node(__ebx_untag(t, EB_SIDE_LEFT));
 			/* if we're left and not in duplicates, stop here */
 			if (node->bit >= 0)
 				break;
 			t = __ebx_getroot(&node->node_p);
 		}
+		else if (__ebx_get_parent_side(t) == EB_SIDE_ROOT) {
+			return NULL;
+		}
 		else {
 			/* Walking up from right branch, so we cannot be below root */
 			t = __ebx_getroot(&(__ebx_root_to_node(__ebx_untag(t, EB_SIDE_RGHT)))->node_p);
 		}
 	}
-
-	/* Note that <t> cannot be NULL at this stage */
-	if (unlikely(__ebx_is_root(__ebx_untag(t, EB_SIDE_LEFT))))
-		return NULL;
 
 	t = __ebx_getroot(&(__ebx_untag(t, EB_SIDE_LEFT))->b[EB_SIDE_RGHT]);
 	return __ebx_walk_down(t, EB_SIDE_LEFT);

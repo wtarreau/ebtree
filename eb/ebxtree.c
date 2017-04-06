@@ -45,7 +45,7 @@ void __ebx_delete(struct ebx_node *node)
 	 * in which case we only set our branch to NULL. Note that we can
 	 * only be attached to the root by its left branch.
 	 */
-	if (__ebx_is_root(&parent->branches)) {
+	if (pside == EB_SIDE_ROOT) {
 		/* we're just below the root, it's trivial. */
 		parent->branches.b[EB_SIDE_LEFT] = 0;
 		goto delete_unlink;
@@ -53,19 +53,19 @@ void __ebx_delete(struct ebx_node *node)
 
 	/* To release our parent, we have to identify our sibling, and reparent
 	 * it directly to/from the grand parent. Note that the sibling can
-	 * either be a link or a leaf.
+	 * either be a link or a leaf, and that the grand parent may be the root.
 	 */
 
 	gpside = __ebx_get_parent_side(__ebx_getroot(&parent->node_p));
 	gparent = __ebx_untag(__ebx_getroot(&parent->node_p), gpside);
 
-	__ebx_setlink(&gparent->b[gpside], __ebx_getroot(&parent->branches.b[!pside]));
-	sibtype = __ebx_get_branch_type(__ebx_getroot(&gparent->b[gpside]));
+	__ebx_setlink(&gparent->b[gpside & 1], __ebx_getroot(&parent->branches.b[!pside]));
+	sibtype = __ebx_get_branch_type(__ebx_getroot(&parent->branches.b[!pside]));
 
 	if (sibtype == EB_TYPE_LEAF) {
-		__ebx_setlink(&__ebx_root_to_node(__ebx_untag(__ebx_getroot(&gparent->b[gpside]), EB_TYPE_LEAF))->leaf_p, __ebx_dotag(gparent, gpside));
+		__ebx_setlink(&__ebx_root_to_node(__ebx_untag(__ebx_getroot(&parent->branches.b[!pside]), EB_TYPE_LEAF))->leaf_p, __ebx_getroot(&parent->node_p));
 	} else {
-		__ebx_setlink(&__ebx_root_to_node(__ebx_untag(__ebx_getroot(&gparent->b[gpside]), EB_TYPE_NODE))->node_p, __ebx_dotag(gparent, gpside));
+		__ebx_setlink(&__ebx_root_to_node(__ebx_untag(__ebx_getroot(&parent->branches.b[!pside]), EB_TYPE_NODE))->node_p, __ebx_getroot(&parent->node_p));
 	}
 	/* Mark the parent unused. Note that we do not check if the parent is
 	 * our own node, but that's not a problem because if it is, it will be
@@ -97,7 +97,7 @@ void __ebx_delete(struct ebx_node *node)
 	/* We must now update the new node's parent... */
 	gpside = __ebx_get_parent_side(__ebx_getroot(&parent->node_p));
 	gparent = __ebx_untag(__ebx_getroot(&parent->node_p), gpside);
-	__ebx_setlink(&gparent->b[gpside], __ebx_dotag(&parent->branches, EB_TYPE_NODE));
+	__ebx_setlink(&gparent->b[gpside & 1], __ebx_dotag(&parent->branches, EB_TYPE_NODE));
 
 	/* ... and its branches */
 	for (pside = 0; pside <= 1; pside++) {
@@ -156,12 +156,13 @@ REGPRM1 struct ebx_node *__ebx_insert_dup(struct ebx_node *sub, struct ebx_node 
 		/* No hole was found before a leaf. We have to insert above
 		 * <sub>. Note that we cannot be certain that <sub> is attached
 		 * to the right of its parent, as this is only true if <sub>
-		 * is inside the dup tree, not at the head.
+		 * is inside the dup tree, not at the head. Note that <sub> may
+		 * be attached to the root.
 		 */
 		new->bit = sub->bit - 1; /* install at the lowest level */
 		side = __ebx_get_parent_side(__ebx_getroot(&sub->node_p));
 		head = container_of(__ebx_untag(__ebx_getroot(&sub->node_p), side), struct ebx_node, branches);
-		__ebx_setlink(&head->branches.b[side], __ebx_dotag(&new->branches, EB_TYPE_NODE));
+		__ebx_setlink(&head->branches.b[side & 1], __ebx_dotag(&new->branches, EB_TYPE_NODE));
 
 		__ebx_setlink(&new->node_p, __ebx_getroot(&sub->node_p));
 		__ebx_setlink(&new->leaf_p, new_rght);

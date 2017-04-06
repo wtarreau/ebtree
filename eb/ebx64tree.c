@@ -121,14 +121,12 @@ REGPRM2 struct ebx64_node *ebx64_lookup_le(struct ebx_root *root, u64 x)
 	 * current one which is not above. <troot> is already initialised to
 	 * the parent's branches.
 	 */
-	while (__ebx_get_parent_side(troot) == EB_SIDE_LEFT) {
-		/* Walking up from left branch. We must ensure that we never
-		 * walk beyond root.
-		 */
-		if (unlikely(__ebx_is_root(__ebx_untag(troot, EB_SIDE_LEFT))))
-			return NULL;
+	while (__ebx_get_parent_side(troot) == EB_SIDE_LEFT)
 		troot = __ebx_getroot(&(__ebx_root_to_node(__ebx_untag(troot, EB_SIDE_LEFT)))->node_p);
-	}
+
+	if (__ebx_get_parent_side(troot) == EB_SIDE_ROOT)
+		return NULL;
+
 	/* Note that <troot> cannot be NULL at this stage */
 	troot = __ebx_getroot(&(__ebx_untag(troot, EB_SIDE_RGHT))->b[EB_SIDE_LEFT]);
 	node = eb_entry(__ebx_walk_down(troot, EB_SIDE_RGHT), struct ebx64_node, node);
@@ -210,12 +208,10 @@ REGPRM2 struct ebx64_node *ebx64_lookup_ge(struct ebx_root *root, u64 x)
 	 * current one which is not below. <troot> is already initialised
 	 * to the parent's branches.
 	 */
-	while (__ebx_get_parent_side(troot) != EB_SIDE_LEFT)
-		/* Walking up from right branch, so we cannot be below root */
+	while (__ebx_get_parent_side(troot) == EB_SIDE_RGHT)
 		troot = __ebx_getroot(&(__ebx_root_to_node(__ebx_untag(troot, EB_SIDE_RGHT)))->node_p);
 
-	/* Note that <troot> cannot be NULL at this stage */
-	if (__ebx_is_root(__ebx_untag(troot, EB_SIDE_LEFT)))
+	if (__ebx_get_parent_side(troot) == EB_SIDE_ROOT)
 		return NULL;
 
 	troot = __ebx_getroot(&(__ebx_untag(troot, EB_SIDE_LEFT))->b[EB_SIDE_RGHT]);

@@ -154,7 +154,7 @@ __ebxis_insert(struct ebx_root *root, struct ebxpt_node *new)
 	if (unlikely(ebx_is_empty(root))) {
 		/* Tree is empty, insert the leaf part below the left branch */
 		__ebx_setlink(&root->b[EB_SIDE_LEFT], __ebx_dotag(&new->node.branches, EB_TYPE_LEAF));
-		__ebx_setlink(&new->node.leaf_p, __ebx_dotag(root, EB_SIDE_LEFT));
+		__ebx_setlink(&new->node.leaf_p, __ebx_dotag(root, EB_SIDE_ROOT));
 		new->node.node_p = 0; /* node part unused */
 		return new;
 	}

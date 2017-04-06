@@ -18,10 +18,16 @@
  * detection on the assumption that the following values are intact.
  */
 
-/* parent pointer tags used to find the branch side they're attached to */
-#define EB_SIDE_MASK     1
+/* parent pointer tags used to find the branch side they're attached to. As a
+ * special case, a node attached below the root has tag EB_SIDE_ROOT instead
+ * of EB_SIDE_LEFT, since the root is not really a matter of left/right and we
+ * need to know when we reach it. Note that it's mandatory here that the values
+ * are assigned this way since they are also used as array indices.
+ */
+#define EB_SIDE_MASK     3
 #define EB_SIDE_LEFT     0
 #define EB_SIDE_RGHT     1
+#define EB_SIDE_ROOT     (2 | EB_SIDE_LEFT)
 
 /* branch pointer tags used to find the downstream node type */
 #define EB_TYPE_MASK     1
