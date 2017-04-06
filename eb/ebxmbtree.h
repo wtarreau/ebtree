@@ -131,7 +131,7 @@ static forceinline void __ebxmb_delete(struct ebxmb_node *ebmb)
 static forceinline struct ebxmb_node *__ebxmb_lookup(struct ebx_root *root, const void *x, unsigned int len)
 {
 	struct ebxmb_node *node;
-	ebx_troot_t *troot;
+	ebx_troot_t troot;
 	int pos, side;
 	int node_bit;
 
@@ -226,13 +226,14 @@ __ebxmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 {
 	struct ebxmb_node *old;
 	unsigned int side;
-	ebx_troot_t *troot;
+	ebx_troot_t troot;
 	ebx_link_t *up_ptr;
-	ebx_troot_t *root_right;
+	ebx_troot_t root_right;
 	int diff;
 	int bit;
-	ebx_troot_t *new_left, *new_rght;
-	ebx_troot_t *new_leaf;
+	ebx_troot_t new_left;
+	ebx_troot_t new_rght;
+	ebx_troot_t new_leaf;
 	int old_node_bit;
 
 	side = EB_SIDE_LEFT;
@@ -380,7 +381,8 @@ __ebxmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 static forceinline struct ebxmb_node *__ebxmb_lookup_longest(struct ebx_root *root, const void *x)
 {
 	struct ebxmb_node *node;
-	ebx_troot_t *troot, *cover;
+	ebx_troot_t troot;
+	ebx_troot_t cover;
 	int pos, side;
 	int node_bit;
 
@@ -389,7 +391,7 @@ static forceinline struct ebxmb_node *__ebxmb_lookup_longest(struct ebx_root *ro
 
 	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
 
-	cover = NULL;
+	cover = 0;
 	pos = 0;
 	while (1) {
 		if ((__ebx_gettag(troot) == EB_TYPE_LEAF)) {
@@ -475,7 +477,7 @@ static forceinline struct ebxmb_node *__ebxmb_lookup_longest(struct ebx_root *ro
 static forceinline struct ebxmb_node *__ebxmb_lookup_prefix(struct ebx_root *root, const void *x, unsigned int pfx)
 {
 	struct ebxmb_node *node;
-	ebx_troot_t *troot;
+	ebx_troot_t troot;
 	int pos, side;
 	int node_bit;
 
@@ -575,13 +577,14 @@ __ebxmb_insert_prefix(struct ebx_root *root, struct ebxmb_node *new, unsigned in
 {
 	struct ebxmb_node *old;
 	unsigned int side;
-	ebx_troot_t *troot;
+	ebx_troot_t troot;
 	ebx_link_t *up_ptr;
-	ebx_troot_t *root_right;
+	ebx_troot_t root_right;
 	int diff;
 	int bit;
-	ebx_troot_t *new_left, *new_rght;
-	ebx_troot_t *new_leaf;
+	ebx_troot_t new_left;
+	ebx_troot_t new_rght;
+	ebx_troot_t new_leaf;
 	int old_node_bit;
 
 	side = EB_SIDE_LEFT;

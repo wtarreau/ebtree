@@ -127,7 +127,7 @@ static forceinline void __ebx32_delete(struct ebx32_node *eb32)
 static forceinline struct ebx32_node *__ebx32_lookup(struct ebx_root *root, u32 x)
 {
 	struct ebx32_node *node;
-	ebx_troot_t *troot;
+	ebx_troot_t troot;
 	u32 y;
 	int node_bit;
 
@@ -179,7 +179,7 @@ static forceinline struct ebx32_node *__ebx32_lookup(struct ebx_root *root, u32 
 static forceinline struct ebx32_node *__ebx32i_lookup(struct ebx_root *root, s32 x)
 {
 	struct ebx32_node *node;
-	ebx_troot_t *troot;
+	ebx_troot_t troot;
 	u32 key = x ^ 0x80000000;
 	u32 y;
 	int node_bit;
@@ -234,12 +234,13 @@ __ebx32_insert(struct ebx_root *root, struct ebx32_node *new)
 {
 	struct ebx32_node *old;
 	unsigned int side;
-	ebx_troot_t *troot;
+	ebx_troot_t troot;
 	ebx_link_t *up_ptr;
 	u32 newkey; /* caching the key saves approximately one cycle */
-	ebx_troot_t *root_right;
-	ebx_troot_t *new_left, *new_rght;
-	ebx_troot_t *new_leaf;
+	ebx_troot_t root_right;
+	ebx_troot_t new_left;
+	ebx_troot_t new_rght;
+	ebx_troot_t new_leaf;
 	int old_node_bit;
 
 	side = EB_SIDE_LEFT;
@@ -368,12 +369,13 @@ __ebx32i_insert(struct ebx_root *root, struct ebx32_node *new)
 {
 	struct ebx32_node *old;
 	unsigned int side;
-	ebx_troot_t *troot;
+	ebx_troot_t troot;
 	ebx_link_t *up_ptr;
 	int newkey; /* caching the key saves approximately one cycle */
-	ebx_troot_t *root_right;
-	ebx_troot_t *new_left, *new_rght;
-	ebx_troot_t *new_leaf;
+	ebx_troot_t root_right;
+	ebx_troot_t new_left;
+	ebx_troot_t new_rght;
+	ebx_troot_t new_leaf;
 	int old_node_bit;
 
 	side = EB_SIDE_LEFT;

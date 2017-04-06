@@ -127,7 +127,7 @@ static forceinline void __ebx64_delete(struct ebx64_node *eb64)
 static forceinline struct ebx64_node *__ebx64_lookup(struct ebx_root *root, u64 x)
 {
 	struct ebx64_node *node;
-	ebx_troot_t *troot;
+	ebx_troot_t troot;
 	u64 y;
 
 	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT])))
@@ -177,7 +177,7 @@ static forceinline struct ebx64_node *__ebx64_lookup(struct ebx_root *root, u64 
 static forceinline struct ebx64_node *__ebx64i_lookup(struct ebx_root *root, s64 x)
 {
 	struct ebx64_node *node;
-	ebx_troot_t *troot;
+	ebx_troot_t troot;
 	u64 key = x ^ (1ULL << 63);
 	u64 y;
 
@@ -229,9 +229,9 @@ static forceinline struct ebx64_node *
 __ebx64_insert(struct ebx_root *root, struct ebx64_node *new) {
 	struct ebx64_node *old;
 	unsigned int side;
-	ebx_troot_t *troot;
+	ebx_troot_t troot;
 	u64 newkey; /* caching the key saves approximately one cycle */
-	ebx_troot_t *root_right;
+	ebx_troot_t root_right;
 	int old_node_bit;
 
 	side = EB_SIDE_LEFT;
@@ -260,8 +260,10 @@ __ebx64_insert(struct ebx_root *root, struct ebx64_node *new) {
 
 	while (1) {
 		if (unlikely(__ebx_gettag(troot) == EB_TYPE_LEAF)) {
-			ebx_troot_t *new_left, *new_rght;
-			ebx_troot_t *new_leaf, *old_leaf;
+			ebx_troot_t new_left;
+			ebx_troot_t new_rght;
+			ebx_troot_t new_leaf;
+			ebx_troot_t old_leaf;
 
 			old = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 					    struct ebx64_node, node.branches);
@@ -332,8 +334,10 @@ __ebx64_insert(struct ebx_root *root, struct ebx64_node *new) {
 			 * <old>, and set ->bit to designate the lowest bit position in <new>
 			 * which applies to ->branches.b[].
 			 */
-			ebx_troot_t *new_left, *new_rght;
-			ebx_troot_t *new_leaf, *old_node;
+			ebx_troot_t new_left;
+			ebx_troot_t new_rght;
+			ebx_troot_t new_leaf;
+			ebx_troot_t old_node;
 
 			new_left = __ebx_dotag(&new->node.branches, EB_SIDE_LEFT);
 			new_rght = __ebx_dotag(&new->node.branches, EB_SIDE_RGHT);
@@ -405,9 +409,9 @@ static forceinline struct ebx64_node *
 __ebx64i_insert(struct ebx_root *root, struct ebx64_node *new) {
 	struct ebx64_node *old;
 	unsigned int side;
-	ebx_troot_t *troot;
+	ebx_troot_t troot;
 	u64 newkey; /* caching the key saves approximately one cycle */
-	ebx_troot_t *root_right;
+	ebx_troot_t root_right;
 	int old_node_bit;
 
 	side = EB_SIDE_LEFT;
@@ -438,8 +442,10 @@ __ebx64i_insert(struct ebx_root *root, struct ebx64_node *new) {
 
 	while (1) {
 		if (unlikely(__ebx_gettag(troot) == EB_TYPE_LEAF)) {
-			ebx_troot_t *new_left, *new_rght;
-			ebx_troot_t *new_leaf, *old_leaf;
+			ebx_troot_t new_left;
+			ebx_troot_t new_rght;
+			ebx_troot_t new_leaf;
+			ebx_troot_t old_leaf;
 
 			old = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 					    struct ebx64_node, node.branches);
@@ -510,8 +516,10 @@ __ebx64i_insert(struct ebx_root *root, struct ebx64_node *new) {
 			 * <old>, and set ->bit to designate the lowest bit position in <new>
 			 * which applies to ->branches.b[].
 			 */
-			ebx_troot_t *new_left, *new_rght;
-			ebx_troot_t *new_leaf, *old_node;
+			ebx_troot_t new_left;
+			ebx_troot_t new_rght;
+			ebx_troot_t new_leaf;
+			ebx_troot_t old_node;
 
 			new_left = __ebx_dotag(&new->node.branches, EB_SIDE_LEFT);
 			new_rght = __ebx_dotag(&new->node.branches, EB_SIDE_RGHT);

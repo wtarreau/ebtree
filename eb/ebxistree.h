@@ -61,7 +61,7 @@ ebxis_lookup_len(struct ebx_root *root, const char *x, unsigned int len)
 static forceinline struct ebxpt_node *__ebxis_lookup(struct ebx_root *root, const void *x)
 {
 	struct ebxpt_node *node;
-	ebx_troot_t *troot;
+	ebx_troot_t troot;
 	int bit;
 	int node_bit;
 
@@ -142,8 +142,8 @@ __ebxis_insert(struct ebx_root *root, struct ebxpt_node *new)
 {
 	struct ebxpt_node *old;
 	unsigned int side;
-	ebx_troot_t *troot;
-	ebx_troot_t *root_right;
+	ebx_troot_t troot;
+	ebx_troot_t root_right;
 	int diff;
 	int bit;
 	int old_node_bit;
@@ -174,8 +174,10 @@ __ebxis_insert(struct ebx_root *root, struct ebxpt_node *new)
 	bit = 0;
 	while (1) {
 		if (unlikely(__ebx_gettag(troot) == EB_TYPE_LEAF)) {
-			ebx_troot_t *new_left, *new_rght;
-			ebx_troot_t *new_leaf, *old_leaf;
+			ebx_troot_t new_left;
+			ebx_troot_t new_rght;
+			ebx_troot_t new_leaf;
+			ebx_troot_t old_leaf;
 
 			old = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 					    struct ebxpt_node, node.branches);
@@ -279,8 +281,10 @@ __ebxis_insert(struct ebx_root *root, struct ebxpt_node *new)
 			 * enter here if we match an intermediate node's key that is not the
 			 * head of a dup tree.
 			 */
-			ebx_troot_t *new_left, *new_rght;
-			ebx_troot_t *new_leaf, *old_node;
+			ebx_troot_t new_left;
+			ebx_troot_t new_rght;
+			ebx_troot_t new_leaf;
+			ebx_troot_t old_node;
 
 			new_left = __ebx_dotag(&new->node.branches, EB_SIDE_LEFT);
 			new_rght = __ebx_dotag(&new->node.branches, EB_SIDE_RGHT);

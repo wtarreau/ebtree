@@ -130,25 +130,25 @@ size.
 
 Most internal functions are in the generic ebxtree.h file :
 
-static inline ebx_troot_t *__ebx_dotag(const struct ebx_root *root, const int tag)
+static inline ebx_troot_t __ebx_dotag(const struct ebx_root *root, const int tag)
   => internal use only, only manipulates pointers
 
-static inline struct ebx_root *__ebx_untag(const ebx_troot_t *troot, const int tag)
+static inline struct ebx_root *__ebx_untag(const ebx_troot_t troot, const int tag)
   => internal use only, only manipulates pointers
 
-static inline int __ebx_gettag(ebx_troot_t *troot)
+static inline int __ebx_gettag(ebx_troot_t troot)
   => internal use only, only manipulates pointers
 
-static inline struct ebx_root *__ebx_clrtag(const ebx_troot_t *troot)
+static inline struct ebx_root *__ebx_clrtag(const ebx_troot_t troot)
   => internal use only, only manipulates pointers
 
 static inline struct ebx_node *__ebx_root_to_node(struct ebx_root *root)
   => internal use only, only manipulates pointers
 
-static inline void __ebx_setlink(ebx_link_t *dest, const ebx_troot_t *troot)
+static inline void __ebx_setlink(ebx_link_t *dest, const ebx_troot_t troot)
   => internal use only, writes to <dest>, must be done under WRITE LOCK
 
-static inline ebx_troot_t *__ebx_getroot(const ebx_link_t *src)
+static inline ebx_troot_t __ebx_getroot(const ebx_link_t *src)
   => internal use only, reads from <src>, must be done under READ LOCK
 
 static inline int __ebx_link_is_null(ebx_link_t link)
@@ -157,7 +157,7 @@ static inline int __ebx_link_is_null(ebx_link_t link)
 static inline int __ebx_is_root(struct ebx_root *root)
   => internal use only, reads from <root>, must be done under READ LOCK, possibly also lockless.
 
-static inline struct ebx_node *__ebx_walk_down(ebx_troot_t *start, unsigned int side)
+static inline struct ebx_node *__ebx_walk_down(ebx_troot_t start, unsigned int side)
   => internal use only, reads from <start>, must be done under READ LOCK
 
 void __ebx_delete(struct ebx_node *node)

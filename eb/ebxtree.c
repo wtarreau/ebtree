@@ -124,9 +124,9 @@ REGPRM1 struct ebx_node *__ebx_insert_dup(struct ebx_node *sub, struct ebx_node 
 {
 	struct ebx_node *head = sub;
 
-	ebx_troot_t *new_left = __ebx_dotag(&new->branches, EB_SIDE_LEFT);
-	ebx_troot_t *new_rght = __ebx_dotag(&new->branches, EB_SIDE_RGHT);
-	ebx_troot_t *new_leaf = __ebx_dotag(&new->branches, EB_TYPE_LEAF);
+	ebx_troot_t new_left = __ebx_dotag(&new->branches, EB_SIDE_LEFT);
+	ebx_troot_t new_rght = __ebx_dotag(&new->branches, EB_SIDE_RGHT);
+	ebx_troot_t new_leaf = __ebx_dotag(&new->branches, EB_TYPE_LEAF);
 
 	/* first, identify the deepest hole on the right branch */
 	while (__ebx_gettag(__ebx_getroot(&head->branches.b[EB_SIDE_RGHT])) != EB_TYPE_LEAF) {

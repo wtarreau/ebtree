@@ -34,13 +34,13 @@
 #define __ebar_getroot(a) (*(a))
 
 /* an absolute pointer is NULL only when exactly NULL (no tag) */
-#define __ebar_link_is_null(a) (a == NULL)
+#define __ebar_link_is_null(a) (a == 0)
 
 /* an absolute pointer designates the ROOT if its right branch is NULL. */
 #define __ebar_is_root(a) ((size_t)((a)->b[EB_SIDE_RGHT]) & 2)
 
 /* we're using absolute pointers for the links */
-typedef void *ebar_link_t;
+typedef unsigned long ebar_link_t;
 
 /* remap ebxtree.h symbols and types to ebar- equivalent */
 #undef ebx_root

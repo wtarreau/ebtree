@@ -33,13 +33,13 @@
 #define __eba_getroot(a) (*(a))
 
 /* an absolute pointer is NULL only when exactly NULL (no tag) */
-#define __eba_link_is_null(a) (a == NULL)
+#define __eba_link_is_null(a) (a == 0)
 
 /* an absolute pointer designates the ROOT if its right branch is NULL. */
 #define __eba_is_root(a) ((void *)((a)->b[EB_SIDE_RGHT]) <= (void *)1)
 
 /* we're using absolute pointers for the links */
-typedef void *eba_link_t;
+typedef unsigned long eba_link_t;
 
 /* remap ebxtree.h symbols and types to eba- equivalent */
 #undef ebx_root

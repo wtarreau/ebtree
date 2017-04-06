@@ -53,7 +53,7 @@ REGPRM2 struct ebx32_node *ebx32i_lookup(struct ebx_root *root, s32 x)
 REGPRM2 struct ebx32_node *ebx32_lookup_le(struct ebx_root *root, u32 x)
 {
 	struct ebx32_node *node;
-	ebx_troot_t *troot;
+	ebx_troot_t troot;
 
 	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT])))
 		return NULL;
@@ -142,7 +142,7 @@ REGPRM2 struct ebx32_node *ebx32_lookup_le(struct ebx_root *root, u32 x)
 REGPRM2 struct ebx32_node *ebx32_lookup_ge(struct ebx_root *root, u32 x)
 {
 	struct ebx32_node *node;
-	ebx_troot_t *troot;
+	ebx_troot_t troot;
 
 	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT])))
 		return NULL;

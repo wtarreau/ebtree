@@ -53,7 +53,7 @@ REGPRM2 struct ebx64_node *ebx64i_lookup(struct ebx_root *root, s64 x)
 REGPRM2 struct ebx64_node *ebx64_lookup_le(struct ebx_root *root, u64 x)
 {
 	struct ebx64_node *node;
-	ebx_troot_t *troot;
+	ebx_troot_t troot;
 
 	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT])))
 		return NULL;
@@ -142,7 +142,7 @@ REGPRM2 struct ebx64_node *ebx64_lookup_le(struct ebx_root *root, u64 x)
 REGPRM2 struct ebx64_node *ebx64_lookup_ge(struct ebx_root *root, u64 x)
 {
 	struct ebx64_node *node;
-	ebx_troot_t *troot;
+	ebx_troot_t troot;
 
 	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT])))
 		return NULL;
