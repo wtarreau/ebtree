@@ -26,8 +26,11 @@
 #define EBM_TREE_HEAD(name)				\
 	struct ebm_root name = EBM_ROOT
 
-/* we're using 32-bit signed offsets for the links */
+/* we're using 32-bit signed offsets for the links and 32-bit unsigned ints for
+ * their integer representation.
+ */
 typedef s32 ebm_link_t;
+typedef u32 ebm_ulink_t;
 
 /* remap ebxtree.h symbols and types to ebm- equivalent */
 #undef ebx_root
@@ -38,6 +41,8 @@ typedef s32 ebm_link_t;
 #define ebx_node ebm_node
 #undef ebx_link_t
 #define ebx_link_t ebm_link_t
+#undef ebx_ulink_t
+#define ebx_ulink_t ebm_ulink_t
 #undef ebx_is_empty
 #define ebx_is_empty ebm_is_empty
 #undef  __ebx_is_dup

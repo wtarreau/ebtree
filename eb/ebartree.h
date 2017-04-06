@@ -39,8 +39,11 @@
 /* an absolute pointer designates the ROOT if its right branch is NULL. */
 #define __ebar_is_root(a) ((size_t)((a)->b[EB_SIDE_RGHT]) & 2)
 
-/* we're using absolute pointers for the links */
+/* we're using absolute pointers for the links, the equivalent unsigned int
+ * here is size_t.
+ */
 typedef void *ebar_link_t;
+typedef size_t ebar_ulink_t;
 
 /* remap ebxtree.h symbols and types to ebar- equivalent */
 #undef ebx_root
@@ -51,6 +54,8 @@ typedef void *ebar_link_t;
 #define ebx_node ebar_node
 #undef ebx_link_t
 #define ebx_link_t ebar_link_t
+#undef ebx_ulink_t
+#define ebx_ulink_t ebar_ulink_t
 #undef ebx_is_empty
 #define ebx_is_empty ebar_is_empty
 #undef  __ebx_is_dup

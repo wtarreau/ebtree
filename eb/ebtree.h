@@ -12,6 +12,7 @@
 #define eb_troot_t eba_troot_t
 #define eb_node eba_node
 #define eb_link_t eba_link_t
+#define eb_ulink_t eba_ulink_t
 
 #define EB_ROOT            EBA_ROOT
 #define EB_ROOT_UNIQUE     EBA_ROOT_UNIQUE

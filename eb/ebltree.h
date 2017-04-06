@@ -26,8 +26,11 @@
 #define EBL_TREE_HEAD(name)				\
 	struct ebl_root name = EBL_ROOT
 
-/* we're using 64-bit signed offsets for the links */
+/* we're using 64-bit signed offsets for the links and 64-bit unsigned ints for
+ * their integer representation.
+ */
 typedef s64 ebl_link_t;
+typedef u64 ebl_ulink_t;
 
 /* remap ebxtree.h symbols and types to ebl- equivalent */
 #undef ebx_root
@@ -38,6 +41,8 @@ typedef s64 ebl_link_t;
 #define ebx_node ebl_node
 #undef ebx_link_t
 #define ebx_link_t ebl_link_t
+#undef ebx_ulink_t
+#define ebx_ulink_t ebl_ulink_t
 #undef ebx_is_empty
 #define ebx_is_empty ebl_is_empty
 #undef  __ebx_is_dup

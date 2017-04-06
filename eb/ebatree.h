@@ -38,8 +38,11 @@
 /* an absolute pointer designates the ROOT if its right branch is NULL. */
 #define __eba_is_root(a) ((void *)((a)->b[EB_SIDE_RGHT]) <= (void *)1)
 
-/* we're using absolute pointers for the links */
+/* we're using absolute pointers for the links, the equivalent unsigned int
+ * here is size_t.
+ */
 typedef void *eba_link_t;
+typedef size_t eba_ulink_t;
 
 /* remap ebxtree.h symbols and types to eba- equivalent */
 #undef ebx_root
@@ -50,6 +53,8 @@ typedef void *eba_link_t;
 #define ebx_node eba_node
 #undef ebx_link_t
 #define ebx_link_t eba_link_t
+#undef ebx_ulink_t
+#define ebx_ulink_t eba_ulink_t
 #undef ebx_is_empty
 #define ebx_is_empty eba_is_empty
 #undef  __ebx_is_dup

@@ -26,8 +26,11 @@
 #define EBS_TREE_HEAD(name)				\
 	struct ebs_root name = EBS_ROOT
 
-/* we're using 16-bit signed offsets for the links */
+/* we're using 16-bit signed offsets for the links and 16-bit unsigned ints for
+ * their integer representation.
+ */
 typedef s16 ebs_link_t;
+typedef u16 ebs_ulink_t;
 
 /* remap ebxtree.h symbols and types to ebs- equivalent */
 #undef ebx_root
@@ -38,6 +41,8 @@ typedef s16 ebs_link_t;
 #define ebx_node ebs_node
 #undef ebx_link_t
 #define ebx_link_t ebs_link_t
+#undef ebx_ulink_t
+#define ebx_ulink_t ebs_ulink_t
 #undef ebx_is_empty
 #define ebx_is_empty ebs_is_empty
 #undef  __ebx_is_dup
