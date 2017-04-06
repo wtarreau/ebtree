@@ -59,8 +59,6 @@ typedef void *ebar_link_t;
 #define __ebx_untag __ebar_untag
 #undef  __ebx_dotag
 #define __ebx_dotag __ebar_dotag
-#undef  __ebx_clrtag
-#define __ebx_clrtag __ebar_clrtag
 #undef  __ebx_gettag
 #define __ebx_gettag __ebar_gettag
 #undef  __ebx_root_to_node

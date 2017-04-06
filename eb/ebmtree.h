@@ -46,8 +46,6 @@ typedef s32 ebm_link_t;
 #define __ebx_untag __ebm_untag
 #undef  __ebx_dotag
 #define __ebx_dotag __ebm_dotag
-#undef  __ebx_clrtag
-#define __ebx_clrtag __ebm_clrtag
 #undef  __ebx_gettag
 #define __ebx_gettag __ebm_gettag
 #undef  __ebx_root_to_node

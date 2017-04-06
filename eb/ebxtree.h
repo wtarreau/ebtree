@@ -376,14 +376,6 @@ static inline int __ebx_gettag(ebx_troot_t *troot)
 	return (unsigned long)troot & 1;
 }
 
-/* Converts a root pointer to its equivalent ebx_troot_t pointer and clears the
- * tag, no matter what its value was.
- */
-static inline struct ebx_root *__ebx_clrtag(const ebx_troot_t *troot)
-{
-	return (struct ebx_root *)((unsigned long)troot & ~1UL);
-}
-
 /* Returns a pointer to the ebx_node holding <root>, where <root> is stored at <base> */
 static inline struct ebx_node *__ebx_root_to_node(struct ebx_root *root)
 {

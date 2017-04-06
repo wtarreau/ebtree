@@ -139,9 +139,6 @@ static inline struct ebx_root *__ebx_untag(const ebx_troot_t *troot, const int t
 static inline int __ebx_gettag(ebx_troot_t *troot)
   => internal use only, only manipulates pointers
 
-static inline struct ebx_root *__ebx_clrtag(const ebx_troot_t *troot)
-  => internal use only, only manipulates pointers
-
 static inline struct ebx_node *__ebx_root_to_node(struct ebx_root *root)
   => internal use only, only manipulates pointers
 

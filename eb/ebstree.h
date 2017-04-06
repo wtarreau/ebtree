@@ -46,8 +46,6 @@ typedef s16 ebs_link_t;
 #define __ebx_untag __ebs_untag
 #undef  __ebx_dotag
 #define __ebx_dotag __ebs_dotag
-#undef  __ebx_clrtag
-#define __ebx_clrtag __ebs_clrtag
 #undef  __ebx_gettag
 #define __ebx_gettag __ebs_gettag
 #undef  __ebx_root_to_node

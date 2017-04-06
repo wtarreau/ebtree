@@ -58,8 +58,6 @@ typedef void *eba_link_t;
 #define __ebx_untag __eba_untag
 #undef  __ebx_dotag
 #define __ebx_dotag __eba_dotag
-#undef  __ebx_clrtag
-#define __ebx_clrtag __eba_clrtag
 #undef  __ebx_gettag
 #define __ebx_gettag __eba_gettag
 #undef  __ebx_root_to_node

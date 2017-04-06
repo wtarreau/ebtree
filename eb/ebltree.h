@@ -46,8 +46,6 @@ typedef s64 ebl_link_t;
 #define __ebx_untag __ebl_untag
 #undef  __ebx_dotag
 #define __ebx_dotag __ebl_dotag
-#undef  __ebx_clrtag
-#define __ebx_clrtag __ebl_clrtag
 #undef  __ebx_gettag
 #define __ebx_gettag __ebl_gettag
 #undef  __ebx_root_to_node
