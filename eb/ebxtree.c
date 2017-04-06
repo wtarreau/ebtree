@@ -62,10 +62,10 @@ void __ebx_delete(struct ebx_node *node)
 	__ebx_setlink(&gparent->b[gpside], __ebx_getroot(&parent->branches.b[!pside]));
 	sibtype = __ebx_gettag(__ebx_getroot(&gparent->b[gpside]));
 
-	if (sibtype == EB_LEAF) {
-		__ebx_setlink(&__ebx_root_to_node(__ebx_untag(__ebx_getroot(&gparent->b[gpside]), EB_LEAF))->leaf_p, __ebx_dotag(gparent, gpside));
+	if (sibtype == EB_TYPE_LEAF) {
+		__ebx_setlink(&__ebx_root_to_node(__ebx_untag(__ebx_getroot(&gparent->b[gpside]), EB_TYPE_LEAF))->leaf_p, __ebx_dotag(gparent, gpside));
 	} else {
-		__ebx_setlink(&__ebx_root_to_node(__ebx_untag(__ebx_getroot(&gparent->b[gpside]), EB_NODE))->node_p, __ebx_dotag(gparent, gpside));
+		__ebx_setlink(&__ebx_root_to_node(__ebx_untag(__ebx_getroot(&gparent->b[gpside]), EB_TYPE_NODE))->node_p, __ebx_dotag(gparent, gpside));
 	}
 	/* Mark the parent unused. Note that we do not check if the parent is
 	 * our own node, but that's not a problem because if it is, it will be
@@ -97,15 +97,15 @@ void __ebx_delete(struct ebx_node *node)
 	/* We must now update the new node's parent... */
 	gpside = __ebx_gettag(__ebx_getroot(&parent->node_p));
 	gparent = __ebx_untag(__ebx_getroot(&parent->node_p), gpside);
-	__ebx_setlink(&gparent->b[gpside], __ebx_dotag(&parent->branches, EB_NODE));
+	__ebx_setlink(&gparent->b[gpside], __ebx_dotag(&parent->branches, EB_TYPE_NODE));
 
 	/* ... and its branches */
 	for (pside = 0; pside <= 1; pside++) {
-		if (__ebx_gettag(__ebx_getroot(&parent->branches.b[pside])) == EB_NODE) {
-			__ebx_setlink(&__ebx_root_to_node(__ebx_untag(__ebx_getroot(&parent->branches.b[pside]), EB_NODE))->node_p,
+		if (__ebx_gettag(__ebx_getroot(&parent->branches.b[pside])) == EB_TYPE_NODE) {
+			__ebx_setlink(&__ebx_root_to_node(__ebx_untag(__ebx_getroot(&parent->branches.b[pside]), EB_TYPE_NODE))->node_p,
 				__ebx_dotag(&parent->branches, pside));
 		} else {
-			__ebx_setlink(&__ebx_root_to_node(__ebx_untag(__ebx_getroot(&parent->branches.b[pside]), EB_LEAF))->leaf_p,
+			__ebx_setlink(&__ebx_root_to_node(__ebx_untag(__ebx_getroot(&parent->branches.b[pside]), EB_TYPE_LEAF))->leaf_p,
 				__ebx_dotag(&parent->branches, pside));
 		}
 	}
@@ -126,12 +126,12 @@ REGPRM1 struct ebx_node *__ebx_insert_dup(struct ebx_node *sub, struct ebx_node 
 
 	ebx_troot_t *new_left = __ebx_dotag(&new->branches, EB_SIDE_LEFT);
 	ebx_troot_t *new_rght = __ebx_dotag(&new->branches, EB_SIDE_RGHT);
-	ebx_troot_t *new_leaf = __ebx_dotag(&new->branches, EB_LEAF);
+	ebx_troot_t *new_leaf = __ebx_dotag(&new->branches, EB_TYPE_LEAF);
 
 	/* first, identify the deepest hole on the right branch */
-	while (__ebx_gettag(__ebx_getroot(&head->branches.b[EB_SIDE_RGHT])) != EB_LEAF) {
+	while (__ebx_gettag(__ebx_getroot(&head->branches.b[EB_SIDE_RGHT])) != EB_TYPE_LEAF) {
 		struct ebx_node *last = head;
-		head = container_of(__ebx_untag(__ebx_getroot(&head->branches.b[EB_SIDE_RGHT]), EB_NODE),
+		head = container_of(__ebx_untag(__ebx_getroot(&head->branches.b[EB_SIDE_RGHT]), EB_TYPE_NODE),
 				    struct ebx_node, branches);
 		if (head->bit > last->bit + 1)
 			sub = head;     /* there's a hole here */
@@ -141,14 +141,14 @@ REGPRM1 struct ebx_node *__ebx_insert_dup(struct ebx_node *sub, struct ebx_node 
 	if (head->bit < -1) {
 		/* A hole exists just before the leaf, we insert there */
 		new->bit = -1;
-		sub = container_of(__ebx_untag(__ebx_getroot(&head->branches.b[EB_SIDE_RGHT]), EB_LEAF),
+		sub = container_of(__ebx_untag(__ebx_getroot(&head->branches.b[EB_SIDE_RGHT]), EB_TYPE_LEAF),
 				   struct ebx_node, branches);
-		__ebx_setlink(&head->branches.b[EB_SIDE_RGHT], __ebx_dotag(&new->branches, EB_NODE));
+		__ebx_setlink(&head->branches.b[EB_SIDE_RGHT], __ebx_dotag(&new->branches, EB_TYPE_NODE));
 
 		__ebx_setlink(&new->node_p, __ebx_getroot(&sub->leaf_p));
 		__ebx_setlink(&new->leaf_p, new_rght);
 		__ebx_setlink(&sub->leaf_p, new_left);
-		__ebx_setlink(&new->branches.b[EB_SIDE_LEFT], __ebx_dotag(&sub->branches, EB_LEAF));
+		__ebx_setlink(&new->branches.b[EB_SIDE_LEFT], __ebx_dotag(&sub->branches, EB_TYPE_LEAF));
 		__ebx_setlink(&new->branches.b[EB_SIDE_RGHT], new_leaf);
 		return new;
 	} else {
@@ -161,12 +161,12 @@ REGPRM1 struct ebx_node *__ebx_insert_dup(struct ebx_node *sub, struct ebx_node 
 		new->bit = sub->bit - 1; /* install at the lowest level */
 		side = __ebx_gettag(__ebx_getroot(&sub->node_p));
 		head = container_of(__ebx_untag(__ebx_getroot(&sub->node_p), side), struct ebx_node, branches);
-		__ebx_setlink(&head->branches.b[side], __ebx_dotag(&new->branches, EB_NODE));
+		__ebx_setlink(&head->branches.b[side], __ebx_dotag(&new->branches, EB_TYPE_NODE));
 
 		__ebx_setlink(&new->node_p, __ebx_getroot(&sub->node_p));
 		__ebx_setlink(&new->leaf_p, new_rght);
 		__ebx_setlink(&sub->node_p, new_left);
-		__ebx_setlink(&new->branches.b[EB_SIDE_LEFT], __ebx_dotag(&sub->branches, EB_NODE));
+		__ebx_setlink(&new->branches.b[EB_SIDE_LEFT], __ebx_dotag(&sub->branches, EB_TYPE_NODE));
 		__ebx_setlink(&new->branches.b[EB_SIDE_RGHT], new_leaf);
 		return new;
 	}

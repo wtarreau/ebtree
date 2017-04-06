@@ -61,12 +61,12 @@ REGPRM2 struct ebx32_node *ebx32_lookup_le(struct ebx_root *root, u32 x)
 	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
 
 	while (1) {
-		if ((__ebx_gettag(troot) == EB_LEAF)) {
+		if ((__ebx_gettag(troot) == EB_TYPE_LEAF)) {
 			/* We reached a leaf, which means that the whole upper
 			 * parts were common. We will return either the current
 			 * node or its next one if the former is too small.
 			 */
-			node = container_of(__ebx_untag(troot, EB_LEAF),
+			node = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 					    struct ebx32_node, node.branches);
 			if (node->key <= x)
 				return node;
@@ -74,7 +74,7 @@ REGPRM2 struct ebx32_node *ebx32_lookup_le(struct ebx_root *root, u32 x)
 			troot = __ebx_getroot(&node->node.leaf_p);
 			break;
 		}
-		node = container_of(__ebx_untag(troot, EB_NODE),
+		node = container_of(__ebx_untag(troot, EB_TYPE_NODE),
 				    struct ebx32_node, node.branches);
 
 		if (__ebx_is_dup(&node->node)) {
@@ -88,9 +88,9 @@ REGPRM2 struct ebx32_node *ebx32_lookup_le(struct ebx_root *root, u32 x)
 			 */
 			if (node->key <= x) {
 				troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_RGHT]);
-				while (__ebx_gettag(troot) != EB_LEAF)
-					troot = __ebx_getroot(&(__ebx_untag(troot, EB_NODE))->b[EB_SIDE_RGHT]);
-				return container_of(__ebx_untag(troot, EB_LEAF),
+				while (__ebx_gettag(troot) != EB_TYPE_LEAF)
+					troot = __ebx_getroot(&(__ebx_untag(troot, EB_TYPE_NODE))->b[EB_SIDE_RGHT]);
+				return container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 						    struct ebx32_node, node.branches);
 			}
 			/* return prev */
@@ -150,12 +150,12 @@ REGPRM2 struct ebx32_node *ebx32_lookup_ge(struct ebx_root *root, u32 x)
 	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
 
 	while (1) {
-		if ((__ebx_gettag(troot) == EB_LEAF)) {
+		if ((__ebx_gettag(troot) == EB_TYPE_LEAF)) {
 			/* We reached a leaf, which means that the whole upper
 			 * parts were common. We will return either the current
 			 * node or its next one if the former is too small.
 			 */
-			node = container_of(__ebx_untag(troot, EB_LEAF),
+			node = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 					    struct ebx32_node, node.branches);
 			if (node->key >= x)
 				return node;
@@ -163,7 +163,7 @@ REGPRM2 struct ebx32_node *ebx32_lookup_ge(struct ebx_root *root, u32 x)
 			troot = __ebx_getroot(&node->node.leaf_p);
 			break;
 		}
-		node = container_of(__ebx_untag(troot, EB_NODE),
+		node = container_of(__ebx_untag(troot, EB_TYPE_NODE),
 				    struct ebx32_node, node.branches);
 
 		if (__ebx_is_dup(&node->node)) {
@@ -177,9 +177,9 @@ REGPRM2 struct ebx32_node *ebx32_lookup_ge(struct ebx_root *root, u32 x)
 			 */
 			if (node->key >= x) {
 				troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_LEFT]);
-				while (__ebx_gettag(troot) != EB_LEAF)
-					troot = __ebx_getroot(&(__ebx_untag(troot, EB_NODE))->b[EB_SIDE_LEFT]);
-				return container_of(__ebx_untag(troot, EB_LEAF),
+				while (__ebx_gettag(troot) != EB_TYPE_LEAF)
+					troot = __ebx_getroot(&(__ebx_untag(troot, EB_TYPE_NODE))->b[EB_SIDE_LEFT]);
+				return container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 						    struct ebx32_node, node.branches);
 			}
 			/* return next */

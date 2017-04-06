@@ -19,8 +19,8 @@
  */
 #define EB_SIDE_LEFT     0
 #define EB_SIDE_RGHT     1
-#define EB_LEAF     0
-#define EB_NODE     1
+#define EB_TYPE_LEAF     0
+#define EB_TYPE_NODE     1
 
 /* Tags to set in root->b[EB_SIDE_RGHT] :
  * - EB_NORMAL is a normal tree which stores duplicate keys.

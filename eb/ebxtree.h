@@ -304,7 +304,7 @@ REGPRM1 struct ebx_node *__ebx_insert_dup(struct ebx_node *sub, struct ebx_node 
 
 /* Converts a root pointer to its equivalent ebx_troot_t pointer,
  * ready to be stored in ->branch[], leaf_p or node_p. NULL is not
- * conserved. To be used with EB_LEAF, EB_NODE, EB_SIDE_LEFT or EB_SIDE_RGHT in <tag>.
+ * conserved. To be used with EB_TYPE_LEAF, EB_TYPE_NODE, EB_SIDE_LEFT or EB_SIDE_RGHT in <tag>.
  */
 static inline ebx_troot_t *__ebx_dotag(const struct ebx_root *root, const int tag)
 {
@@ -313,7 +313,7 @@ static inline ebx_troot_t *__ebx_dotag(const struct ebx_root *root, const int ta
 
 /* Converts an ebx_troot_t pointer pointer to its equivalent ebx_root pointer,
  * for use with pointers from ->branch[], leaf_p or node_p. NULL is conserved
- * as long as the tree is not corrupted. To be used with EB_LEAF, EB_NODE,
+ * as long as the tree is not corrupted. To be used with EB_TYPE_LEAF, EB_TYPE_NODE,
  * EB_SIDE_LEFT or EB_SIDE_RGHT in <tag>.
  */
 static inline struct ebx_root *__ebx_untag(const ebx_troot_t *troot, const int tag)
@@ -381,10 +381,10 @@ static inline int __ebx_is_root(struct ebx_root *root)
 static inline struct ebx_node *__ebx_walk_down(ebx_troot_t *start, unsigned int side)
 {
 	/* A NULL pointer on an empty tree root will be returned as-is */
-	while (__ebx_gettag(start) == EB_NODE)
-		start = __ebx_getroot(&(__ebx_untag(start, EB_NODE))->b[side]);
-	/* NULL is left untouched (root==ebx_node, EB_LEAF==0) */
-	return __ebx_root_to_node(__ebx_untag(start, EB_LEAF));
+	while (__ebx_gettag(start) == EB_TYPE_NODE)
+		start = __ebx_getroot(&(__ebx_untag(start, EB_TYPE_NODE))->b[side]);
+	/* NULL is left untouched (root==ebx_node, EB_TYPE_LEAF==0) */
+	return __ebx_root_to_node(__ebx_untag(start, EB_TYPE_LEAF));
 }
 
 

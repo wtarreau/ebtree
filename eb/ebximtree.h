@@ -61,15 +61,15 @@ __ebxim_lookup(struct ebx_root *root, const void *x, unsigned int len)
 
 	pos = 0;
 	while (1) {
-		if (__ebx_gettag(troot) == EB_LEAF) {
-			node = container_of(__ebx_untag(troot, EB_LEAF),
+		if (__ebx_gettag(troot) == EB_TYPE_LEAF) {
+			node = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 					    struct ebxpt_node, node.branches);
 			if (memcmp((unsigned char *)node->key + pos, (unsigned char *)x, len) != 0)
 				goto ret_null;
 			else
 				goto ret_node;
 		}
-		node = container_of(__ebx_untag(troot, EB_NODE),
+		node = container_of(__ebx_untag(troot, EB_TYPE_NODE),
 				    struct ebxpt_node, node.branches);
 
 		node_bit = node->node.bit;
@@ -120,9 +120,9 @@ __ebxim_lookup(struct ebx_root *root, const void *x, unsigned int len)
  walk_left:
 	troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_LEFT]);
  walk_down:
-	while (__ebx_gettag(troot) != EB_LEAF)
-		troot = __ebx_getroot(&(__ebx_untag(troot, EB_NODE))->b[EB_SIDE_LEFT]);
-	node = container_of(__ebx_untag(troot, EB_LEAF),
+	while (__ebx_gettag(troot) != EB_TYPE_LEAF)
+		troot = __ebx_getroot(&(__ebx_untag(troot, EB_TYPE_NODE))->b[EB_SIDE_LEFT]);
+	node = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 			    struct ebxpt_node, node.branches);
  ret_node:
 	return node;
@@ -150,7 +150,7 @@ __ebxim_insert(struct ebx_root *root, struct ebxpt_node *new, unsigned int len)
 	root_right = __ebx_getroot(&root->b[EB_SIDE_RGHT]);
 	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT]))) {
 		/* Tree is empty, insert the leaf part below the left branch */
-		__ebx_setlink(&root->b[EB_SIDE_LEFT], __ebx_dotag(&new->node.branches, EB_LEAF));
+		__ebx_setlink(&root->b[EB_SIDE_LEFT], __ebx_dotag(&new->node.branches, EB_TYPE_LEAF));
 		__ebx_setlink(&new->node.leaf_p, __ebx_dotag(root, EB_SIDE_LEFT));
 		new->node.node_p = 0; /* node part unused */
 		return new;
@@ -172,17 +172,17 @@ __ebxim_insert(struct ebx_root *root, struct ebxpt_node *new, unsigned int len)
 
 	bit = 0;
 	while (1) {
-		if (unlikely(__ebx_gettag(troot) == EB_LEAF)) {
+		if (unlikely(__ebx_gettag(troot) == EB_TYPE_LEAF)) {
 			ebx_troot_t *new_left, *new_rght;
 			ebx_troot_t *new_leaf, *old_leaf;
 
-			old = container_of(__ebx_untag(troot, EB_LEAF),
+			old = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 					    struct ebxpt_node, node.branches);
 
 			new_left = __ebx_dotag(&new->node.branches, EB_SIDE_LEFT);
 			new_rght = __ebx_dotag(&new->node.branches, EB_SIDE_RGHT);
-			new_leaf = __ebx_dotag(&new->node.branches, EB_LEAF);
-			old_leaf = __ebx_dotag(&old->node.branches, EB_LEAF);
+			new_leaf = __ebx_dotag(&new->node.branches, EB_TYPE_LEAF);
+			old_leaf = __ebx_dotag(&old->node.branches, EB_TYPE_LEAF);
 
 			__ebx_setlink(&new->node.node_p, __ebx_getroot(&old->node.leaf_p));
 
@@ -231,7 +231,7 @@ __ebxim_insert(struct ebx_root *root, struct ebxpt_node *new, unsigned int len)
 
 				if (diff == 0) {
 					new->node.bit = -1;
-					__ebx_setlink(&root->b[side], __ebx_dotag(&new->node.branches, EB_NODE));
+					__ebx_setlink(&root->b[side], __ebx_dotag(&new->node.branches, EB_TYPE_NODE));
 					return new;
 				}
 			}
@@ -239,7 +239,7 @@ __ebxim_insert(struct ebx_root *root, struct ebxpt_node *new, unsigned int len)
 		}
 
 		/* OK we're walking down this link */
-		old = container_of(__ebx_untag(troot, EB_NODE),
+		old = container_of(__ebx_untag(troot, EB_TYPE_NODE),
 				   struct ebxpt_node, node.branches);
 		old_node_bit = old->node.bit;
 
@@ -269,8 +269,8 @@ __ebxim_insert(struct ebx_root *root, struct ebxpt_node *new, unsigned int len)
 		dup_tree:
 			new_left = __ebx_dotag(&new->node.branches, EB_SIDE_LEFT);
 			new_rght = __ebx_dotag(&new->node.branches, EB_SIDE_RGHT);
-			new_leaf = __ebx_dotag(&new->node.branches, EB_LEAF);
-			old_node = __ebx_dotag(&old->node.branches, EB_NODE);
+			new_leaf = __ebx_dotag(&new->node.branches, EB_TYPE_LEAF);
+			old_node = __ebx_dotag(&old->node.branches, EB_TYPE_NODE);
 
 			__ebx_setlink(&new->node.node_p, __ebx_getroot(&old->node.node_p));
 
@@ -318,6 +318,6 @@ __ebxim_insert(struct ebx_root *root, struct ebxpt_node *new, unsigned int len)
 	 * This number of bits is already in <bit>.
 	 */
 	new->node.bit = bit;
-	__ebx_setlink(&root->b[side], __ebx_dotag(&new->node.branches, EB_NODE));
+	__ebx_setlink(&root->b[side], __ebx_dotag(&new->node.branches, EB_TYPE_NODE));
 	return new;
 }
