@@ -32,9 +32,6 @@
 /* Returns the pointer from a link */
 #define __eba_getroot(a) (*(a))
 
-/* an absolute pointer designates the ROOT if its right branch is NULL. */
-#define __eba_is_root(a) ((void *)((a)->b[EB_SIDE_RGHT]) <= (void *)1)
-
 /* we're using absolute pointers for the links, the equivalent unsigned int
  * here is size_t.
  */
@@ -70,8 +67,6 @@ typedef size_t eba_ulink_t;
 #define __ebx_setlink __eba_setlink
 #undef  __ebx_getroot
 #define __ebx_getroot __eba_getroot
-#undef  __ebx_is_root
-#define __ebx_is_root __eba_is_root
 #undef ebx_first
 #define ebx_first eba_first
 #undef ebx_last

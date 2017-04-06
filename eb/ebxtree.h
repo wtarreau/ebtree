@@ -419,12 +419,6 @@ static inline ebx_troot_t *__ebx_getroot(const ebx_link_t *src)
 {
 	return *src + (void *)src;
 }
-
-/* A pointer designates the ROOT if its right branch is NULL. */
-static inline int __ebx_is_root(struct ebx_root *root)
-{
-	return root->b[EB_SIDE_RGHT] <= 1;
-}
 #endif
 
 /* Walks down starting at root pointer <start>, and always walking on side
