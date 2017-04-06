@@ -51,8 +51,10 @@ typedef u16 ebs_ulink_t;
 #define __ebx_untag __ebs_untag
 #undef  __ebx_dotag
 #define __ebx_dotag __ebs_dotag
-#undef  __ebx_gettag
-#define __ebx_gettag __ebs_gettag
+#undef  __ebx_get_branch_type
+#define __ebx_get_branch_type __ebs_get_branch_type
+#undef  __ebx_get_parent_side
+#define __ebx_get_parent_side __ebs_get_parent_side
 #undef  __ebx_root_to_node
 #define __ebx_root_to_node __ebs_root_to_node
 #undef  __ebx_setlink

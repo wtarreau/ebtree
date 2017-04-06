@@ -136,7 +136,7 @@ static forceinline struct ebx64_node *__ebx64_lookup(struct ebx_root *root, u64 
 	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
 
 	while (1) {
-		if ((__ebx_gettag(troot) == EB_TYPE_LEAF)) {
+		if ((__ebx_get_branch_type(troot) == EB_TYPE_LEAF)) {
 			node = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 					    struct ebx64_node, node.branches);
 			if (node->key == x)
@@ -155,7 +155,7 @@ static forceinline struct ebx64_node *__ebx64_lookup(struct ebx_root *root, u64 
 			 */
 			if (__ebx_is_dup(&node->node)) {
 				troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_LEFT]);
-				while (__ebx_gettag(troot) != EB_TYPE_LEAF)
+				while (__ebx_get_branch_type(troot) != EB_TYPE_LEAF)
 					troot = __ebx_getroot(&(__ebx_untag(troot, EB_TYPE_NODE))->b[EB_SIDE_LEFT]);
 				node = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 						    struct ebx64_node, node.branches);
@@ -187,7 +187,7 @@ static forceinline struct ebx64_node *__ebx64i_lookup(struct ebx_root *root, s64
 	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
 
 	while (1) {
-		if ((__ebx_gettag(troot) == EB_TYPE_LEAF)) {
+		if ((__ebx_get_branch_type(troot) == EB_TYPE_LEAF)) {
 			node = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 					    struct ebx64_node, node.branches);
 			if (node->key == (u64)x)
@@ -206,7 +206,7 @@ static forceinline struct ebx64_node *__ebx64i_lookup(struct ebx_root *root, s64
 			 */
 			if (__ebx_is_dup(&node->node)) {
 				troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_LEFT]);
-				while (__ebx_gettag(troot) != EB_TYPE_LEAF)
+				while (__ebx_get_branch_type(troot) != EB_TYPE_LEAF)
 					troot = __ebx_getroot(&(__ebx_untag(troot, EB_TYPE_NODE))->b[EB_SIDE_LEFT]);
 				node = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 						    struct ebx64_node, node.branches);
@@ -259,7 +259,7 @@ __ebx64_insert(struct ebx_root *root, struct ebx64_node *new) {
 	newkey = new->key;
 
 	while (1) {
-		if (unlikely(__ebx_gettag(troot) == EB_TYPE_LEAF)) {
+		if (unlikely(__ebx_get_branch_type(troot) == EB_TYPE_LEAF)) {
 			ebx_troot_t *new_left, *new_rght;
 			ebx_troot_t *new_leaf, *old_leaf;
 
@@ -437,7 +437,7 @@ __ebx64i_insert(struct ebx_root *root, struct ebx64_node *new) {
 	newkey = new->key ^ (1ULL << 63);
 
 	while (1) {
-		if (unlikely(__ebx_gettag(troot) == EB_TYPE_LEAF)) {
+		if (unlikely(__ebx_get_branch_type(troot) == EB_TYPE_LEAF)) {
 			ebx_troot_t *new_left, *new_rght;
 			ebx_troot_t *new_leaf, *old_leaf;
 

@@ -63,8 +63,10 @@ typedef size_t eba_ulink_t;
 #define __ebx_untag __eba_untag
 #undef  __ebx_dotag
 #define __ebx_dotag __eba_dotag
-#undef  __ebx_gettag
-#define __ebx_gettag __eba_gettag
+#undef  __ebx_get_branch_type
+#define __ebx_get_branch_type __eba_get_branch_type
+#undef  __ebx_get_parent_side
+#define __ebx_get_parent_side __eba_get_parent_side
 #undef  __ebx_root_to_node
 #define __ebx_root_to_node __eba_root_to_node
 #undef  __ebx_setlink

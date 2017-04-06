@@ -145,7 +145,7 @@ static forceinline struct ebxmb_node *__ebxmb_lookup(struct ebx_root *root, cons
 
 	pos = 0;
 	while (1) {
-		if (__ebx_gettag(troot) == EB_TYPE_LEAF) {
+		if (__ebx_get_branch_type(troot) == EB_TYPE_LEAF) {
 			node = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 					    struct ebxmb_node, node.branches);
 			if (memcmp(node->key + pos, x, len) != 0)
@@ -204,7 +204,7 @@ static forceinline struct ebxmb_node *__ebxmb_lookup(struct ebx_root *root, cons
  walk_left:
 	troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_LEFT]);
  walk_down:
-	while (__ebx_gettag(troot) != EB_TYPE_LEAF)
+	while (__ebx_get_branch_type(troot) != EB_TYPE_LEAF)
 		troot = __ebx_getroot(&(__ebx_untag(troot, EB_TYPE_NODE))->b[EB_SIDE_LEFT]);
 	node = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 			    struct ebxmb_node, node.branches);
@@ -260,7 +260,7 @@ __ebxmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 
 	bit = 0;
 	while (1) {
-		if (unlikely(__ebx_gettag(troot) == EB_TYPE_LEAF)) {
+		if (unlikely(__ebx_get_branch_type(troot) == EB_TYPE_LEAF)) {
 			/* insert above a leaf */
 			old = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 					    struct ebxmb_node, node.branches);
@@ -338,7 +338,7 @@ __ebxmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 			return old;
 		}
 
-		if (__ebx_gettag(troot) != EB_TYPE_LEAF) {
+		if (__ebx_get_branch_type(troot) != EB_TYPE_LEAF) {
 			/* there was already a dup tree below */
 			struct ebx_node *ret;
 			ret = __ebx_insert_dup(&old->node, &new->node);
@@ -392,7 +392,7 @@ static forceinline struct ebxmb_node *__ebxmb_lookup_longest(struct ebx_root *ro
 	cover = NULL;
 	pos = 0;
 	while (1) {
-		if ((__ebx_gettag(troot) == EB_TYPE_LEAF)) {
+		if ((__ebx_get_branch_type(troot) == EB_TYPE_LEAF)) {
 			node = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 					    struct ebxmb_node, node.branches);
 			if (check_bits((unsigned char *)x - pos, node->key, pos, node->node.pfx))
@@ -413,7 +413,7 @@ static forceinline struct ebxmb_node *__ebxmb_lookup_longest(struct ebx_root *ro
 				goto not_found;
 
 			troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_LEFT]);
-			while (__ebx_gettag(troot) != EB_TYPE_LEAF)
+			while (__ebx_get_branch_type(troot) != EB_TYPE_LEAF)
 				troot = __ebx_getroot(&(__ebx_untag(troot, EB_TYPE_NODE))->b[EB_SIDE_LEFT]);
 			node = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 					    struct ebxmb_node, node.branches);
@@ -486,7 +486,7 @@ static forceinline struct ebxmb_node *__ebxmb_lookup_prefix(struct ebx_root *roo
 
 	pos = 0;
 	while (1) {
-		if ((__ebx_gettag(troot) == EB_TYPE_LEAF)) {
+		if ((__ebx_get_branch_type(troot) == EB_TYPE_LEAF)) {
 			node = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 					    struct ebxmb_node, node.branches);
 			if (node->node.pfx != pfx)
@@ -510,7 +510,7 @@ static forceinline struct ebxmb_node *__ebxmb_lookup_prefix(struct ebx_root *roo
 				return NULL;
 
 			troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_LEFT]);
-			while (__ebx_gettag(troot) != EB_TYPE_LEAF)
+			while (__ebx_get_branch_type(troot) != EB_TYPE_LEAF)
 				troot = __ebx_getroot(&(__ebx_untag(troot, EB_TYPE_NODE))->b[EB_SIDE_LEFT]);
 			node = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 					    struct ebxmb_node, node.branches);
@@ -613,7 +613,7 @@ __ebxmb_insert_prefix(struct ebx_root *root, struct ebxmb_node *new, unsigned in
 
 	bit = 0;
 	while (1) {
-		if (unlikely(__ebx_gettag(troot) == EB_TYPE_LEAF)) {
+		if (unlikely(__ebx_get_branch_type(troot) == EB_TYPE_LEAF)) {
 			/* Insert above a leaf. Note that this leaf could very
 			 * well be part of a cover node.
 			 */
@@ -771,7 +771,7 @@ __ebxmb_insert_prefix(struct ebx_root *root, struct ebxmb_node *new, unsigned in
 				return old;
 			}
 
-			if (__ebx_gettag(troot) != EB_TYPE_LEAF) {
+			if (__ebx_get_branch_type(troot) != EB_TYPE_LEAF) {
 				/* there was already a dup tree below */
 				struct ebx_node *ret;
 				ret = __ebx_insert_dup(&old->node, &new->node);

@@ -68,7 +68,7 @@ static forceinline struct ebxmb_node *__ebxst_lookup(struct ebx_root *root, cons
 
 	bit = 0;
 	while (1) {
-		if ((__ebx_gettag(troot) == EB_TYPE_LEAF)) {
+		if ((__ebx_get_branch_type(troot) == EB_TYPE_LEAF)) {
 			node = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 					    struct ebxmb_node, node.branches);
 			if (strcmp((char *)node->key, x) == 0)
@@ -89,7 +89,7 @@ static forceinline struct ebxmb_node *__ebxst_lookup(struct ebx_root *root, cons
 				return NULL;
 
 			troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_LEFT]);
-			while (__ebx_gettag(troot) != EB_TYPE_LEAF)
+			while (__ebx_get_branch_type(troot) != EB_TYPE_LEAF)
 				troot = __ebx_getroot(&(__ebx_untag(troot, EB_TYPE_NODE))->b[EB_SIDE_LEFT]);
 			node = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 					    struct ebxmb_node, node.branches);
@@ -169,7 +169,7 @@ __ebxst_insert(struct ebx_root *root, struct ebxmb_node *new)
 
 	bit = 0;
 	while (1) {
-		if (unlikely(__ebx_gettag(troot) == EB_TYPE_LEAF)) {
+		if (unlikely(__ebx_get_branch_type(troot) == EB_TYPE_LEAF)) {
 			ebx_troot_t *new_left, *new_rght;
 			ebx_troot_t *new_leaf, *old_leaf;
 

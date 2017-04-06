@@ -61,7 +61,7 @@ __ebxim_lookup(struct ebx_root *root, const void *x, unsigned int len)
 
 	pos = 0;
 	while (1) {
-		if (__ebx_gettag(troot) == EB_TYPE_LEAF) {
+		if (__ebx_get_branch_type(troot) == EB_TYPE_LEAF) {
 			node = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 					    struct ebxpt_node, node.branches);
 			if (memcmp((unsigned char *)node->key + pos, (unsigned char *)x, len) != 0)
@@ -120,7 +120,7 @@ __ebxim_lookup(struct ebx_root *root, const void *x, unsigned int len)
  walk_left:
 	troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_LEFT]);
  walk_down:
-	while (__ebx_gettag(troot) != EB_TYPE_LEAF)
+	while (__ebx_get_branch_type(troot) != EB_TYPE_LEAF)
 		troot = __ebx_getroot(&(__ebx_untag(troot, EB_TYPE_NODE))->b[EB_SIDE_LEFT]);
 	node = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 			    struct ebxpt_node, node.branches);
@@ -173,7 +173,7 @@ __ebxim_insert(struct ebx_root *root, struct ebxpt_node *new, unsigned int len)
 
 	bit = 0;
 	while (1) {
-		if (unlikely(__ebx_gettag(troot) == EB_TYPE_LEAF)) {
+		if (unlikely(__ebx_get_branch_type(troot) == EB_TYPE_LEAF)) {
 			ebx_troot_t *new_left, *new_rght;
 			ebx_troot_t *new_leaf, *old_leaf;
 

@@ -64,8 +64,10 @@ typedef size_t ebar_ulink_t;
 #define __ebx_untag __ebar_untag
 #undef  __ebx_dotag
 #define __ebx_dotag __ebar_dotag
-#undef  __ebx_gettag
-#define __ebx_gettag __ebar_gettag
+#undef  __ebx_get_branch_type
+#define __ebx_get_branch_type __ebar_get_branch_type
+#undef  __ebx_get_parent_side
+#define __ebx_get_parent_side __ebar_get_parent_side
 #undef  __ebx_root_to_node
 #define __ebx_root_to_node __ebar_root_to_node
 #undef  __ebx_setlink

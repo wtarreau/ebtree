@@ -51,8 +51,10 @@ typedef u32 ebm_ulink_t;
 #define __ebx_untag __ebm_untag
 #undef  __ebx_dotag
 #define __ebx_dotag __ebm_dotag
-#undef  __ebx_gettag
-#define __ebx_gettag __ebm_gettag
+#undef  __ebx_get_branch_type
+#define __ebx_get_branch_type __ebm_get_branch_type
+#undef  __ebx_get_parent_side
+#define __ebx_get_parent_side __ebm_get_parent_side
 #undef  __ebx_root_to_node
 #define __ebx_root_to_node __ebm_root_to_node
 #undef  __ebx_setlink

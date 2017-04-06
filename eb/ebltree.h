@@ -51,8 +51,10 @@ typedef u64 ebl_ulink_t;
 #define __ebx_untag __ebl_untag
 #undef  __ebx_dotag
 #define __ebx_dotag __ebl_dotag
-#undef  __ebx_gettag
-#define __ebx_gettag __ebl_gettag
+#undef  __ebx_get_branch_type
+#define __ebx_get_branch_type __ebl_get_branch_type
+#undef  __ebx_get_parent_side
+#define __ebx_get_parent_side __ebl_get_parent_side
 #undef  __ebx_root_to_node
 #define __ebx_root_to_node __ebl_root_to_node
 #undef  __ebx_setlink
