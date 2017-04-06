@@ -61,8 +61,6 @@ typedef u16 ebs_ulink_t;
 #define __ebx_setlink __ebs_setlink
 #undef  __ebx_getroot
 #define __ebx_getroot __ebs_getroot
-#undef  __ebx_link_is_null
-#define __ebx_link_is_null __ebs_link_is_null
 #undef  __ebx_is_root
 #define __ebx_is_root __ebs_is_root
 #undef ebx_first

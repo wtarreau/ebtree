@@ -33,9 +33,6 @@
 /* Returns the pointer from a link */
 #define __ebar_getroot(a) (*(a))
 
-/* an absolute pointer is NULL only when exactly NULL (no tag) */
-#define __ebar_link_is_null(a) (a == NULL)
-
 /* an absolute pointer designates the ROOT if its right branch is NULL. */
 #define __ebar_is_root(a) ((size_t)((a)->b[EB_SIDE_RGHT]) & 2)
 
@@ -74,8 +71,6 @@ typedef size_t ebar_ulink_t;
 #define __ebx_setlink __ebar_setlink
 #undef  __ebx_getroot
 #define __ebx_getroot __ebar_getroot
-#undef  __ebx_link_is_null
-#define __ebx_link_is_null __ebar_link_is_null
 #undef  __ebx_is_root
 #define __ebx_is_root __ebar_is_root
 #undef ebx_first

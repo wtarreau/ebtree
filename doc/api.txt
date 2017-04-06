@@ -151,9 +151,6 @@ static inline void __ebx_setlink(ebx_link_t *dest, const ebx_troot_t *troot)
 static inline ebx_troot_t *__ebx_getroot(const ebx_link_t *src)
   => internal use only, reads from <src>, must be done under READ LOCK
 
-static inline int __ebx_link_is_null(ebx_link_t link)
-  => internal use only, only manipulates pointers
-
 static inline int __ebx_is_root(struct ebx_root *root)
   => internal use only, reads from <root>, must be done under READ LOCK, possibly also lockless.
 

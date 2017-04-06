@@ -135,7 +135,7 @@ static forceinline struct ebxmb_node *__ebxmb_lookup(struct ebx_root *root, cons
 	int pos, side;
 	int node_bit;
 
-	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT])))
+	if (unlikely(ebx_is_empty(root)))
 		goto ret_null;
 
 	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
@@ -236,7 +236,7 @@ __ebxmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 	int old_node_bit;
 
 	side = EB_SIDE_LEFT;
-	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT]))) {
+	if (unlikely(ebx_is_empty(root))) {
 		/* Tree is empty, insert the leaf part below the left branch */
 		__ebx_setlink(&root->b[EB_SIDE_LEFT], __ebx_dotag(&new->node.branches, EB_TYPE_LEAF));
 		__ebx_setlink(&new->node.leaf_p, __ebx_dotag(root, EB_SIDE_LEFT));
@@ -384,7 +384,7 @@ static forceinline struct ebxmb_node *__ebxmb_lookup_longest(struct ebx_root *ro
 	int pos, side;
 	int node_bit;
 
-	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT])))
+	if (unlikely(ebx_is_empty(root)))
 		return NULL;
 
 	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
@@ -479,7 +479,7 @@ static forceinline struct ebxmb_node *__ebxmb_lookup_prefix(struct ebx_root *roo
 	int pos, side;
 	int node_bit;
 
-	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT])))
+	if (unlikely(ebx_is_empty(root)))
 		return NULL;
 
 	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
@@ -585,7 +585,7 @@ __ebxmb_insert_prefix(struct ebx_root *root, struct ebxmb_node *new, unsigned in
 	int old_node_bit;
 
 	side = EB_SIDE_LEFT;
-	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT]))) {
+	if (unlikely(ebx_is_empty(root))) {
 		/* Tree is empty, insert the leaf part below the left branch */
 		__ebx_setlink(&root->b[EB_SIDE_LEFT], __ebx_dotag(&new->node.branches, EB_TYPE_LEAF));
 		__ebx_setlink(&new->node.leaf_p, __ebx_dotag(root, EB_SIDE_LEFT));

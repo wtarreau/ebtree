@@ -420,14 +420,6 @@ static inline ebx_troot_t *__ebx_getroot(const ebx_link_t *src)
 	return *src + (void *)src;
 }
 
-/* A relative offset is NULL if it's either 0 or 1 (tagged 0). The cast to
- * unsigned long long does not affect smaller types (verified).
- */
-static inline int __ebx_link_is_null(ebx_link_t link)
-{
-	return link == 0;
-}
-
 /* A pointer designates the ROOT if its right branch is NULL. */
 static inline int __ebx_is_root(struct ebx_root *root)
 {
@@ -470,7 +462,7 @@ static inline int __ebx_is_dup(struct ebx_node *node)
 /* Return the first leaf in the tree starting at <root>, or NULL if none */
 static inline struct ebx_node *ebx_first(struct ebx_root *root)
 {
-	if (__ebx_link_is_null(root->b[EB_SIDE_LEFT]))
+	if (ebx_is_empty(root))
 		return NULL;
 	return __ebx_walk_down(__ebx_getroot(&root->b[0]), EB_SIDE_LEFT);
 }
@@ -478,7 +470,7 @@ static inline struct ebx_node *ebx_first(struct ebx_root *root)
 /* Return the last leaf in the tree starting at <root>, or NULL if none */
 static inline struct ebx_node *ebx_last(struct ebx_root *root)
 {
-	if (__ebx_link_is_null(root->b[EB_SIDE_LEFT]))
+	if (ebx_is_empty(root))
 		return NULL;
 	return __ebx_walk_down(__ebx_getroot(&root->b[0]), EB_SIDE_RGHT);
 }

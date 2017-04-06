@@ -61,8 +61,6 @@ typedef u64 ebl_ulink_t;
 #define __ebx_setlink __ebl_setlink
 #undef  __ebx_getroot
 #define __ebx_getroot __ebl_getroot
-#undef  __ebx_link_is_null
-#define __ebx_link_is_null __ebl_link_is_null
 #undef  __ebx_is_root
 #define __ebx_is_root __ebl_is_root
 #undef ebx_first

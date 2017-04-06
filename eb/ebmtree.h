@@ -61,8 +61,6 @@ typedef u32 ebm_ulink_t;
 #define __ebx_setlink __ebm_setlink
 #undef  __ebx_getroot
 #define __ebx_getroot __ebm_getroot
-#undef  __ebx_link_is_null
-#define __ebx_link_is_null __ebm_link_is_null
 #undef  __ebx_is_root
 #define __ebx_is_root __ebm_is_root
 #undef ebx_first

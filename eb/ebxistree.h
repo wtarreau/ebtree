@@ -66,7 +66,7 @@ static forceinline struct ebxpt_node *__ebxis_lookup(struct ebx_root *root, cons
 	int node_bit;
 	ebx_ulink_t root_flags;
 
-	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT])))
+	if (unlikely(ebx_is_empty(root)))
 		return NULL;
 
 	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
@@ -151,7 +151,7 @@ __ebxis_insert(struct ebx_root *root, struct ebxpt_node *new)
 	int old_node_bit;
 
 	side = EB_SIDE_LEFT;
-	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT]))) {
+	if (unlikely(ebx_is_empty(root))) {
 		/* Tree is empty, insert the leaf part below the left branch */
 		__ebx_setlink(&root->b[EB_SIDE_LEFT], __ebx_dotag(&new->node.branches, EB_TYPE_LEAF));
 		__ebx_setlink(&new->node.leaf_p, __ebx_dotag(root, EB_SIDE_LEFT));
