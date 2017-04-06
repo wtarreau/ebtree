@@ -249,6 +249,47 @@
 
  */
 
+/* The links used in node_p / leaf_p are tagged with EB_SIDE_* to indicate the
+ * side of the parent's branch they're attached to. The stored links are of
+ * type ebx_link_t, which depends on the storage model. These links are built
+ * using ebx_setlink() from the link's memory position and a tagged root
+ * pointer. For absolute addressing, the tagged root pointer is simply used
+ * as-is. For relative addressing, the distance between the link's storage
+ * address and its target is stored instead. The tagged root pointer, in turn,
+ * is assembled by ebx_set_parent() from a valid absolute pointer and a side.
+ * Parent pointers point to the upper node's "branches" structure. This is
+ * convenient for the root as the tree's root is only made of this structure.
+ *
+ * So the model looks like this :
+ *
+ *   Node1                             Node2
+ *     link -------------------------->  branches
+ *      |                                   |
+ *      |                                   V
+ *      |          tagged_ptr = ebx_set_parent(&node2->branches, side)
+ *      |            |
+ *       \          /
+ *         \      /
+ *      ebx_setlink(&link, tagged_ptr)
+ *            |
+ *            V
+ *      sets link's value --->  tagged_ptr = ebx_getroot(&link)
+ *                                         |
+ *                                         V
+ *                           side = ebx_get_parent_side(tagged_ptr)
+ *                       branches = ebx_get_parent(tagged_ptr, side)
+ *
+ *
+ */
+//enum eb_side ebx_get_parent_side(ebx_link_t);
+//ebx_link_t ebx_set_parent(void *, enum eb_side);
+//void *ebx_get_parent(ebx_link_t, enum eb_side);
+//
+///* pointers used in branches.b[], pointing to branches (&branches) */
+//ebx_get_branch_type
+//ebx_set_branch
+//ebx_get_branch
+
 /* link between nodes. The lower bit embeds a tag which can be manipulated with
  * __ebx_dotag()/__ebx_untag()/__ebx_gettag(). This tag has two meanings :
  *  - 0=left, 1=right to designate the parent's branch for leaf_p/node_p
