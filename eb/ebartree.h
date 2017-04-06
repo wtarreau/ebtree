@@ -28,10 +28,10 @@
 	struct ebar_root name = EBAR_ROOT
 
 /* Assigns a pointer to a link */
-#define __ebar_setlink(dest, troot) do { *(dest) = (troot); } while (0)
+#define __ebar_setlink(dest, troot) do { *(dest) = (void *)(troot); } while (0)
 
 /* Returns the pointer from a link */
-#define __ebar_getroot(a) (*(a))
+#define __ebar_getroot(a) ((unsigned long)*(a))
 
 /* an absolute pointer is NULL only when exactly NULL (no tag) */
 #define __ebar_link_is_null(a) (a == 0)
@@ -40,7 +40,7 @@
 #define __ebar_is_root(a) ((size_t)((a)->b[EB_SIDE_RGHT]) & 2)
 
 /* we're using absolute pointers for the links */
-typedef unsigned long ebar_link_t;
+typedef void ** ebar_link_t;
 
 /* remap ebxtree.h symbols and types to ebar- equivalent */
 #undef ebx_root
