@@ -249,12 +249,61 @@
 
  */
 
-/* link between nodes. The lower bit embeds a tag which can be manipulated with
- * __ebx_dotag()/__ebx_untag()/__ebx_gettag(). This tag has two meanings :
- *  - 0=left, 1=right to designate the parent's branch for leaf_p/node_p
- *  - 0=link, 1=leaf  to designate the branch's type for branch[]
+/* The links used in node_p / leaf_p are tagged with EB_SIDE_* to indicate the
+ * side of the parent's branch they're attached to. The stored links are of
+ * type ebx_link_t, which depends on the storage model. These links are built
+ * using ebx_setlink() from the link's memory position and a tagged root
+ * pointer. For absolute addressing, the tagged root pointer is simply used
+ * as-is. For relative addressing, the distance between the link's storage
+ * address and its target is stored instead. The tagged root pointer, in turn,
+ * is assembled by __ebx_dotag() from a valid absolute pointer and a side.
+ * Parent pointers point to the upper node's "branches" structure. This is
+ * convenient for the root as the tree's root is only made of this structure.
  *
- * The link type is either a signed int or a void *, the type is declared by
+ * So the model looks like this :
+ *
+ *   Node1                             Node2
+ *     link -------------------------->  branches
+ *      |                                   |
+ *      |                                   V
+ *      |          tagged_ptr = __ebx_dotag(&node2->branches, side)
+ *      |            |
+ *       \          /
+ *         \      /
+ *      __ebx_setlink(&link, tagged_ptr)
+ *            |
+ *            V
+ *      sets link's value --->  tagged_ptr = __ebx_getroot(&link)
+ *                                         |
+ *                                         V
+ *                           side = __ebx_get_parent_side(tagged_ptr)
+ *                       branches = __ebx_untag(tagged_ptr, side)
+ *
+ * The tagged pointer doesn't really need to be represented as a pointer,
+ * though tests have shown that it's hard for compilers to propagate some
+ * operation simplifications over casts between scalars and pointers. For
+ * this reason it's much more efficient to store them as regular pointers
+ * to branches which explains why they're declared of type ebx_link_t *.
+ *
+ * The same principle applies to branches where the branch pointer points to
+ * the children's "branches" part, and where the tagged branch pointer carries
+ * the branch type (node or leaf).
+ *
+ * Functions __ebx_setlink() and __ebx_getroot() respectively set a link from
+ * a tagged pointer or retrieve a tagged pointer from a link.
+ *
+ * Function __ebx_dotag() adds a known tag value to an absolute pointer to build
+ * a tagged pointer.
+ *
+ * Function __ebx_untag() removes a known tag value from a tagged pointer to
+ * return the absolute pointer. The tag value may be retrieved from the absolute
+ * pointer using __ebx_get_parent_side(tagged_ptr) when reading a parent pointer
+ * (node_p or leaf_p), and using __ebx_get_branch_type(tagged_ptr) when reading
+ * a branch pointer.
+ *
+ */
+
+/* The link type is either a signed int or a void *, the type is declared by
  * the caller.
  */
 typedef ebx_link_t *ebx_troot_t;
