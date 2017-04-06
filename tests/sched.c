@@ -57,9 +57,9 @@ static unsigned int rq_idx = 0x20000000;
 
 static unsigned int rq_idx_global = 0x20000000;
 
-#ifdef USE_MUTEX
+#if USE_MUTEX
 static pthread_mutex_t rq_lock = PTHREAD_MUTEX_INITIALIZER;
-#else
+#elif USE_SPINLOCK
 static pthread_spinlock_t rq_lock;
 #endif
 
@@ -126,13 +126,13 @@ static inline void task_queue(struct task *task)
 
 #ifdef USE_MUTEX
 	pthread_mutex_lock(&rq_lock);
-#else
+#elif USE_SPINLOCK
 	pthread_spin_lock(&rq_lock);
 #endif
 	eb32_insert(&run_queue, &task->tree);
 #ifdef USE_MUTEX
 	pthread_mutex_unlock(&rq_lock);
-#else
+#elif USE_SPINLOCK
 	pthread_spin_unlock(&rq_lock);
 #endif
 }
@@ -146,17 +146,17 @@ static inline struct task *task_pick_next()
 
 #ifdef USE_MUTEX
 	pthread_mutex_lock(&rq_lock);
-#else
+#elif USE_SPINLOCK
 	pthread_spin_lock(&rq_lock);
 #endif
 	node = eb32_lookup_ge(&run_queue, rq_idx - (1U << 31));
 	if (!node)
 		node = eb32_first(&run_queue);
 	if (node)
-		eb32_delete(node);
+		eba32_delete(&run_queue, node);
 #ifdef USE_MUTEX
 	pthread_mutex_unlock(&rq_lock);
-#else
+#elif USE_SPINLOCK
 	pthread_spin_unlock(&rq_lock);
 #endif
 	if (node)
@@ -301,7 +301,7 @@ int main(int argc, char **argv)
 	if (arg_run <= 0)
 		arg_run = 1;
 
-#ifndef USE_MUTEX
+#ifdef USE_SPINLOCK
 	pthread_spin_init(&rq_lock, PTHREAD_PROCESS_PRIVATE);
 #endif
 	create_tasks(arg_jobs);

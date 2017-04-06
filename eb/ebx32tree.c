@@ -139,10 +139,14 @@ REGPRM2 struct ebx32_node *ebx32_lookup_le(struct ebx_root *root, u32 x)
 REGPRM2 struct ebx32_node *ebx32_lookup_ge(struct ebx_root *root, u32 x)
 {
 	struct ebx32_node *node;
+	unsigned long *lock = (unsigned long *)&root->b[1];
 	ebx_troot_t *troot;
 
-	if (unlikely(ebx_is_empty(root)))
+	pl_take_rd(lock);
+	if (unlikely(ebx_is_empty(root))) {
+		pl_drop_rd(lock);
 		return NULL;
+	}
 
 	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
 
@@ -154,8 +158,10 @@ REGPRM2 struct ebx32_node *ebx32_lookup_ge(struct ebx_root *root, u32 x)
 			 */
 			node = container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 					    struct ebx32_node, node.branches);
-			if (node->key >= x)
+			if (node->key >= x) {
+				pl_drop_rd(lock);
 				return node;
+			}
 			/* return next */
 			troot = __ebx_getroot(&node->node.leaf_p);
 			break;
@@ -176,6 +182,7 @@ REGPRM2 struct ebx32_node *ebx32_lookup_ge(struct ebx_root *root, u32 x)
 				troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_LEFT]);
 				while (__ebx_get_branch_type(troot) != EB_TYPE_LEAF)
 					troot = __ebx_getroot(&(__ebx_untag(troot, EB_TYPE_NODE))->b[EB_SIDE_LEFT]);
+				pl_drop_rd(lock);
 				return container_of(__ebx_untag(troot, EB_TYPE_LEAF),
 						    struct ebx32_node, node.branches);
 			}
@@ -191,6 +198,7 @@ REGPRM2 struct ebx32_node *ebx32_lookup_ge(struct ebx_root *root, u32 x)
 			 */
 			if ((node->key >> node->node.bit) > (x >> node->node.bit)) {
 				troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_LEFT]);
+				pl_drop_rd(lock);
 				return eb_entry(__ebx_walk_down(troot, EB_SIDE_LEFT), struct ebx32_node, node);
 			}
 
@@ -210,10 +218,13 @@ REGPRM2 struct ebx32_node *ebx32_lookup_ge(struct ebx_root *root, u32 x)
 	while (__ebx_get_parent_side(troot) == EB_SIDE_RGHT)
 		troot = __ebx_getroot(&(__ebx_root_to_node(__ebx_untag(troot, EB_SIDE_RGHT)))->node_p);
 
-	if (__ebx_get_parent_side(troot) == EB_SIDE_ROOT)
+	if (__ebx_get_parent_side(troot) == EB_SIDE_ROOT) {
+		pl_drop_rd(lock);
 		return NULL;
+	}
 
 	troot = __ebx_getroot(&(__ebx_untag(troot, EB_SIDE_LEFT))->b[EB_SIDE_RGHT]);
 	node = eb_entry(__ebx_walk_down(troot, EB_SIDE_LEFT), struct ebx32_node, node);
+	pl_drop_rd(lock);
 	return node;
 }

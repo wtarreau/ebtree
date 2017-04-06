@@ -23,6 +23,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
+#include "../../atomic/plock.h"
 
 /* This structure carries a node, a leaf, and a key. It must start with the
  * ebx_node so that it can be cast into an ebx_node. We could also have put some
@@ -43,7 +44,12 @@ struct ebx32_node {
 /* Return leftmost node in the tree, or NULL if none */
 static inline struct ebx32_node *ebx32_first(struct ebx_root *root)
 {
-	return eb_entry(ebx_first(root), struct ebx32_node, node);
+	struct ebx32_node *node;
+
+	pl_take_rd((unsigned long *)&root->b[1]);
+	node = eb_entry(ebx_first(root), struct ebx32_node, node);
+	pl_drop_rd((unsigned long *)&root->b[1]);
+	return node;
 }
 
 /* Return rightmost node in the tree, or NULL if none */
@@ -93,7 +99,9 @@ static inline struct ebx32_node *ebx32_prev_unique(struct ebx32_node *eb32)
  */
 static inline void ebx32_delete(struct ebx_root *root, struct ebx32_node *eb32)
 {
+	pl_take_wx((unsigned long *)&root->b[1]);
 	ebx_delete(root, &eb32->node);
+	pl_drop_wx((unsigned long *)&root->b[1]);
 }
 
 /*
@@ -241,13 +249,19 @@ __ebx32_insert(struct ebx_root *root, struct ebx32_node *new)
 	ebx_troot_t *new_left, *new_rght;
 	ebx_troot_t *new_leaf;
 	int old_node_bit;
+	unsigned long *lock = (unsigned long *)&root->b[1];
 
 	side = EB_SIDE_LEFT;
+
+	pl_take_fr(lock);
+
 	if (unlikely(ebx_is_empty(root))) {
 		/* Tree is empty, insert the leaf part below the left branch */
-		__ebx_setlink(&root->b[EB_SIDE_LEFT], __ebx_dotag(&new->node.branches, EB_TYPE_LEAF));
 		__ebx_setlink(&new->node.leaf_p, __ebx_dotag(root, EB_SIDE_ROOT));
 		new->node.node_p = 0; /* node part unused */
+		pl_take_wr(lock);
+		__ebx_setlink(&root->b[EB_SIDE_LEFT], __ebx_dotag(&new->node.branches, EB_TYPE_LEAF));
+		pl_drop_wx(lock);
 		return new;
 	}
 	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
@@ -330,7 +344,9 @@ __ebx32_insert(struct ebx_root *root, struct ebx32_node *new)
 		if (__ebx_get_branch_type(troot) != EB_TYPE_LEAF) {
 			/* there was already a dup tree below */
 			struct ebx_node *ret;
+			pl_take_wr(lock);
 			ret = __ebx_insert_dup(&old->node, &new->node);
+			pl_drop_wx(lock);
 			return container_of(ret, struct ebx32_node, node);
 		}
 		/* otherwise fall through */
@@ -340,12 +356,14 @@ __ebx32_insert(struct ebx_root *root, struct ebx32_node *new)
 		__ebx_setlink(&new->node.branches.b[EB_SIDE_LEFT], troot);
 		__ebx_setlink(&new->node.branches.b[EB_SIDE_RGHT], new_leaf);
 		__ebx_setlink(&new->node.leaf_p, new_rght);
+		pl_take_wr(lock);
 		__ebx_setlink(up_ptr, new_left);
 	}
 	else {
 		__ebx_setlink(&new->node.branches.b[EB_SIDE_LEFT], new_leaf);
 		__ebx_setlink(&new->node.branches.b[EB_SIDE_RGHT], troot);
 		__ebx_setlink(&new->node.leaf_p, new_left);
+		pl_take_wr(lock);
 		__ebx_setlink(up_ptr, new_rght);
 	}
 
@@ -356,6 +374,7 @@ __ebx32_insert(struct ebx_root *root, struct ebx32_node *new)
 	 */
 
 	__ebx_setlink(&root->b[side], __ebx_dotag(&new->node.branches, EB_TYPE_NODE));
+	pl_drop_wx(lock);
 	return new;
 }
 
