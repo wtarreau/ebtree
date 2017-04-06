@@ -37,7 +37,7 @@
 #define __ebar_link_is_null(a) (a == NULL)
 
 /* an absolute pointer designates the ROOT if its right branch is NULL. */
-#define __ebar_is_root(a) ((size_t)((a)->b[EB_RGHT]) & 2)
+#define __ebar_is_root(a) ((size_t)((a)->b[EB_SIDE_RGHT]) & 2)
 
 /* we're using absolute pointers for the links */
 typedef void *ebar_link_t;

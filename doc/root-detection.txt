@@ -26,7 +26,7 @@ instead of the node itself. In fact we can further improve this mechanism :
 
   - we can directly tag upper pointers to mention that they're pointing to
     the root. Right now they only use bit 0 to mention left vs right, but on
-    the root it's always left. So we could have 0=EB_LEFT, 1=EB_RIGHT,
+    the root it's always left. So we could have 0=EB_SIDE_LEFT, 1=EB_RIGHT,
     2=EB_ROOT. Since the root check is always performed on the upwards walk,
     it's only needed when checking such a pointer and not the couple of
     branches itself in fact.

@@ -55,10 +55,10 @@ REGPRM2 struct ebx64_node *ebx64_lookup_le(struct ebx_root *root, u64 x)
 	struct ebx64_node *node;
 	ebx_troot_t *troot;
 
-	if (unlikely(__ebx_link_is_null(root->b[EB_LEFT])))
+	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT])))
 		return NULL;
 
-	troot = __ebx_getroot(&root->b[EB_LEFT]);
+	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
 
 	while (1) {
 		if ((__ebx_gettag(troot) == EB_LEAF)) {
@@ -87,9 +87,9 @@ REGPRM2 struct ebx64_node *ebx64_lookup_le(struct ebx_root *root, u64 x)
 			 * tree.
 			 */
 			if (node->key <= x) {
-				troot = __ebx_getroot(&node->node.branches.b[EB_RGHT]);
+				troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_RGHT]);
 				while (__ebx_gettag(troot) != EB_LEAF)
-					troot = __ebx_getroot(&(__ebx_untag(troot, EB_NODE))->b[EB_RGHT]);
+					troot = __ebx_getroot(&(__ebx_untag(troot, EB_NODE))->b[EB_SIDE_RGHT]);
 				return container_of(__ebx_untag(troot, EB_LEAF),
 						    struct ebx64_node, node.branches);
 			}
@@ -104,8 +104,8 @@ REGPRM2 struct ebx64_node *ebx64_lookup_le(struct ebx_root *root, u64 x)
 			 * too large, and we need to get the prev value.
 			 */
 			if ((node->key >> node->node.bit) < (x >> node->node.bit)) {
-				troot = __ebx_getroot(&node->node.branches.b[EB_RGHT]);
-				return eb_entry(__ebx_walk_down(troot, EB_RGHT), struct ebx64_node, node);
+				troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_RGHT]);
+				return eb_entry(__ebx_walk_down(troot, EB_SIDE_RGHT), struct ebx64_node, node);
 			}
 
 			/* Further values will be too high here, so return the prev
@@ -121,17 +121,17 @@ REGPRM2 struct ebx64_node *ebx64_lookup_le(struct ebx_root *root, u64 x)
 	 * current one which is not above. <troot> is already initialised to
 	 * the parent's branches.
 	 */
-	while (__ebx_gettag(troot) == EB_LEFT) {
+	while (__ebx_gettag(troot) == EB_SIDE_LEFT) {
 		/* Walking up from left branch. We must ensure that we never
 		 * walk beyond root.
 		 */
-		if (unlikely(__ebx_is_root(__ebx_untag(troot, EB_LEFT))))
+		if (unlikely(__ebx_is_root(__ebx_untag(troot, EB_SIDE_LEFT))))
 			return NULL;
-		troot = __ebx_getroot(&(__ebx_root_to_node(__ebx_untag(troot, EB_LEFT)))->node_p);
+		troot = __ebx_getroot(&(__ebx_root_to_node(__ebx_untag(troot, EB_SIDE_LEFT)))->node_p);
 	}
 	/* Note that <troot> cannot be NULL at this stage */
-	troot = __ebx_getroot(&(__ebx_untag(troot, EB_RGHT))->b[EB_LEFT]);
-	node = eb_entry(__ebx_walk_down(troot, EB_RGHT), struct ebx64_node, node);
+	troot = __ebx_getroot(&(__ebx_untag(troot, EB_SIDE_RGHT))->b[EB_SIDE_LEFT]);
+	node = eb_entry(__ebx_walk_down(troot, EB_SIDE_RGHT), struct ebx64_node, node);
 	return node;
 }
 
@@ -144,10 +144,10 @@ REGPRM2 struct ebx64_node *ebx64_lookup_ge(struct ebx_root *root, u64 x)
 	struct ebx64_node *node;
 	ebx_troot_t *troot;
 
-	if (unlikely(__ebx_link_is_null(root->b[EB_LEFT])))
+	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT])))
 		return NULL;
 
-	troot = __ebx_getroot(&root->b[EB_LEFT]);
+	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
 
 	while (1) {
 		if ((__ebx_gettag(troot) == EB_LEAF)) {
@@ -176,9 +176,9 @@ REGPRM2 struct ebx64_node *ebx64_lookup_ge(struct ebx_root *root, u64 x)
 			 * tree.
 			 */
 			if (node->key >= x) {
-				troot = __ebx_getroot(&node->node.branches.b[EB_LEFT]);
+				troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_LEFT]);
 				while (__ebx_gettag(troot) != EB_LEAF)
-					troot = __ebx_getroot(&(__ebx_untag(troot, EB_NODE))->b[EB_LEFT]);
+					troot = __ebx_getroot(&(__ebx_untag(troot, EB_NODE))->b[EB_SIDE_LEFT]);
 				return container_of(__ebx_untag(troot, EB_LEAF),
 						    struct ebx64_node, node.branches);
 			}
@@ -193,8 +193,8 @@ REGPRM2 struct ebx64_node *ebx64_lookup_ge(struct ebx_root *root, u64 x)
 			 * small, and we need to get the next value.
 			 */
 			if ((node->key >> node->node.bit) > (x >> node->node.bit)) {
-				troot = __ebx_getroot(&node->node.branches.b[EB_LEFT]);
-				return eb_entry(__ebx_walk_down(troot, EB_LEFT), struct ebx64_node, node);
+				troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_LEFT]);
+				return eb_entry(__ebx_walk_down(troot, EB_SIDE_LEFT), struct ebx64_node, node);
 			}
 
 			/* Further values will be too low here, so return the next
@@ -210,15 +210,15 @@ REGPRM2 struct ebx64_node *ebx64_lookup_ge(struct ebx_root *root, u64 x)
 	 * current one which is not below. <troot> is already initialised
 	 * to the parent's branches.
 	 */
-	while (__ebx_gettag(troot) != EB_LEFT)
+	while (__ebx_gettag(troot) != EB_SIDE_LEFT)
 		/* Walking up from right branch, so we cannot be below root */
-		troot = __ebx_getroot(&(__ebx_root_to_node(__ebx_untag(troot, EB_RGHT)))->node_p);
+		troot = __ebx_getroot(&(__ebx_root_to_node(__ebx_untag(troot, EB_SIDE_RGHT)))->node_p);
 
 	/* Note that <troot> cannot be NULL at this stage */
-	if (__ebx_is_root(__ebx_untag(troot, EB_LEFT)))
+	if (__ebx_is_root(__ebx_untag(troot, EB_SIDE_LEFT)))
 		return NULL;
 
-	troot = __ebx_getroot(&(__ebx_untag(troot, EB_LEFT))->b[EB_RGHT]);
-	node = eb_entry(__ebx_walk_down(troot, EB_LEFT), struct ebx64_node, node);
+	troot = __ebx_getroot(&(__ebx_untag(troot, EB_SIDE_LEFT))->b[EB_SIDE_RGHT]);
+	node = eb_entry(__ebx_walk_down(troot, EB_SIDE_LEFT), struct ebx64_node, node);
 	return node;
 }

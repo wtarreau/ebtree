@@ -37,7 +37,7 @@ REGPRM2 struct ebxpt_node *ebxis_lookup(struct ebx_root *root, const char *x)
 
 /* Insert ebxpt_node <new> into subtree starting at node root <root>. Only
  * new->key needs be set with the zero-terminated string key. The ebxpt_node is
- * returned. If root->b[EB_RGHT]==1, the tree may only contain unique keys. The
+ * returned. If root->b[EB_SIDE_RGHT]==1, the tree may only contain unique keys. The
  * caller is responsible for properly terminating the key with a zero.
  */
 REGPRM2 struct ebxpt_node *ebxis_insert(struct ebx_root *root, struct ebxpt_node *new)

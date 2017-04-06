@@ -36,7 +36,7 @@
 #define __eba_link_is_null(a) (a == NULL)
 
 /* an absolute pointer designates the ROOT if its right branch is NULL. */
-#define __eba_is_root(a) ((void *)((a)->b[EB_RGHT]) <= (void *)1)
+#define __eba_is_root(a) ((void *)((a)->b[EB_SIDE_RGHT]) <= (void *)1)
 
 /* we're using absolute pointers for the links */
 typedef void *eba_link_t;

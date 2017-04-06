@@ -59,10 +59,10 @@ static forceinline struct ebxmb_node *__ebxst_lookup(struct ebx_root *root, cons
 	int bit;
 	int node_bit;
 
-	if (unlikely(__ebx_link_is_null(root->b[EB_LEFT])))
+	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT])))
 		return NULL;
 
-	troot = __ebx_getroot(&root->b[EB_LEFT]);
+	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
 
 	bit = 0;
 	while (1) {
@@ -86,9 +86,9 @@ static forceinline struct ebxmb_node *__ebxst_lookup(struct ebx_root *root, cons
 			if (strcmp((char *)node->key, x) != 0)
 				return NULL;
 
-			troot = __ebx_getroot(&node->node.branches.b[EB_LEFT]);
+			troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_LEFT]);
 			while (__ebx_gettag(troot) != EB_LEAF)
-				troot = __ebx_getroot(&(__ebx_untag(troot, EB_NODE))->b[EB_LEFT]);
+				troot = __ebx_getroot(&(__ebx_untag(troot, EB_NODE))->b[EB_SIDE_LEFT]);
 			node = container_of(__ebx_untag(troot, EB_LEAF),
 					    struct ebxmb_node, node.branches);
 			return node;
@@ -108,7 +108,7 @@ static forceinline struct ebxmb_node *__ebxst_lookup(struct ebx_root *root, cons
 				 * this node. Otherwise we have to walk it down
 				 * and stop comparing bits.
 				 */
-				if (__ebx_gettag(__ebx_getroot(&root->b[EB_RGHT])))
+				if (__ebx_gettag(__ebx_getroot(&root->b[EB_SIDE_RGHT])))
 					return node;
 			}
 			/* if the bit is larger than the node's, we must bound it
@@ -128,7 +128,7 @@ static forceinline struct ebxmb_node *__ebxst_lookup(struct ebx_root *root, cons
 
 /* Insert ebxmb_node <new> into subtree starting at node root <root>. Only
  * new->key needs be set with the zero-terminated string key. The ebxmb_node is
- * returned. If root->b[EB_RGHT]==1, the tree may only contain unique keys. The
+ * returned. If root->b[EB_SIDE_RGHT]==1, the tree may only contain unique keys. The
  * caller is responsible for properly terminating the key with a zero.
  */
 static forceinline struct ebxmb_node *
@@ -142,16 +142,16 @@ __ebxst_insert(struct ebx_root *root, struct ebxmb_node *new)
 	int bit;
 	int old_node_bit;
 
-	side = EB_LEFT;
-	root_right = __ebx_getroot(&root->b[EB_RGHT]);
-	if (unlikely(__ebx_link_is_null(root->b[EB_LEFT]))) {
+	side = EB_SIDE_LEFT;
+	root_right = __ebx_getroot(&root->b[EB_SIDE_RGHT]);
+	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT]))) {
 		/* Tree is empty, insert the leaf part below the left branch */
-		__ebx_setlink(&root->b[EB_LEFT], __ebx_dotag(&new->node.branches, EB_LEAF));
-		__ebx_setlink(&new->node.leaf_p, __ebx_dotag(root, EB_LEFT));
+		__ebx_setlink(&root->b[EB_SIDE_LEFT], __ebx_dotag(&new->node.branches, EB_LEAF));
+		__ebx_setlink(&new->node.leaf_p, __ebx_dotag(root, EB_SIDE_LEFT));
 		new->node.node_p = 0; /* node part unused */
 		return new;
 	}
-	troot = __ebx_getroot(&root->b[EB_LEFT]);
+	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
 
 	/* The tree descent is fairly easy :
 	 *  - first, check if we have reached a leaf node
@@ -174,8 +174,8 @@ __ebxst_insert(struct ebx_root *root, struct ebxmb_node *new)
 			old = container_of(__ebx_untag(troot, EB_LEAF),
 					    struct ebxmb_node, node.branches);
 
-			new_left = __ebx_dotag(&new->node.branches, EB_LEFT);
-			new_rght = __ebx_dotag(&new->node.branches, EB_RGHT);
+			new_left = __ebx_dotag(&new->node.branches, EB_SIDE_LEFT);
+			new_rght = __ebx_dotag(&new->node.branches, EB_SIDE_RGHT);
 			new_leaf = __ebx_dotag(&new->node.branches, EB_LEAF);
 			old_leaf = __ebx_dotag(&old->node.branches, EB_LEAF);
 
@@ -211,8 +211,8 @@ __ebxst_insert(struct ebx_root *root, struct ebxmb_node *new)
 				/* new arbitrarily goes to the right and tops the dup tree */
 				__ebx_setlink(&old->node.leaf_p, new_left);
 				__ebx_setlink(&new->node.leaf_p, new_rght);
-				__ebx_setlink(&new->node.branches.b[EB_LEFT], old_leaf);
-				__ebx_setlink(&new->node.branches.b[EB_RGHT], new_leaf);
+				__ebx_setlink(&new->node.branches.b[EB_SIDE_LEFT], old_leaf);
+				__ebx_setlink(&new->node.branches.b[EB_SIDE_RGHT], new_leaf);
 				new->node.bit = -1;
 				__ebx_setlink(&root->b[side], __ebx_dotag(&new->node.branches, EB_NODE));
 				return new;
@@ -223,14 +223,14 @@ __ebxst_insert(struct ebx_root *root, struct ebxmb_node *new)
 				/* new->key < old->key, new takes the left */
 				__ebx_setlink(&new->node.leaf_p, new_left);
 				__ebx_setlink(&old->node.leaf_p, new_rght);
-				__ebx_setlink(&new->node.branches.b[EB_LEFT], new_leaf);
-				__ebx_setlink(&new->node.branches.b[EB_RGHT], old_leaf);
+				__ebx_setlink(&new->node.branches.b[EB_SIDE_LEFT], new_leaf);
+				__ebx_setlink(&new->node.branches.b[EB_SIDE_RGHT], old_leaf);
 			} else {
 				/* new->key > old->key, new takes the right */
 				__ebx_setlink(&old->node.leaf_p, new_left);
 				__ebx_setlink(&new->node.leaf_p, new_rght);
-				__ebx_setlink(&new->node.branches.b[EB_LEFT], old_leaf);
-				__ebx_setlink(&new->node.branches.b[EB_RGHT], new_leaf);
+				__ebx_setlink(&new->node.branches.b[EB_SIDE_LEFT], old_leaf);
+				__ebx_setlink(&new->node.branches.b[EB_SIDE_RGHT], new_leaf);
 			}
 			break;
 		}
@@ -276,8 +276,8 @@ __ebxst_insert(struct ebx_root *root, struct ebxmb_node *new)
 			ebx_troot_t *new_left, *new_rght;
 			ebx_troot_t *new_leaf, *old_node;
 
-			new_left = __ebx_dotag(&new->node.branches, EB_LEFT);
-			new_rght = __ebx_dotag(&new->node.branches, EB_RGHT);
+			new_left = __ebx_dotag(&new->node.branches, EB_SIDE_LEFT);
+			new_rght = __ebx_dotag(&new->node.branches, EB_SIDE_RGHT);
 			new_leaf = __ebx_dotag(&new->node.branches, EB_LEAF);
 			old_node = __ebx_dotag(&old->node.branches, EB_NODE);
 
@@ -288,14 +288,14 @@ __ebxst_insert(struct ebx_root *root, struct ebxmb_node *new)
 			if (diff < 0) {
 				__ebx_setlink(&new->node.leaf_p, new_left);
 				__ebx_setlink(&old->node.node_p, new_rght);
-				__ebx_setlink(&new->node.branches.b[EB_LEFT], new_leaf);
-				__ebx_setlink(&new->node.branches.b[EB_RGHT], old_node);
+				__ebx_setlink(&new->node.branches.b[EB_SIDE_LEFT], new_leaf);
+				__ebx_setlink(&new->node.branches.b[EB_SIDE_RGHT], old_node);
 			}
 			else {
 				__ebx_setlink(&old->node.node_p, new_left);
 				__ebx_setlink(&new->node.leaf_p, new_rght);
-				__ebx_setlink(&new->node.branches.b[EB_LEFT], old_node);
-				__ebx_setlink(&new->node.branches.b[EB_RGHT], new_leaf);
+				__ebx_setlink(&new->node.branches.b[EB_SIDE_LEFT], old_node);
+				__ebx_setlink(&new->node.branches.b[EB_SIDE_RGHT], new_leaf);
 			}
 			break;
 		}

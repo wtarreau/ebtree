@@ -135,10 +135,10 @@ static forceinline struct ebxmb_node *__ebxmb_lookup(struct ebx_root *root, cons
 	int pos, side;
 	int node_bit;
 
-	if (unlikely(__ebx_link_is_null(root->b[EB_LEFT])))
+	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT])))
 		goto ret_null;
 
-	troot = __ebx_getroot(&root->b[EB_LEFT]);
+	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
 
 	if (unlikely(len == 0))
 		goto walk_down;
@@ -202,10 +202,10 @@ static forceinline struct ebxmb_node *__ebxmb_lookup(struct ebx_root *root, cons
 		troot = __ebx_getroot(&node->node.branches.b[side]);
 	}
  walk_left:
-	troot = __ebx_getroot(&node->node.branches.b[EB_LEFT]);
+	troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_LEFT]);
  walk_down:
 	while (__ebx_gettag(troot) != EB_LEAF)
-		troot = __ebx_getroot(&(__ebx_untag(troot, EB_NODE))->b[EB_LEFT]);
+		troot = __ebx_getroot(&(__ebx_untag(troot, EB_NODE))->b[EB_SIDE_LEFT]);
 	node = container_of(__ebx_untag(troot, EB_LEAF),
 			    struct ebxmb_node, node.branches);
  ret_node:
@@ -216,7 +216,7 @@ static forceinline struct ebxmb_node *__ebxmb_lookup(struct ebx_root *root, cons
 
 /* Insert ebxmb_node <new> into subtree starting at node root <root>.
  * Only new->key needs be set with the key. The ebxmb_node is returned.
- * If root->b[EB_RGHT]==1, the tree may only contain unique keys. The
+ * If root->b[EB_SIDE_RGHT]==1, the tree may only contain unique keys. The
  * len is specified in bytes. It is absolutely mandatory that this length
  * is the same for all keys in the tree. This function cannot be used to
  * insert strings.
@@ -235,16 +235,16 @@ __ebxmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 	ebx_troot_t *new_leaf;
 	int old_node_bit;
 
-	side = EB_LEFT;
-	root_right = __ebx_getroot(&root->b[EB_RGHT]);
-	if (unlikely(__ebx_link_is_null(root->b[EB_LEFT]))) {
+	side = EB_SIDE_LEFT;
+	root_right = __ebx_getroot(&root->b[EB_SIDE_RGHT]);
+	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT]))) {
 		/* Tree is empty, insert the leaf part below the left branch */
-		__ebx_setlink(&root->b[EB_LEFT], __ebx_dotag(&new->node.branches, EB_LEAF));
-		__ebx_setlink(&new->node.leaf_p, __ebx_dotag(root, EB_LEFT));
+		__ebx_setlink(&root->b[EB_SIDE_LEFT], __ebx_dotag(&new->node.branches, EB_LEAF));
+		__ebx_setlink(&new->node.leaf_p, __ebx_dotag(root, EB_SIDE_LEFT));
 		new->node.node_p = 0; /* node part unused */
 		return new;
 	}
-	troot = __ebx_getroot(&root->b[EB_LEFT]);
+	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
 
 	/* The tree descent is fairly easy :
 	 *  - first, check if we have reached a leaf node
@@ -314,8 +314,8 @@ __ebxmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 		troot = __ebx_getroot(&root->b[side]);
 	}
 
-	new_left = __ebx_dotag(&new->node.branches, EB_LEFT);
-	new_rght = __ebx_dotag(&new->node.branches, EB_RGHT);
+	new_left = __ebx_dotag(&new->node.branches, EB_SIDE_LEFT);
+	new_rght = __ebx_dotag(&new->node.branches, EB_SIDE_RGHT);
 	new_leaf = __ebx_dotag(&new->node.branches, EB_LEAF);
 
 	new->node.bit = bit;
@@ -348,14 +348,14 @@ __ebxmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 	}
 
 	if (diff >= 0) {
-		__ebx_setlink(&new->node.branches.b[EB_LEFT], troot);
-		__ebx_setlink(&new->node.branches.b[EB_RGHT], new_leaf);
+		__ebx_setlink(&new->node.branches.b[EB_SIDE_LEFT], troot);
+		__ebx_setlink(&new->node.branches.b[EB_SIDE_RGHT], new_leaf);
 		__ebx_setlink(&new->node.leaf_p, new_rght);
 		__ebx_setlink(up_ptr, new_left);
 	}
 	else if (diff < 0) {
-		__ebx_setlink(&new->node.branches.b[EB_LEFT], new_leaf);
-		__ebx_setlink(&new->node.branches.b[EB_RGHT], troot);
+		__ebx_setlink(&new->node.branches.b[EB_SIDE_LEFT], new_leaf);
+		__ebx_setlink(&new->node.branches.b[EB_SIDE_RGHT], troot);
 		__ebx_setlink(&new->node.leaf_p, new_left);
 		__ebx_setlink(up_ptr, new_rght);
 	}
@@ -384,10 +384,10 @@ static forceinline struct ebxmb_node *__ebxmb_lookup_longest(struct ebx_root *ro
 	int pos, side;
 	int node_bit;
 
-	if (unlikely(__ebx_link_is_null(root->b[EB_LEFT])))
+	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT])))
 		return NULL;
 
-	troot = __ebx_getroot(&root->b[EB_LEFT]);
+	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
 
 	cover = NULL;
 	pos = 0;
@@ -412,9 +412,9 @@ static forceinline struct ebxmb_node *__ebxmb_lookup_longest(struct ebx_root *ro
 			if (check_bits((unsigned char *)x - pos, node->key, pos, node->node.pfx))
 				goto not_found;
 
-			troot = __ebx_getroot(&node->node.branches.b[EB_LEFT]);
+			troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_LEFT]);
 			while (__ebx_gettag(troot) != EB_LEAF)
-				troot = __ebx_getroot(&(__ebx_untag(troot, EB_NODE))->b[EB_LEFT]);
+				troot = __ebx_getroot(&(__ebx_untag(troot, EB_NODE))->b[EB_SIDE_LEFT]);
 			node = container_of(__ebx_untag(troot, EB_LEAF),
 					    struct ebxmb_node, node.branches);
 			return node;
@@ -452,8 +452,8 @@ static forceinline struct ebxmb_node *__ebxmb_lookup_longest(struct ebx_root *ro
 			 * the covered subtree is on the right, so we have to
 			 * walk down right.
 			 */
-			cover = __ebx_getroot(&node->node.branches.b[EB_LEFT]);
-			troot = __ebx_getroot(&node->node.branches.b[EB_RGHT]);
+			cover = __ebx_getroot(&node->node.branches.b[EB_SIDE_LEFT]);
+			troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_RGHT]);
 			continue;
 		}
 		side &= 1;
@@ -462,7 +462,7 @@ static forceinline struct ebxmb_node *__ebxmb_lookup_longest(struct ebx_root *ro
 
  not_found:
 	/* Walk down last cover tre if it exists. It does not matter if cover is NULL */
-	return eb_entry(__ebx_walk_down(cover, EB_LEFT), struct ebxmb_node, node);
+	return eb_entry(__ebx_walk_down(cover, EB_SIDE_LEFT), struct ebxmb_node, node);
 }
 
 
@@ -479,10 +479,10 @@ static forceinline struct ebxmb_node *__ebxmb_lookup_prefix(struct ebx_root *roo
 	int pos, side;
 	int node_bit;
 
-	if (unlikely(__ebx_link_is_null(root->b[EB_LEFT])))
+	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT])))
 		return NULL;
 
-	troot = __ebx_getroot(&root->b[EB_LEFT]);
+	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
 
 	pos = 0;
 	while (1) {
@@ -509,9 +509,9 @@ static forceinline struct ebxmb_node *__ebxmb_lookup_prefix(struct ebx_root *roo
 			if (check_bits((unsigned char *)x - pos, node->key, pos, node->node.pfx))
 				return NULL;
 
-			troot = __ebx_getroot(&node->node.branches.b[EB_LEFT]);
+			troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_LEFT]);
 			while (__ebx_gettag(troot) != EB_LEAF)
-				troot = __ebx_getroot(&(__ebx_untag(troot, EB_NODE))->b[EB_LEFT]);
+				troot = __ebx_getroot(&(__ebx_untag(troot, EB_NODE))->b[EB_SIDE_LEFT]);
 			node = container_of(__ebx_untag(troot, EB_LEAF),
 					    struct ebxmb_node, node.branches);
 			return node;
@@ -550,9 +550,9 @@ static forceinline struct ebxmb_node *__ebxmb_lookup_prefix(struct ebx_root *roo
 			 * subtree if they match.
 			 */
 			if ((unsigned short)node->node.bit >> 1 == pfx)
-				troot = __ebx_getroot(&node->node.branches.b[EB_LEFT]);
+				troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_LEFT]);
 			else
-				troot = __ebx_getroot(&node->node.branches.b[EB_RGHT]);
+				troot = __ebx_getroot(&node->node.branches.b[EB_SIDE_RGHT]);
 			continue;
 		}
 		side &= 1;
@@ -567,7 +567,7 @@ static forceinline struct ebxmb_node *__ebxmb_lookup_prefix(struct ebx_root *roo
  * zero, as it is not certain yet that they will always be ignored everywhere
  * (eg in bit compare functions).
  * The ebxmb_node is returned.
- * If root->b[EB_RGHT]==1, the tree may only contain unique keys. The
+ * If root->b[EB_SIDE_RGHT]==1, the tree may only contain unique keys. The
  * len is specified in bytes.
  */
 static forceinline struct ebxmb_node *
@@ -584,16 +584,16 @@ __ebxmb_insert_prefix(struct ebx_root *root, struct ebxmb_node *new, unsigned in
 	ebx_troot_t *new_leaf;
 	int old_node_bit;
 
-	side = EB_LEFT;
-	root_right = __ebx_getroot(&root->b[EB_RGHT]);
-	if (unlikely(__ebx_link_is_null(root->b[EB_LEFT]))) {
+	side = EB_SIDE_LEFT;
+	root_right = __ebx_getroot(&root->b[EB_SIDE_RGHT]);
+	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT]))) {
 		/* Tree is empty, insert the leaf part below the left branch */
-		__ebx_setlink(&root->b[EB_LEFT], __ebx_dotag(&new->node.branches, EB_LEAF));
-		__ebx_setlink(&new->node.leaf_p, __ebx_dotag(root, EB_LEFT));
+		__ebx_setlink(&root->b[EB_SIDE_LEFT], __ebx_dotag(&new->node.branches, EB_LEAF));
+		__ebx_setlink(&new->node.leaf_p, __ebx_dotag(root, EB_SIDE_LEFT));
 		new->node.node_p = 0; /* node part unused */
 		return new;
 	}
-	troot = __ebx_getroot(&root->b[EB_LEFT]);
+	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
 	len <<= 3;
 	if (len > new->node.pfx)
 		len = new->node.pfx;
@@ -684,13 +684,13 @@ __ebxmb_insert_prefix(struct ebx_root *root, struct ebxmb_node *new, unsigned in
 			 */
 			if ((new->node.pfx << 1) == old_node_bit) {
 				root = &old->node.branches;
-				side = EB_LEFT;
+				side = EB_SIDE_LEFT;
 				troot = __ebx_getroot(&root->b[side]);
 				continue;
 			}
 
 			/* cover nodes are always walked through on the right */
-			side = EB_RGHT;
+			side = EB_SIDE_RGHT;
 			bit = old_node_bit >> 1; /* recheck that bit */
 			root = &old->node.branches;
 			troot = __ebx_getroot(&root->b[side]);
@@ -784,19 +784,19 @@ __ebxmb_insert_prefix(struct ebx_root *root, struct ebxmb_node *new, unsigned in
 	}
 
  insert_above:
-	new_left = __ebx_dotag(&new->node.branches, EB_LEFT);
-	new_rght = __ebx_dotag(&new->node.branches, EB_RGHT);
+	new_left = __ebx_dotag(&new->node.branches, EB_SIDE_LEFT);
+	new_rght = __ebx_dotag(&new->node.branches, EB_SIDE_RGHT);
 	new_leaf = __ebx_dotag(&new->node.branches, EB_LEAF);
 
 	if (diff >= 0) {
-		__ebx_setlink(&new->node.branches.b[EB_LEFT], troot);
-		__ebx_setlink(&new->node.branches.b[EB_RGHT], new_leaf);
+		__ebx_setlink(&new->node.branches.b[EB_SIDE_LEFT], troot);
+		__ebx_setlink(&new->node.branches.b[EB_SIDE_RGHT], new_leaf);
 		__ebx_setlink(&new->node.leaf_p, new_rght);
 		__ebx_setlink(up_ptr, new_left);
 	}
 	else {
-		__ebx_setlink(&new->node.branches.b[EB_LEFT], new_leaf);
-		__ebx_setlink(&new->node.branches.b[EB_RGHT], troot);
+		__ebx_setlink(&new->node.branches.b[EB_SIDE_LEFT], new_leaf);
+		__ebx_setlink(&new->node.branches.b[EB_SIDE_RGHT], troot);
 		__ebx_setlink(&new->node.leaf_p, new_left);
 		__ebx_setlink(up_ptr, new_rght);
 	}

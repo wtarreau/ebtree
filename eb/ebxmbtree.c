@@ -37,7 +37,7 @@ ebxmb_lookup(struct ebx_root *root, const void *x, unsigned int len)
 
 /* Insert ebxmb_node <new> into subtree starting at node root <root>.
  * Only new->key needs be set with the key. The ebxmb_node is returned.
- * If root->b[EB_RGHT]==1, the tree may only contain unique keys. The
+ * If root->b[EB_SIDE_RGHT]==1, the tree may only contain unique keys. The
  * len is specified in bytes.
  */
 REGPRM3 struct ebxmb_node *
@@ -71,7 +71,7 @@ ebxmb_lookup_prefix(struct ebx_root *root, const void *x, unsigned int pfx)
  * zero, as it is not certain yet that they will always be ignored everywhere
  * (eg in bit compare functions).
  * The ebxmb_node is returned.
- * If root->b[EB_RGHT]==1, the tree may only contain unique keys. The
+ * If root->b[EB_SIDE_RGHT]==1, the tree may only contain unique keys. The
  * len is specified in bytes.
  */
 REGPRM3 struct ebxmb_node *
