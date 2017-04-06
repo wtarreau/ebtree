@@ -17,8 +17,14 @@
 /* Be careful not to tweak those values. The walking code is optimized for NULL
  * detection on the assumption that the following values are intact.
  */
+
+/* parent pointer tags used to find the branch side they're attached to */
+#define EB_SIDE_MASK     1
 #define EB_SIDE_LEFT     0
 #define EB_SIDE_RGHT     1
+
+/* branch pointer tags used to find the downstream node type */
+#define EB_TYPE_MASK     1
 #define EB_TYPE_LEAF     0
 #define EB_TYPE_NODE     1
 
