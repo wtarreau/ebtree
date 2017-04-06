@@ -228,7 +228,7 @@ __ebxmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 	unsigned int side;
 	ebx_troot_t *troot;
 	ebx_link_t *up_ptr;
-	ebx_troot_t *root_right;
+	ebx_ulink_t root_flags;
 	int diff;
 	int bit;
 	ebx_troot_t *new_left, *new_rght;
@@ -236,7 +236,6 @@ __ebxmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 	int old_node_bit;
 
 	side = EB_SIDE_LEFT;
-	root_right = __ebx_getroot(&root->b[EB_SIDE_RGHT]);
 	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT]))) {
 		/* Tree is empty, insert the leaf part below the left branch */
 		__ebx_setlink(&root->b[EB_SIDE_LEFT], __ebx_dotag(&new->node.branches, EB_TYPE_LEAF));
@@ -245,6 +244,7 @@ __ebxmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 		return new;
 	}
 	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
+	root_flags = __ebx_get_root_flags(root);
 
 	/* The tree descent is fairly easy :
 	 *  - first, check if we have reached a leaf node
@@ -331,7 +331,7 @@ __ebxmb_insert(struct ebx_root *root, struct ebxmb_node *new, unsigned int len)
 	if (diff == 0) {
 		new->node.bit = -1; /* mark as new dup tree, just in case */
 
-		if (likely(__ebx_gettag(root_right))) {
+		if (likely(root_flags & EB_UNIQUE)) {
 			/* we refuse to duplicate this key if the tree is
 			 * tagged as containing only unique keys.
 			 */
@@ -577,7 +577,7 @@ __ebxmb_insert_prefix(struct ebx_root *root, struct ebxmb_node *new, unsigned in
 	unsigned int side;
 	ebx_troot_t *troot;
 	ebx_link_t *up_ptr;
-	ebx_troot_t *root_right;
+	ebx_ulink_t root_flags;
 	int diff;
 	int bit;
 	ebx_troot_t *new_left, *new_rght;
@@ -585,7 +585,6 @@ __ebxmb_insert_prefix(struct ebx_root *root, struct ebxmb_node *new, unsigned in
 	int old_node_bit;
 
 	side = EB_SIDE_LEFT;
-	root_right = __ebx_getroot(&root->b[EB_SIDE_RGHT]);
 	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT]))) {
 		/* Tree is empty, insert the leaf part below the left branch */
 		__ebx_setlink(&root->b[EB_SIDE_LEFT], __ebx_dotag(&new->node.branches, EB_TYPE_LEAF));
@@ -594,6 +593,8 @@ __ebxmb_insert_prefix(struct ebx_root *root, struct ebxmb_node *new, unsigned in
 		return new;
 	}
 	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
+	root_flags = __ebx_get_root_flags(root);
+
 	len <<= 3;
 	if (len > new->node.pfx)
 		len = new->node.pfx;
@@ -763,7 +764,7 @@ __ebxmb_insert_prefix(struct ebx_root *root, struct ebxmb_node *new, unsigned in
 		if (new->node.pfx == old->node.pfx) {
 			new->node.bit = -1; /* mark as new dup tree, just in case */
 
-			if (unlikely(__ebx_gettag(root_right))) {
+			if (unlikely(root_flags & EB_UNIQUE)) {
 				/* we refuse to duplicate this key if the tree is
 				 * tagged as containing only unique keys.
 				 */

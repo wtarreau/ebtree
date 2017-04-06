@@ -289,6 +289,10 @@
  * the children's "branches" part, and where the tagged branch pointer carries
  * the branch type (node or leaf).
  *
+ * As a special case, the root's right branch is directly read when it comes to
+ * retrieving the tree's flags. The result is cast to an ebx_ulink_t by
+ * __ebx_get_root_flags().
+ *
  * Functions __ebx_setlink() and __ebx_getroot() respectively set a link from
  * a tagged pointer or retrieve a tagged pointer from a link.
  *
@@ -374,6 +378,13 @@ static inline struct ebx_root *__ebx_untag(const ebx_troot_t *troot, const int t
 static inline int __ebx_gettag(ebx_troot_t *troot)
 {
 	return (unsigned long)troot & 1;
+}
+
+/* Returns the tree root's flags.
+ */
+static inline ebx_ulink_t __ebx_get_root_flags(const struct ebx_root *root)
+{
+	return (ebx_ulink_t)root->b[EB_SIDE_RGHT];
 }
 
 /* Returns a pointer to the ebx_node holding <root>, where <root> is stored at <base> */

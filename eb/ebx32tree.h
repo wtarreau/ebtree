@@ -237,13 +237,12 @@ __ebx32_insert(struct ebx_root *root, struct ebx32_node *new)
 	ebx_troot_t *troot;
 	ebx_link_t *up_ptr;
 	u32 newkey; /* caching the key saves approximately one cycle */
-	ebx_troot_t *root_right;
+	ebx_ulink_t root_flags;
 	ebx_troot_t *new_left, *new_rght;
 	ebx_troot_t *new_leaf;
 	int old_node_bit;
 
 	side = EB_SIDE_LEFT;
-	root_right = __ebx_getroot(&root->b[EB_SIDE_RGHT]);
 	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT]))) {
 		/* Tree is empty, insert the leaf part below the left branch */
 		__ebx_setlink(&root->b[EB_SIDE_LEFT], __ebx_dotag(&new->node.branches, EB_TYPE_LEAF));
@@ -252,6 +251,7 @@ __ebx32_insert(struct ebx_root *root, struct ebx32_node *new)
 		return new;
 	}
 	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
+	root_flags = __ebx_get_root_flags(root);
 
 	/* The tree descent is fairly easy :
 	 *  - first, check if we have reached a leaf node
@@ -320,7 +320,7 @@ __ebx32_insert(struct ebx_root *root, struct ebx32_node *new)
 	if (new->key == old->key) {
 		new->node.bit = -1; /* mark as new dup tree, just in case */
 
-		if (likely(__ebx_gettag(root_right))) {
+		if (likely(root_flags & EB_UNIQUE)) {
 			/* we refuse to duplicate this key if the tree is
 			 * tagged as containing only unique keys.
 			 */
@@ -371,13 +371,12 @@ __ebx32i_insert(struct ebx_root *root, struct ebx32_node *new)
 	ebx_troot_t *troot;
 	ebx_link_t *up_ptr;
 	int newkey; /* caching the key saves approximately one cycle */
-	ebx_troot_t *root_right;
+	ebx_ulink_t root_flags;
 	ebx_troot_t *new_left, *new_rght;
 	ebx_troot_t *new_leaf;
 	int old_node_bit;
 
 	side = EB_SIDE_LEFT;
-	root_right = __ebx_getroot(&root->b[EB_SIDE_RGHT]);
 	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT]))) {
 		/* Tree is empty, insert the leaf part below the left branch */
 		__ebx_setlink(&root->b[EB_SIDE_LEFT], __ebx_dotag(&new->node.branches, EB_TYPE_LEAF));
@@ -386,6 +385,7 @@ __ebx32i_insert(struct ebx_root *root, struct ebx32_node *new)
 		return new;
 	}
 	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
+	root_flags = __ebx_get_root_flags(root);
 
 	/* The tree descent is fairly easy :
 	 *  - first, check if we have reached a leaf node
@@ -455,7 +455,7 @@ __ebx32i_insert(struct ebx_root *root, struct ebx32_node *new)
 	if (new->key == old->key) {
 		new->node.bit = -1; /* mark as new dup tree, just in case */
 
-		if (likely(__ebx_gettag(root_right))) {
+		if (likely(root_flags & EB_UNIQUE)) {
 			/* we refuse to duplicate this key if the tree is
 			 * tagged as containing only unique keys.
 			 */

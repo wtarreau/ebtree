@@ -141,13 +141,12 @@ __ebxim_insert(struct ebx_root *root, struct ebxpt_node *new, unsigned int len)
 	struct ebxpt_node *old;
 	unsigned int side;
 	ebx_troot_t *troot;
-	ebx_troot_t *root_right;
+	ebx_ulink_t root_flags;
 	int diff;
 	int bit;
 	int old_node_bit;
 
 	side = EB_SIDE_LEFT;
-	root_right = __ebx_getroot(&root->b[EB_SIDE_RGHT]);
 	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT]))) {
 		/* Tree is empty, insert the leaf part below the left branch */
 		__ebx_setlink(&root->b[EB_SIDE_LEFT], __ebx_dotag(&new->node.branches, EB_TYPE_LEAF));
@@ -156,6 +155,8 @@ __ebxim_insert(struct ebx_root *root, struct ebxpt_node *new, unsigned int len)
 		return new;
 	}
 	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
+	root_flags = __ebx_get_root_flags(root);
+
 	len <<= 3;
 
 	/* The tree descent is fairly easy :
@@ -220,7 +221,7 @@ __ebxim_insert(struct ebx_root *root, struct ebxpt_node *new, unsigned int len)
 				/* we may refuse to duplicate this key if the tree is
 				 * tagged as containing only unique keys.
 				 */
-				if (diff == 0 && __ebx_gettag(root_right))
+				if (diff == 0 && (root_flags & EB_UNIQUE))
 					return old;
 
 				/* new->key >= old->key, new goes the right */

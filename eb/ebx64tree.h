@@ -231,11 +231,10 @@ __ebx64_insert(struct ebx_root *root, struct ebx64_node *new) {
 	unsigned int side;
 	ebx_troot_t *troot;
 	u64 newkey; /* caching the key saves approximately one cycle */
-	ebx_troot_t *root_right;
+	ebx_ulink_t root_flags;
 	int old_node_bit;
 
 	side = EB_SIDE_LEFT;
-	root_right = __ebx_getroot(&root->b[EB_SIDE_RGHT]);
 	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT]))) {
 		/* Tree is empty, insert the leaf part below the left branch */
 		__ebx_setlink(&root->b[EB_SIDE_LEFT], __ebx_dotag(&new->node.branches, EB_TYPE_LEAF));
@@ -244,6 +243,7 @@ __ebx64_insert(struct ebx_root *root, struct ebx64_node *new) {
 		return new;
 	}
 	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
+	root_flags = __ebx_get_root_flags(root);
 
 	/* The tree descent is fairly easy :
 	 *  - first, check if we have reached a leaf node
@@ -298,7 +298,7 @@ __ebx64_insert(struct ebx_root *root, struct ebx64_node *new) {
 				/* we may refuse to duplicate this key if the tree is
 				 * tagged as containing only unique keys.
 				 */
-				if ((new->key == old->key) && __ebx_gettag(root_right))
+				if ((new->key == old->key) && (root_flags & EB_UNIQUE))
 					return old;
 
 				/* new->key >= old->key, new goes the right */
@@ -407,11 +407,10 @@ __ebx64i_insert(struct ebx_root *root, struct ebx64_node *new) {
 	unsigned int side;
 	ebx_troot_t *troot;
 	u64 newkey; /* caching the key saves approximately one cycle */
-	ebx_troot_t *root_right;
+	ebx_ulink_t root_flags;
 	int old_node_bit;
 
 	side = EB_SIDE_LEFT;
-	root_right = __ebx_getroot(&root->b[EB_SIDE_RGHT]);
 	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT]))) {
 		/* Tree is empty, insert the leaf part below the left branch */
 		__ebx_setlink(&root->b[EB_SIDE_LEFT], __ebx_dotag(&new->node.branches, EB_TYPE_LEAF));
@@ -420,6 +419,7 @@ __ebx64i_insert(struct ebx_root *root, struct ebx64_node *new) {
 		return new;
 	}
 	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
+	root_flags = __ebx_get_root_flags(root);
 
 	/* The tree descent is fairly easy :
 	 *  - first, check if we have reached a leaf node
@@ -476,7 +476,7 @@ __ebx64i_insert(struct ebx_root *root, struct ebx64_node *new) {
 				/* we may refuse to duplicate this key if the tree is
 				 * tagged as containing only unique keys.
 				 */
-				if ((new->key == old->key) && __ebx_gettag(root_right))
+				if ((new->key == old->key) && (root_flags & EB_UNIQUE))
 					return old;
 
 				/* new->key >= old->key, new goes the right */

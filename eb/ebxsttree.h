@@ -58,11 +58,13 @@ static forceinline struct ebxmb_node *__ebxst_lookup(struct ebx_root *root, cons
 	ebx_troot_t *troot;
 	int bit;
 	int node_bit;
+	ebx_ulink_t root_flags;
 
 	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT])))
 		return NULL;
 
 	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
+	root_flags = __ebx_get_root_flags(root);
 
 	bit = 0;
 	while (1) {
@@ -108,7 +110,7 @@ static forceinline struct ebxmb_node *__ebxst_lookup(struct ebx_root *root, cons
 				 * this node. Otherwise we have to walk it down
 				 * and stop comparing bits.
 				 */
-				if (__ebx_gettag(__ebx_getroot(&root->b[EB_SIDE_RGHT])))
+				if (root_flags & EB_UNIQUE)
 					return node;
 			}
 			/* if the bit is larger than the node's, we must bound it
@@ -137,13 +139,12 @@ __ebxst_insert(struct ebx_root *root, struct ebxmb_node *new)
 	struct ebxmb_node *old;
 	unsigned int side;
 	ebx_troot_t *troot;
-	ebx_troot_t *root_right;
+	ebx_ulink_t root_flags;
 	int diff;
 	int bit;
 	int old_node_bit;
 
 	side = EB_SIDE_LEFT;
-	root_right = __ebx_getroot(&root->b[EB_SIDE_RGHT]);
 	if (unlikely(__ebx_link_is_null(root->b[EB_SIDE_LEFT]))) {
 		/* Tree is empty, insert the leaf part below the left branch */
 		__ebx_setlink(&root->b[EB_SIDE_LEFT], __ebx_dotag(&new->node.branches, EB_TYPE_LEAF));
@@ -152,6 +153,7 @@ __ebxst_insert(struct ebx_root *root, struct ebxmb_node *new)
 		return new;
 	}
 	troot = __ebx_getroot(&root->b[EB_SIDE_LEFT]);
+	root_flags = __ebx_get_root_flags(root);
 
 	/* The tree descent is fairly easy :
 	 *  - first, check if we have reached a leaf node
@@ -205,7 +207,7 @@ __ebxst_insert(struct ebx_root *root, struct ebxmb_node *new)
 				/* we may refuse to duplicate this key if the tree is
 				 * tagged as containing only unique keys.
 				 */
-				if (__ebx_gettag(root_right))
+				if (root_flags & EB_UNIQUE)
 					return old;
 
 				/* new arbitrarily goes to the right and tops the dup tree */
