@@ -1,4 +1,4 @@
-OBJS = ebtree.o eb32tree.o eb64tree.o ebmbtree.o ebsttree.o ebimtree.o ebistree.o
+OBJS = ebtree.o eb32tree.o eb32sctree.o eb64tree.o ebmbtree.o ebsttree.o ebimtree.o ebistree.o
 CFLAGS = -O3 -W -Wall -Wextra -Wundef -Wdeclaration-after-statement -Wno-address-of-packed-member
 EXAMPLES = $(basename $(wildcard examples/*.c))
 
