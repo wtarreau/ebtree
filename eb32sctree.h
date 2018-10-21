@@ -41,11 +41,11 @@ typedef   signed int s32;
  */
 struct eb32sc_node {
 	struct eb_node node; /* the tree node, must be at the beginning */
+	MAYBE_ALIGN(sizeof(u32));
+	u32 key;
 	ALWAYS_ALIGN(sizeof(void*));
 	unsigned long node_s; /* visibility of this node's branches */
 	unsigned long leaf_s; /* visibility of this node's leaf */
-	MAYBE_ALIGN(sizeof(u32));
-	u32 key;
 } ALIGNED(sizeof(void*));
 
 /*
