@@ -96,3 +96,48 @@ to itself to guarantee permanent pointer validity (e.g. empty root.
 Avoiding tests before fetching helps the processor speculatively prefetch the
 next memory location without having to rely on branch prediction that does not
 works in trees.
+
+
+Compact trees (cbtree)
+----------------------
+
+Compact trees currently rely on XORing the key only to organize the descent,
+which prevents from storing duplicates (unless a secondary key such as the node
+pointer is used, which is only fine in linear addressing schemes like database
+indexes given that it otherwise breaks insertion ordering).
+
+However it is also possible to deal with a duplicate tree using pointer typing,
+resulting in insertion in O(log(N)+log^2(M)) and removal in O(M+log(N)) where N
+is the number of unique keys in the tree and M the highest number of duplicates
+for a given key. This remains perfectly reasonable for storing configuration
+keys that do not change often, need to support rare duplicates, but require
+efficient storage and fast lookups.
+
+The principle remains, like in regular ebtrees, to store a node pointer
+verbatim and a leaf pointer with bit 0 set. On insertion, when a duplicate is
+detected, a subtree needs to be created (or completed). For this, the principle
+is to insert a node on the rightmost branch at the deepest level which will not
+make that branch longer than the closest left one. The algorithm is thus :
+
+  - descend along nodes as long as values differ between sides
+  - descend along duplicates on the right as long as both sides are nodes.
+  - if left side is a node and right side a leaf, insert on the right link,
+    between the node and the leaf.
+  - otherwise, either left side is a leaf or both sides are leaves. The left
+    branch's length is known (1). Let's go up and measure the depth of the
+    upper left branch (we're on the right). As soon as the left branch's
+    depth is strictly larger than the current one, insert the new node on the
+    right branch, with the subtree on the left and the new leaf on the right.
+
+This is where pointer typing becomes mandatory, as the keys cannot be used
+anymore to distinguish between a node and a leaf. What is uncertain at this
+point is whether it's preferable to use typed pointers only in the duplicate
+subtree or everywhere: a duplicate subtree is trivially detected by having its
+two sides point to the same value, but it also means that the pointer must
+already be checked in case the node is directly attached to a leaf.
+
+The removal in duplicates (without secondary key) will require looking up the
+subtree head for the key, and searching the node through all the duplicates.
+With few duplicates it is not an issue. But it could become one when dealing
+with hundreds or thousands of duplicates, like when indexing logs. In this
+case relying on linear addressing and a subkey would be preferred.
