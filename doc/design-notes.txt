@@ -141,3 +141,27 @@ subtree head for the key, and searching the node through all the duplicates.
 With few duplicates it is not an issue. But it could become one when dealing
 with hundreds or thousands of duplicates, like when indexing logs. In this
 case relying on linear addressing and a subkey would be preferred.
+
+
+Special pointer values
+----------------------
+
+In every node, there are a number of special values that can be used by
+pointers:
+
+  - node_p: 0
+  - node_p: &node .. &node + sizeof(node) - 1
+  - leaf_p: 0
+  - leaf_p: &node .. &node + sizeof(node) - 1 with the exception of branch
+            addresses
+  - leaf_p == node_p
+  - branches: 0
+  - branches: &node .. &node + sizeof(node) - 1 except valid values for a leaf
+  - branches: l == r
+  - all: lower bits set depending on the environment
+
+Thus special cases like a pointer pointing to itself or directly to the node's
+own key, or to the other of the same type, could be exploited to mention
+certain situations (deleted or locked node for example). For example, creating
+an infinite loop can be convenient for locking so that concurrent readers loop
+over the same pointer instead of having to explicitly test it.
