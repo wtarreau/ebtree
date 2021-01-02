@@ -197,3 +197,63 @@ At first glance, some basic operations should provide such features:
 Lookup doesn't seem to require anything special, given that the caller will
 probably lock for reads around the whole operation. Same for the existence
 test.
+
+
+Main variants
+-------------
+
+The following characteristics are adjustable / optional and will result in
+different speed vs size trade-offs:
+
+  - "up" pointers (leaf_p, node_p):  size=two pointers
+      present: next/delete are O(1)
+      absent:  next/delete are O(M+logN) (M = dups per key)
+
+  - split bit: size = 16 bits min (8 OK for special cases like u32/u64)
+      present: it's known when reading it what branch to take during lookups;
+               also provides hints about the position in the dup sub-tree.
+      absent:  need to check both branches' values to figure the one to take;
+               sub-tree requires O(log(N)^2) lookups.
+
+  - typed branch pointers:
+      present: ability to detect leafs even in presence of duplicates
+      absent: no duplicates, or fall back to the more expensive split bit
+
+The prefix clearly is part of the data, and was stored in the node part for
+convenience. It could be argued that the split bit is data as well, even though
+this one is adjusted on insertion and deletion. In addition, the split bit is
+required when prefix lookups are used, though it looks like it could be done
+without if typed pointers are used.
+
+This results in a few main variants for the tree structures:
+  - generic EB (fastest and biggest): everything used, flexibility is maximal
+  - compact pointers (unique): only L,R branches, not even any data
+  - compact config data (unique): only L,R followed by the data
+  - compact config data (non-unique): L,R typed + data
+  - compact prefixed data (non-unique): L,R typed + prefix + data (hopefully
+    without bit)
+  - compact indexed data (non-unique): L,R + bit + data
+
+=> it turns out that when storage size matters, performance can suffer and the
+   bit doesn't need to be stored, unless duplicates are common, insertion
+   cost matters and removal is not needed (indexing). It looks like once the
+   non-unique compact data is supported, there is little benefit in using the
+   other one.
+
+=> the only real case where not supporting duplicates helps with CB is when
+   indexing pointers (e.g. zero-overhead memory allocator in an arena), where
+   using 2 16-bit pointers on 32-bit aligned data is enough to index 256 kB
+   of memory and 2 32-bit pointers on 64-bit aligned data is enough to index
+   32 GB of memory with a 8-byte granularity.
+
+=> a variant of EB for fast insertion/removals of unique keys (e.g. variables)
+   could be made without the split bit. It would require reading twice as much
+   data during the descent though, it's still not sure this is worth it.
+
+One significant advantage of the L,R only CB tree node over the EB tree node is
+that it doesn't need to vary depending on the key, as it's always aligned and
+padded, and as such may always be placed immediately before the key so that the
+key never has to be stored into the tree node. Only the data manipulation
+functions will need to dereference the pointer to properly access the key but
+the rest can continue to work on a single cb_node that doesn't take more place
+than a list element.
