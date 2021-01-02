@@ -165,3 +165,35 @@ own key, or to the other of the same type, could be exploited to mention
 certain situations (deleted or locked node for example). For example, creating
 an infinite loop can be convenient for locking so that concurrent readers loop
 over the same pointer instead of having to explicitly test it.
+
+
+Locking
+-------
+
+Tests have shown that generic locking at the tree level is impractical. Instead
+what is needed is to provide low-level subfunctions to perform the tree descent
+and the insertion/removal operations so that the user can add their own locks
+as desired. This will allow to make use of spinlocks, R/W locks, or upgradable
+locks for the complete operation, at low cost. It will also avoid taking too
+strong a lock if an operation needs to fail (e.g. failed insert, failed pick).
+It would also allow the user to choose the best strategy for upgradable locks,
+such as read-lock + tentative upgrade + retry vs seek-lock + upgrade. For a
+cache, the read+tentative+retry is often more effective as it remains a shared
+lock for every hit, and the missed upgrades can remain rare enough when the
+cache hit ration is high.
+
+At first glance, some basic operations should provide such features:
+  - insertion: descend the tree while memorizing the parent and grandparent's
+    attach point, giving them back to the caller, along with information about
+    success (continue or give up)
+  - insertion: special case for duplicate insertion (does not use the key, only
+    the tree's structure)
+  - removal: grand parent and parent are both needed. Maybe a bit more.
+  - probaby a special case of removal in dup tree so that the caller does not
+    need to implement it when not needed.
+  - pick: lookup based on the strategy (exact, prefix, longest, ge, le) while
+    retaining parent and grand parent.
+
+Lookup doesn't seem to require anything special, given that the caller will
+probably lock for reads around the whole operation. Same for the existence
+test.
