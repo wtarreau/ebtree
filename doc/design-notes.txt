@@ -1,4 +1,4 @@
-2014/10/19 - design notes
+2014/10/19 - design notes (updated 2021-01-02)
 -------------------------
 
 - static inline functions could be conditionned by #ifdef (eg: dup/unique
@@ -69,3 +69,30 @@
       dups (flat log indexing, low-overhead memory management)
       => CB tree (compact+indexing)
 
+Alignment:
+----------
+
+In environments where strict double-word alignment is guaranteed on structures,
+it is possible to simplify the pointer typing by making pointers target their
+reciprocal pointer on the other node instead of being artificially typed. This
+means that a node's header would look like this :
+
+   offset
+
+   0x0000 left branch
+   0x0008 right branch
+   0x0010 node's parent
+   0x0018 leaf's parent
+   0x0020 ...
+
+A branch will point to either the node's parent pointer or the leaf's parent
+pointer. The distinction will be done on (long)pointer & 8 (or &4 on 32-bit
+machines). Conversely, a node_p or leaf_p will point to the left branch pointer
+or to the right branch pointer depending where the node (or leaf) is attached.
+This adds a few properties to the system, one of them being that **p == p for
+any pointer in the tree. It could even make sense that a detached node points
+to itself to guarantee permanent pointer validity (e.g. empty root.
+
+Avoiding tests before fetching helps the processor speculatively prefetch the
+next memory location without having to rely on branch prediction that does not
+works in trees.
