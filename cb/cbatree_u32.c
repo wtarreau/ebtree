@@ -91,8 +91,8 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 	struct cba_u32 *p, *l, *r;
 	u32 pxor = 0; // make sure we don't run the first test.
 	u32 key = container_of(node, struct cba_u32, node)->key;
-	//u32 pxor_old = ~0;
-	//struct cba_u32 *p_old = 0;
+	u32 pxor_old = ~0;
+	struct cba_u32 *p_old = 0;
 
 	if (!*root) {
 		/* empty tree */
@@ -164,9 +164,11 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 
 	while (1) {
 		p = container_of(*root, struct cba_u32, node);
+		if (p == p_old) {
+			/* this is our leaf */
+			break;
+		}
 	
-		//if (p == p_old)
-		//	break;
 		if (__cba_is_dup(&p->node)) {
 			/* This is a cover node on top of a dup tree so both of
 			 * its branches have the same key as the node itself.
@@ -187,12 +189,12 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 		r = container_of(p->node.r, struct cba_u32, node);
 
 		/* maybe we've reached a leaf (including ours) ? */
-		if ((l->key ^ r->key) >= pxor && pxor != 0) {
-			/* this is the only case where we exit with a leaf, and
-			 * this is reflected by pxor not being zero.
-			 */
-			break;
-		}
+		//if ((l->key ^ r->key) >= pxor && pxor != 0) {
+		//	/* this is the only case where we exit with a leaf, and
+		//	 * this is reflected by pxor not being zero.
+		//	 */
+		//	break;
+		//}
 	
 		pxor = l->key ^ r->key;
 		if (!pxor) {
@@ -205,10 +207,8 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 			//goto dupnode;
 		}
 	
-		//if (pxor > pxor_old) // this is a leaf of previous node
-		//	break;
-		//pxor_old=pxor;
-		//p_old = p;
+		if (pxor > pxor_old) // this is a leaf of previous node
+			break;
 	
 		//if ((key ^ l->key) > pxor && (key ^ l->key ^ pxor) > pxor) {
 		//pxor ^= key;
@@ -226,6 +226,8 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 			root = &p->node.l;
 		else
 			root = &p->node.r;
+		p_old = p;
+		pxor_old = pxor;
 	}
 
 	/* We're going to insert <node> above leaf <p> and below <root>. It's
