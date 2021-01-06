@@ -94,47 +94,66 @@ struct cba_u32 {
  * the right branch isn't as deep as the left one, there's room to install
  * at the end of it, otherwise we have to add a new level and install
  * above the topmost node.
+
+algo: put all intermediary nodes into a stack and stop descending right once
+      a leaf is reached. The whole depth is the right depth. Then measure the
+      rightmost branch starting from the left node. If it's deeper than the
+      right branch (total - current) then the right node is the right place
+      to insert. Otherwise go back one step in the tree and try again until
+      reaching the first place.
+
  */
 struct cba_node *cba_insert_dup(struct cba_node **root, struct cba_node *node)
 {
-	struct cba_node *left, *right, *parent;
+	struct cba_node *parent;
 	struct cba_node *top = *root;
+	struct cba_node *stack[128]; // like ebtree, 2^128 dups are enough
 	int ldepth, rdepth;
+	int pos;
 
-	left = right = NULL;
 	ldepth = rdepth = 0;
 
-	parent = top;
-	left   = top->l;
-	right  = top->r;
-
-	/* if right is tagged it means the underneath node is another
-	 * node, so it has a left and a right branch.
+	/* Walk down right and stop once we meet an untagged branch,
+	 * indicating a leaf.
 	 */
-	while (__cba_tagged(right)) {
-		parent = __cba_untag(right);
-		left   = parent->l;
-		right  = parent->r;
-		rdepth++;
+	parent = top;
+	stack[rdepth++] = parent;
+	while (__cba_tagged(parent->r)) {
+		parent = __cba_untag(parent->r);
+		stack[rdepth++] = parent;
 	}
 
-	/* now <right> is a leaf and <left> is the last left branch */
-	while (__cba_tagged(left) && ldepth <= rdepth) {
-		left = __cba_untag(left)->r;
-		ldepth++;
-	}
+	/* now let's find the deepest stack entry having a longer left branch
+	 * than right branch. The left branch's left is measured by walking on
+	 * the rightmost side. In the worst case if none is found we'll be left
+	 * with pos==-1, indicating we need to insert a new level between the
+	 * root and the topmost node. In any case the key will be inserted as a
+	 * leaf on the right of its node part.
+	 */
+	node->r = node;
+	pos = rdepth - 1;
+	do {
+		ldepth = pos;
+		parent = stack[pos]->l;
+		while (__cba_tagged(parent)) {
+			parent = __cba_untag(parent)->r;
+			ldepth++;
+			if (ldepth >= rdepth) {
+				/* there's some room on the right, install there */
+				node->l = stack[pos]->r;
+				stack[pos]->r = __cba_dotag(node);
+				goto done;
+			}
+		}
+	} while (--pos >= 0);
 
-	if (ldepth > rdepth) {
-		/* room left on the right, install there */
-		node->l = right;
-		node->r = node; // no tag, that's a leaf
-		parent->r = __cba_dotag(node);
-	} else {
-		/* add an extra level at the top */
-		node->l = __cba_dotag(top);
-		node->r = node;
-		*root = node;
-	}
+	/* no more room inside the tree, we need to create a new level above
+	 * the top, with the current top node on the left and the new one on
+	 * the right.
+	 */
+	node->l = __cba_dotag(top);
+	*root   = node;
+ done:
 	return node;
 }
 
