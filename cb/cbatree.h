@@ -38,7 +38,7 @@
 //#define CB_TYPE_MASK     1
 
 /* Tree pointers are tagged absolute pointers to the next cba_node */
-typedef (void *) cba_tree_t;
+typedef void * cba_tree_t;
 
 /* Standard node when using absolute pointers */
 struct cba_node {
@@ -61,7 +61,7 @@ static inline void *__cba_untag(const void *node)
 /* clear a pointer's tag */
 static inline void *__cba_clrtag(const void *node)
 {
-	return (void *)(size_t)node & ~((size_t)1);
+	return (void *)((size_t)node & ~((size_t)1));
 }
 
 /* returns whether a pointer is tagged */

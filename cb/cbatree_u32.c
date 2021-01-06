@@ -80,14 +80,14 @@ struct cba_u32 {
 struct cba_node *cba_insert_u32(cba_tree_t *root, struct cba_node *node)
 {
 	struct cba_u32 *p, *l, *r;
-	cb_ulink_t pxor;
+	u32 pxor;
 	u32 key = ((struct cba_u32 *)node)->key;
 
 	pxor = 0;
 
 	if (!*root) {
 		/* empty tree */
-		node->l = node->r = NULL;
+		node->l = node->r = node;
 		*root = node;
 		return node;
 	}
@@ -95,43 +95,51 @@ struct cba_node *cba_insert_u32(cba_tree_t *root, struct cba_node *node)
 	while (1) {
 		p = (struct cba_u32 *)*root;
 
-		if (__cba_is_dup(p)) {
+		if (__cba_is_dup((struct cba_node *)p)) {
 			/* This is a cover node on top of a dup tree so both of
 			 * its branches have the same key as the node itself.
 			 * If the key we're trying to insert is the same, we
 			 * insert another dup and don't care about the key. If
 			 * the key differs however we have to insert here.
 			 */
-			if (key ^ p->key)
-				break;
-			goto duptree;
+			break;
+			//if (key ^ p->key)
+			//	break;
+			//goto duptree;
 		}
 
 		l = (struct cba_u32 *)p->l;
 		r = (struct cba_u32 *)p->r;
 
+		/* we've reached a leaf */
+		if ((l->key ^ r->key) >= pxor && pxor != 0)
+			break;
+
 		pxor = l->key ^ r->key;
 		if (!pxor) {
-			/* the first node also validates this */
-			if (l == r)
-				break;
-			goto dupnode;
+			/* That's either a dup or the first inserted node */
+			break;
+			//if (l == r)
+			//	break;
+			//goto dupnode;
 		}
 
-		if (key ^ l->key > pxor && key ^ r->key > pxor) {
+		if ((key ^ l->key) > pxor && (key ^ r->key) > pxor) {
 			/* can't go lower, the node must be inserted above p */
 			break;
 		}
 
-		if (key ^ l->key < key ^ r->key)
+		if ((key ^ l->key) < (key ^ r->key))
 			root = &p->l;
 		else
 			root = &p->r;
 	}
 
-	/* We're going to insert <node> above leaf <p> and below <root>. We're
-	 * certain that <p> isn't a duplicate node so we don't care about
-	 * pointer tagging. We need to know two things :
+	/* We're going to insert <node> above leaf <p> and below <root>. It's
+	 * possible that <p> is the first inserted node, that it's the topmost
+	 * node of a duplicate tree, or any other regular node or leaf. However
+	 * it cannot be a non-top node of a duplicate tree. Therefore we don't
+	 * care about pointer tagging. We need to know two things :
 	 *  - whether <p> is left or right on <root>, to unlink it properly and
 	 *    to take its place
 	 *  - whether we attach <p> left or right below us
@@ -141,249 +149,261 @@ struct cba_node *cba_insert_u32(cba_tree_t *root, struct cba_node *node)
 		node->l = node;
 		node->r = p;
 	}
-	else {
+	else if (key > p->key) {
 		node->l = p;
 		node->r = node;
 	}
+	else {
+		/* We're installing a duplicate of p->key.
+		 * FIXME: For now we always insert on top of it on the right and tag
+		 * it. Normally we should fall back to pure dup walk through and
+		 * insertion.
+		 */
+		node->l = __cba_dotag(p);
+		node->r = node;
+	}
 
- done:
 	*root = node;
 	return node;
-
- dupnode:
-	/* This is a top-level dup node.
-	 * FIXME: For now we always insert on top of it on the right and tag
-	 * it. Normally we should fall back to pure dup walk through and
-	 * insertion.
-	 */
-	node->l = __cba_dotag(p);
-	node->r = node;
-	goto done;
-
- duptree:
-	/* we end up here if <p> is located above at least one duptree node,
-	 * which implies it is itself a duplicate node. We fall back to the
-	 * generic dup tree management.
-	 */
-	/* FIXME: todo! */
-	return NULL;
 }
 
-/* returns the highest node which is less than or equal to data. This is
- * typically used to know what memory area <data> belongs to.
- */
-struct cba_node *cba_lookup_le(struct cba_node **root, void *data)
-{
-	struct cba_node *p, *last_r;
-	cb_ulink_t pxor;
-
-	pxor = 0;
-	p = *root;
-
-	if (!p)
-		return p;
-
-	last_r = NULL;
-	while (1) {
-		if (!p->l || (xorptr(p->l, p->r) >= pxor && pxor != 0)) {
-			/* first leaf inserted, or regular leaf. Either
-			 * the entry fits our expectations or we have to
-			 * roll back and go down the opposite direction.
-			 */
-			if ((cb_ulink_t)p > (cb_ulink_t)data)
-				break;
-			return p;
-		}
-
-		pxor = xorptr(p->l, p->r);
-		if (xorptr(data, p->l) > pxor && xorptr(data, p->r) > pxor) {
-			/* The difference between the looked up key and the branches
-			 * is higher than the difference between the branches, which
-			 * means that the key ought to have been found upper in the
-			 * chain. Since we won't find the key below, either we have
-			 * a chance to find the largest inferior one below and we
-			 * walk down, or we need to rewind.
-			 */
-			if ((cb_ulink_t)p->l > (cb_ulink_t)data)
-				break;
-
-			p = p->r;
-			goto walkdown;
-		}
-
-		if (xorptr(data, p->l) < xorptr(data, p->r)) {
-			root = &p->l;
-		}
-		else {
-			last_r = p;
-			root = &p->r;
-		}
-
-		p = *root;
-	}
-
-	/* first roll back to last node where we turned right, and go down left
-	 * or stop at first leaf if any. If we only went down left, we already
-	 * found the smallest key so none will suit us.
-	 */
-	if (!last_r)
-		return NULL;
-
-	pxor = xorptr(last_r->l, last_r->r);
-	p = last_r->l;
-
- walkdown:
-	/* switch to the other branch last time we turned right */
-	while (p->r) {
-		if (xorptr(p->l, p->r) >= pxor)
-			break;
-		pxor = xorptr(p->l, p->r);
-		p = p->r;
-	}
-
-	if ((cb_ulink_t)p > (cb_ulink_t)data)
-		return NULL;
-	return p;
-}
-
-/* returns the note which equals <data> or NULL if <data> is not in the tree */
-struct cba_node *cba_lookup(struct cba_node **root, void *data)
-{
-	struct cba_node *p;
-	cb_ulink_t pxor;
-
-	pxor = 0;
-	p = *root;
-
-	if (!p)
-		return p;
-
-	while (1) {
-		if (!p->l || (xorptr(p->l, p->r) >= pxor && pxor != 0)) {
-			/* first leaf inserted, or regular leaf */
-			if ((cb_ulink_t)p != (cb_ulink_t)data)
-				p = NULL;
-			break;
-		}
-
-		pxor = xorptr(p->l, p->r);
-		if (xorptr(data, p->l) > pxor && xorptr(data, p->r) > pxor) {
-			/* The difference between the looked up key and the branches
-			 * is higher than the difference between the branches, which
-			 * means that the key ought to have been found upper in the
-			 * chain.
-			 */
-			p = NULL;
-			break;
-		}
-
-		if (xorptr(data, p->l) < xorptr(data, p->r))
-			root = &p->l;
-		else
-			root = &p->r;
-
-		p = *root;
-	}
-	return p;
-}
-
-/* returns the lowest node which is greater than or equal to data. This is
- * typically used to know the distance between <data> and the next memory
- * area.
- */
-struct cba_node *cba_lookup_ge(struct cba_node **root, void *data)
-{
-	struct cba_node *p, *last_l;
-	cb_ulink_t pxor;
-
-	pxor = 0;
-	p = *root;
-
-	if (!p)
-		return p;
-
-	last_l = NULL;
-	while (1) {
-		if (!p->l || (xorptr(p->l, p->r) >= pxor && pxor != 0)) {
-			/* first leaf inserted, or regular leaf. Either
-			 * the entry fits our expectations or we have to
-			 * roll back and go down the opposite direction.
-			 */
-			if ((cb_ulink_t)p < (cb_ulink_t)data)
-				break;
-			return p;
-		}
-
-		pxor = xorptr(p->l, p->r);
-		if (xorptr(data, p->l) > pxor && xorptr(data, p->r) > pxor) {
-			/* The difference between the looked up key and the branches
-			 * is higher than the difference between the branches, which
-			 * means that the key ought to have been found upper in the
-			 * chain. Since we won't find the key below, either we have
-			 * a chance to find the smallest superior one below and we
-			 * walk down, or we need to rewind.
-			 */
-			if ((cb_ulink_t)p->l < (cb_ulink_t)data)
-				break;
-
-			p = p->l;
-			goto walkdown;
-		}
-
-		if (xorptr(data, p->l) < xorptr(data, p->r)) {
-			last_l = p;
-			root = &p->l;
-		}
-		else {
-			root = &p->r;
-		}
-
-		p = *root;
-	}
-
-	/* first roll back to last node where we turned right, and go down left
-	 * or stop at first leaf if any. If we only went down left, we already
-	 * found the smallest key so none will suit us.
-	 */
-	if (!last_l)
-		return NULL;
-
-	pxor = xorptr(last_l->l, last_l->r);
-	p = last_l->r;
-
- walkdown:
-	/* switch to the other branch last time we turned left */
-	while (p->l) {
-		if (xorptr(p->l, p->r) >= pxor)
-			break;
-		pxor = xorptr(p->l, p->r);
-		p = p->l;
-	}
-
-	if ((cb_ulink_t)p < (cb_ulink_t)data)
-		return NULL;
-	return p;
-}
+///* returns the highest node which is less than or equal to data. This is
+// * typically used to know what memory area <data> belongs to.
+// */
+//struct cba_node *cba_lookup_le(struct cba_node **root, void *data)
+//{
+//	struct cba_node *p, *last_r;
+//	u32 pxor;
+//
+//	pxor = 0;
+//	p = *root;
+//
+//	if (!p)
+//		return p;
+//
+//	last_r = NULL;
+//	while (1) {
+//		if (!p->l || (xorptr(p->l, p->r) >= pxor && pxor != 0)) {
+//			/* first leaf inserted, or regular leaf. Either
+//			 * the entry fits our expectations or we have to
+//			 * roll back and go down the opposite direction.
+//			 */
+//			if ((u32)p > (u32)data)
+//				break;
+//			return p;
+//		}
+//
+//		pxor = xorptr(p->l, p->r);
+//		if (xorptr(data, p->l) > pxor && xorptr(data, p->r) > pxor) {
+//			/* The difference between the looked up key and the branches
+//			 * is higher than the difference between the branches, which
+//			 * means that the key ought to have been found upper in the
+//			 * chain. Since we won't find the key below, either we have
+//			 * a chance to find the largest inferior one below and we
+//			 * walk down, or we need to rewind.
+//			 */
+//			if ((u32)p->l > (u32)data)
+//				break;
+//
+//			p = p->r;
+//			goto walkdown;
+//		}
+//
+//		if (xorptr(data, p->l) < xorptr(data, p->r)) {
+//			root = &p->l;
+//		}
+//		else {
+//			last_r = p;
+//			root = &p->r;
+//		}
+//
+//		p = *root;
+//	}
+//
+//	/* first roll back to last node where we turned right, and go down left
+//	 * or stop at first leaf if any. If we only went down left, we already
+//	 * found the smallest key so none will suit us.
+//	 */
+//	if (!last_r)
+//		return NULL;
+//
+//	pxor = xorptr(last_r->l, last_r->r);
+//	p = last_r->l;
+//
+// walkdown:
+//	/* switch to the other branch last time we turned right */
+//	while (p->r) {
+//		if (xorptr(p->l, p->r) >= pxor)
+//			break;
+//		pxor = xorptr(p->l, p->r);
+//		p = p->r;
+//	}
+//
+//	if ((u32)p > (u32)data)
+//		return NULL;
+//	return p;
+//}
+//
+///* returns the note which equals <data> or NULL if <data> is not in the tree */
+//struct cba_node *cba_lookup(struct cba_node **root, void *data)
+//{
+//	struct cba_node *p;
+//	u32 pxor;
+//
+//	pxor = 0;
+//	p = *root;
+//
+//	if (!p)
+//		return p;
+//
+//	while (1) {
+//		if (!p->l || (xorptr(p->l, p->r) >= pxor && pxor != 0)) {
+//			/* first leaf inserted, or regular leaf */
+//			if ((u32)p != (u32)data)
+//				p = NULL;
+//			break;
+//		}
+//
+//		pxor = xorptr(p->l, p->r);
+//		if (xorptr(data, p->l) > pxor && xorptr(data, p->r) > pxor) {
+//			/* The difference between the looked up key and the branches
+//			 * is higher than the difference between the branches, which
+//			 * means that the key ought to have been found upper in the
+//			 * chain.
+//			 */
+//			p = NULL;
+//			break;
+//		}
+//
+//		if (xorptr(data, p->l) < xorptr(data, p->r))
+//			root = &p->l;
+//		else
+//			root = &p->r;
+//
+//		p = *root;
+//	}
+//	return p;
+//}
+//
+///* returns the lowest node which is greater than or equal to data. This is
+// * typically used to know the distance between <data> and the next memory
+// * area.
+// */
+//struct cba_node *cba_lookup_ge(struct cba_node **root, void *data)
+//{
+//	struct cba_node *p, *last_l;
+//	u32 pxor;
+//
+//	pxor = 0;
+//	p = *root;
+//
+//	if (!p)
+//		return p;
+//
+//	last_l = NULL;
+//	while (1) {
+//		if (!p->l || (xorptr(p->l, p->r) >= pxor && pxor != 0)) {
+//			/* first leaf inserted, or regular leaf. Either
+//			 * the entry fits our expectations or we have to
+//			 * roll back and go down the opposite direction.
+//			 */
+//			if ((u32)p < (u32)data)
+//				break;
+//			return p;
+//		}
+//
+//		pxor = xorptr(p->l, p->r);
+//		if (xorptr(data, p->l) > pxor && xorptr(data, p->r) > pxor) {
+//			/* The difference between the looked up key and the branches
+//			 * is higher than the difference between the branches, which
+//			 * means that the key ought to have been found upper in the
+//			 * chain. Since we won't find the key below, either we have
+//			 * a chance to find the smallest superior one below and we
+//			 * walk down, or we need to rewind.
+//			 */
+//			if ((u32)p->l < (u32)data)
+//				break;
+//
+//			p = p->l;
+//			goto walkdown;
+//		}
+//
+//		if (xorptr(data, p->l) < xorptr(data, p->r)) {
+//			last_l = p;
+//			root = &p->l;
+//		}
+//		else {
+//			root = &p->r;
+//		}
+//
+//		p = *root;
+//	}
+//
+//	/* first roll back to last node where we turned right, and go down left
+//	 * or stop at first leaf if any. If we only went down left, we already
+//	 * found the smallest key so none will suit us.
+//	 */
+//	if (!last_l)
+//		return NULL;
+//
+//	pxor = xorptr(last_l->l, last_l->r);
+//	p = last_l->r;
+//
+// walkdown:
+//	/* switch to the other branch last time we turned left */
+//	while (p->l) {
+//		if (xorptr(p->l, p->r) >= pxor)
+//			break;
+//		pxor = xorptr(p->l, p->r);
+//		p = p->l;
+//	}
+//
+//	if ((u32)p < (u32)data)
+//		return NULL;
+//	return p;
+//}
 
 /* Dumps a tree through the specified callbacks. */
-void *cba_dump_tree(struct cba_node *node, cb_ulink_t pxor, void *last,
-                    int level,
-                    void (*node_dump)(struct cba_node *node, int level),
-                    void (*leaf_dump)(struct cba_node *node, int level))
+void *cba_dump_tree_u32(struct cba_node *node, u32 pxor, void *last,
+			int level,
+			void (*node_dump)(struct cba_node *node, int level),
+			void (*leaf_dump)(struct cba_node *node, int level))
 {
-	cb_ulink_t xor;
+	u32 xor;
 
 	if (!node) /* empty tree */
 		return node;
 
-	if (!node->l) {
+	if (level < 0) {
+		/* we're inside a dup tree. Tagged pointers indicate nodes,
+		 * untagged ones leaves.
+		 */
+		if (__cba_tagged(node->l)) {
+			last = cba_dump_tree_u32(__cba_untag(node->l), 0, last, level - 1, node_dump, leaf_dump);
+			if (node_dump)
+				node_dump(__cba_untag(node->l), level);
+		} else if (leaf_dump)
+			leaf_dump(node, level);
+
+		if (__cba_tagged(node->r)) {
+			last = cba_dump_tree_u32(__cba_untag(node->r), 0, last, level - 1, node_dump, leaf_dump);
+			if (node_dump)
+				node_dump(__cba_untag(node->r), level);
+		} else if (leaf_dump)
+			leaf_dump(node, level);
+		return node;
+	}
+
+	/* regular nodes, all branches are canonical */
+
+	if (node->l == node->r) {
 		/* first inserted leaf */
 		if (leaf_dump)
 			leaf_dump(node, level);
 		return node;
 	}
 
-	xor = xorptr(node->l, node->r);
+	xor = ((struct cba_u32*)node->l)->key ^ ((struct cba_u32*)node->r)->key;
 	if (pxor && xor >= pxor) {
 		/* that's a leaf */
 		if (leaf_dump)
@@ -395,6 +415,6 @@ void *cba_dump_tree(struct cba_node *node, cb_ulink_t pxor, void *last,
 	if (node_dump)
 		node_dump(node, level);
 
-	last = cba_dump_tree(node->l, xor, last, level + 1, node_dump, leaf_dump);
-	return cba_dump_tree(node->r, xor, last, level + 1, node_dump, leaf_dump);
+	last = cba_dump_tree_u32(node->l, xor, last, level + 1, node_dump, leaf_dump);
+	return cba_dump_tree_u32(node->r, xor, last, level + 1, node_dump, leaf_dump);
 }
