@@ -86,13 +86,65 @@ struct cba_u32 {
 	u32 key;
 };
 
+/* walk down a dup tree starting at <root> which is known to point to a dup
+ * tree's topmost node (hence is untagged), and insert <node> at the best
+ * place. For this we descend as far as possible on the right and remember
+ * the latest fork point going to the left. We measure the depth of the
+ * rightmost branch at the left fork and compare it to the current one. If
+ * the right branch isn't as deep as the left one, there's room to install
+ * at the end of it, otherwise we have to add a new level and install
+ * above the topmost node.
+ */
+struct cba_node *cba_insert_dup(struct cba_node **root, struct cba_node *node)
+{
+	struct cba_node *left, *right, *parent;
+	struct cba_node *top = *root;
+	int ldepth, rdepth;
+
+	left = right = NULL;
+	ldepth = rdepth = 0;
+
+	parent = top;
+	left   = top->l;
+	right  = top->r;
+
+	/* if right is tagged it means the underneath node is another
+	 * node, so it has a left and a right branch.
+	 */
+	while (__cba_tagged(right)) {
+		parent = __cba_untag(right);
+		left   = parent->l;
+		right  = parent->r;
+		rdepth++;
+	}
+
+	/* now <right> is a leaf and <left> is the last left branch */
+	while (__cba_tagged(left) && ldepth <= rdepth) {
+		left = __cba_untag(left)->r;
+		ldepth++;
+	}
+
+	if (ldepth > rdepth) {
+		/* room left on the right, install there */
+		node->l = right;
+		node->r = node; // no tag, that's a leaf
+		parent->r = __cba_dotag(node);
+	} else {
+		/* add an extra level at the top */
+		node->l = __cba_dotag(top);
+		node->r = node;
+		*root = node;
+	}
+	return node;
+}
+
 struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 {
 	struct cba_u32 *p, *l, *r;
 	u32 pxor = 0; // make sure we don't run the first test.
 	u32 key = container_of(node, struct cba_u32, node)->key;
-	u32 pxor_old = ~0;
-	struct cba_u32 *p_old = 0;
+	//u32 pxor_old = ~0;
+	//struct cba_u32 *p_old = 0;
 
 	if (!*root) {
 		/* empty tree */
@@ -164,11 +216,9 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 
 	while (1) {
 		p = container_of(*root, struct cba_u32, node);
-		if (p == p_old) {
-			/* this is our leaf */
-			break;
-		}
 	
+		//if (p == p_old)
+		//	break;
 		if (__cba_is_dup(&p->node)) {
 			/* This is a cover node on top of a dup tree so both of
 			 * its branches have the same key as the node itself.
@@ -177,11 +227,7 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 			 * the key differs however we have to insert here. Thus
 			 * it is a node again.
 			 */
-			pxor = 0; // mention that we're above a node
-			break;
-			//if (key ^ p->key)
-			//	break;
-			//goto duptree;
+			goto insert_dup;
 		}
 
 		/* neither pointer is tagged */	
@@ -189,26 +235,25 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 		r = container_of(p->node.r, struct cba_u32, node);
 
 		/* maybe we've reached a leaf (including ours) ? */
-		//if ((l->key ^ r->key) >= pxor && pxor != 0) {
-		//	/* this is the only case where we exit with a leaf, and
-		//	 * this is reflected by pxor not being zero.
-		//	 */
-		//	break;
-		//}
-	
-		pxor = l->key ^ r->key;
-		if (!pxor) {
-			/* That's either a the topmost node of a dup tree or
-			 * the first inserted leaf.
+		if (l == r || ((l->key ^ r->key) >= pxor && pxor != 0)) {
+			/* this is the only case where we exit with a leaf. It
+			 * may be the first inserted one (l==r) or a regular
+			 * leaf, which is only possible after a node, hence
+			 * pxor not being zero.
 			 */
 			break;
-			//if (l == r)
-			//	break;
-			//goto dupnode;
+		}
+
+		pxor = l->key ^ r->key;
+		if (!pxor) {
+			/* That's the topmost node of a dup tree */
+			goto insert_dup;
 		}
 	
-		if (pxor > pxor_old) // this is a leaf of previous node
-			break;
+		//if (pxor > pxor_old) // this is a leaf of previous node
+		//	break;
+		//pxor_old=pxor;
+		//p_old = p;
 	
 		//if ((key ^ l->key) > pxor && (key ^ l->key ^ pxor) > pxor) {
 		//pxor ^= key;
@@ -217,8 +262,9 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 			/* can't go lower, the node must be inserted above p
 			 * (which is then necessarily a node).
 			 */
-			pxor = 0; // mention that we're above a node
 			//fprintf(stderr, "key=%#x lkey=%#x rkey=%#x pxor=%#x\n", key, l->key, r->key, pxor);
+			if (key == p->key)
+				goto insert_dup;
 			break;
 		}
 	
@@ -226,8 +272,6 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 			root = &p->node.l;
 		else
 			root = &p->node.r;
-		p_old = p;
-		pxor_old = pxor;
 	}
 
 	/* We're going to insert <node> above leaf <p> and below <root>. It's
@@ -244,31 +288,19 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 		node->l = node;
 		node->r = &p->node;
 	}
-	else if (key > p->key) {
+	else {
+		/* either larger, or equal above a leaf */
 		node->l = &p->node;
 		node->r = node;
-	}
-	else {
-		/* We're installing a duplicate of p->key.
-		 * FIXME: For now we always insert on top of it on the right and tag
-		 * it. Normally we should fall back to pure dup walk through and
-		 * insertion.
-		 */
-		node->l = (pxor || p->node.l == p->node.r) ? &p->node : __cba_dotag(&p->node);
-		node->r = node;
-
-		/* FIXME: if the node we're displacing was tagged, the new one must
-		 * also be tagged. However for now this does not happen because we
-		 * only insert on the top.
-		 */
-		if (__cba_tagged(*root))
-			node = __cba_dotag(node);
 	}
 
  done:
 	//fprintf(stderr, "*(%p) = %p -> %p [%p %p]\n", root, *root, node, node->l, node->r);
 	*root = node;
 	return node;
+
+ insert_dup:
+	return cba_insert_dup(root, node);
 }
 
 ///* returns the highest node which is less than or equal to data. This is
