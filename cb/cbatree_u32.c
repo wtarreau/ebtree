@@ -31,14 +31,15 @@
  * quickly finding its neighbours.
  *
  * A few properties :
- * - the xor between two branches of a node cannot be zero since there are no
- *   duplicate keys
+ * - the xor between two branches of a node cannot be zero since unless the two
+ *   branches are duplicate keys
  * - the xor between two nodes has *at least* the split bit set, possibly more
  * - the split bit is always strictly smaller for a node than for its parent
  * - the first key is the only one without any node, and it has its branches
  *   set to NULL during insertion to detect it.
  * - a leaf is always present as a node on the path from the root, except for
- *   the inserted first key which has no node
+ *   the inserted first key which has no node, and is recognizable by its two
+ *   branches pointing to itself.
  * - a consequence of the rules above is that a non-first leaf appearing below
  *   a node will necessarily have an associated node with a split bit equal to
  *   or greater than the node's split bit.
@@ -46,7 +47,7 @@
  *   each branches since both of them are already present above the node, thus
  *   at different levels, so their respective XOR values will be different.
  * - since all nodes in a given path have a different split bit, if a leaf has
- *   the same split bit as its parent node, it is necessary its assocaited leaf
+ *   the same split bit as its parent node, it is necessary its associated leaf
  *
  * When descending along the tree, it is possible to know that a search key is
  * not present, because its XOR with both of the branches is stricly higher
@@ -60,7 +61,7 @@
  * is only true when the key should be placed above that node. Since the key
  * has a higher bit which differs from the node, either it has it set and the
  * node has it clear (same for both branches), or it has it clear and the node
- * has it set for both branches. For this reason it's enough to copare the key
+ * has it set for both branches. For this reason it's enough to compare the key
  * with any node when the equation above is true, to know if it ought to be
  * present on the left or on the right side. This is useful for insertion and
  * for range lookups.
@@ -87,18 +88,38 @@ struct cba_node *cba_insert_u32(cba_tree_t *root, struct cba_node *node)
 	if (!*root) {
 		/* empty tree */
 		node->l = node->r = NULL;
-		*root = __cb_dotag(node, CB_TYPE_LEAF);
+		*root = node;
 		return node;
 	}
 
-	while (__cba_get_branch_type(root) == CB_TYPE_NODE) {
-		p = (struct cba_u32 *)__cb_untag(*root, CB_TYPE_NODE);
-		l = (struct cba_u32 *)__cb_untag(p->l, __cba_get_branch_type(p->l));
-		r = (struct cba_u32 *)__cb_untag(p->r, __cba_get_branch_type(p->r));
+	while (1) {
+		p = (struct cba_u32 *)*root;
+
+		if (__cba_is_dup(p)) {
+			/* This is a cover node on top of a dup tree so both of
+			 * its branches have the same key as the node itself.
+			 * If the key we're trying to insert is the same, we
+			 * insert another dup and don't care about the key. If
+			 * the key differs however we have to insert here.
+			 */
+			if (key ^ p->key)
+				break;
+			goto duptree;
+		}
+
+		l = (struct cba_u32 *)p->l;
+		r = (struct cba_u32 *)p->r;
 
 		pxor = l->key ^ r->key;
+		if (!pxor) {
+			/* the first node also validates this */
+			if (l == r)
+				break;
+			goto dupnode;
+		}
+
 		if (key ^ l->key > pxor && key ^ r->key > pxor) {
-			/* can't go below, this node must be below us */
+			/* can't go lower, the node must be inserted above p */
 			break;
 		}
 
@@ -108,24 +129,44 @@ struct cba_node *cba_insert_u32(cba_tree_t *root, struct cba_node *node)
 			root = &p->r;
 	}
 
-	/* We're going to insert <node> above leaf <p> and below <root>. We need
-	 * to know two things :
+	/* We're going to insert <node> above leaf <p> and below <root>. We're
+	 * certain that <p> isn't a duplicate node so we don't care about
+	 * pointer tagging. We need to know two things :
 	 *  - whether <p> is left or right on <root>, to unlink it properly and
 	 *    to take its place
 	 *  - whether we attach <p> left or right below us
 	 */
 
-	if (p->key < key) {
-		node->l = root;
-		node->r = __cb_dotag(node, CB_TYPE_LEAF);
+	if (key < p->key) {
+		node->l = node;
+		node->r = p;
 	}
-	else if (p > node) {
-		node->l = __cb_dotag(node, CB_TYPE_LEAF);
-		node->r = root;
+	else {
+		node->l = p;
+		node->r = node;
 	}
 
-	*root = __cb_dotag(node, CB_TYPE_NODE);
+ done:
+	*root = node;
 	return node;
+
+ dupnode:
+	/* This is a top-level dup node.
+	 * FIXME: For now we always insert on top of it on the right and tag
+	 * it. Normally we should fall back to pure dup walk through and
+	 * insertion.
+	 */
+	node->l = __cba_dotag(p);
+	node->r = node;
+	goto done;
+
+ duptree:
+	/* we end up here if <p> is located above at least one duptree node,
+	 * which implies it is itself a duplicate node. We fall back to the
+	 * generic dup tree management.
+	 */
+	/* FIXME: todo! */
+	return NULL;
 }
 
 /* returns the highest node which is less than or equal to data. This is
