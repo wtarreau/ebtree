@@ -35,36 +35,36 @@ typedef struct cba_node * cba_tree_t;
 
 /* Standard node when using absolute pointers */
 struct cba_node {
-	cba_tree_t l;
-	cba_tree_t r;
+	struct cba_node *l;
+	struct cba_node *r;
 };
 
 /* tag an untagged pointer */
-static inline cba_tree_t __cba_dotag(const cba_tree_t node)
+static inline struct cba_node *__cba_dotag(const struct cba_node *node)
 {
-	return (cba_tree_t)(size_t)node + 1;
+	return (struct cba_node *)(size_t)node + 1;
 }
 
 /* untag a tagged pointer */
-static inline cba_tree_t __cba_untag(const cba_tree_t node)
+static inline struct cba_node *__cba_untag(const struct cba_node *node)
 {
-	return (cba_tree_t)(size_t)node - 1;
+	return (struct cba_node *)(size_t)node - 1;
 }
 
 /* clear a pointer's tag */
-static inline cba_tree_t __cba_clrtag(const cba_tree_t node)
+static inline struct cba_node *__cba_clrtag(const struct cba_node *node)
 {
-	return (cba_tree_t)((size_t)node & ~((size_t)1));
+	return (struct cba_node *)((size_t)node & ~((size_t)1));
 }
 
 /* returns whether a pointer is tagged */
-static inline int __cba_tagged(const cba_tree_t node)
+static inline int __cba_tagged(const struct cba_node *node)
 {
 	return !!((size_t)node & 1);
 }
 
 /* returns an integer equivalent of the pointer */
-static inline size_t __cba_intptr(cba_tree_t tree)
+static inline size_t __cba_intptr(struct cba_node *tree)
 {
 	return (size_t)tree;
 }
@@ -75,13 +75,13 @@ static inline size_t __cba_intptr(cba_tree_t tree)
  */
 static inline int __cba_is_dup(const struct cba_node *node)
 {
-	return __cba_tagged((cba_tree_t)(__cba_intptr(node->l) | __cba_intptr(node->r)));
+	return __cba_tagged((struct cba_node *)(__cba_intptr(node->l) | __cba_intptr(node->r)));
 }
 
 ///* Returns the type of the branch pointed to by <tree> among CB_TYPE_LEAF and
 // * CB_TYPE_NODE.
 // */
-//static inline size_t __cba_get_branch_type(cba_tree_t tree)
+//static inline size_t __cba_get_branch_type(struct cba_node * tree)
 //{
 //	return (size_t)tree & CB_TYPE_MASK;
 //}
@@ -89,15 +89,15 @@ static inline int __cba_is_dup(const struct cba_node *node)
 ///* Converts a cba_node pointer to its equivalent tagged value for use in ->l/r.
 // * NULL is not preserved. <tag> must be either CB_TYPE_LEAF or CB_TYPE_NODE.
 // */
-//static inline cba_tree_t __cba_dotag(struct cba_node *node, size_t tag)
+//static inline struct cba_node * __cba_dotag(struct cba_node *node, size_t tag)
 //{
-//	return (cba_tree_t)((char *)node + tag);
+//	return (struct cba_node *)((char *)node + tag);
 //}
 //
-///* Converts a cba_tree_t to its equivalent untagged pointer. NULL is preserved.
+///* Converts a struct cba_node * to its equivalent untagged pointer. NULL is preserved.
 // * <tag> must be either CB_TYPE_LEAF or CB_TYPE_NODE.
 // */
-//static inline struct cba_node *__cba_untag(cba_tree_t tree, size_t tag)
+//static inline struct cba_node *__cba_untag(struct cba_node * tree, size_t tag)
 //{
 //	return (struct cba_node *)((char *)tree - tag);
 //}

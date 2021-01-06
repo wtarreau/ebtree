@@ -72,16 +72,15 @@
 
 /* this structure is aliased to the common cba node during u32 operations */
 struct cba_u32 {
-	cba_tree_t l;
-	cba_tree_t r;
+	struct cba_node node;
 	u32 key;
 };
 
-struct cba_node *cba_insert_u32(cba_tree_t *root, struct cba_node *node)
+struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 {
 	struct cba_u32 *p, *l, *r;
 	u32 pxor;
-	u32 key = ((struct cba_u32 *)node)->key;
+	u32 key = container_of(node, struct cba_u32, node)->key;
 
 	pxor = 0;
 
@@ -93,9 +92,8 @@ struct cba_node *cba_insert_u32(cba_tree_t *root, struct cba_node *node)
 	}
 
 	while (1) {
-		p = (struct cba_u32 *)*root;
-
-		if (__cba_is_dup((struct cba_node *)p)) {
+		p = container_of(*root, struct cba_u32, node);
+		if (__cba_is_dup(&p->node)) {
 			/* This is a cover node on top of a dup tree so both of
 			 * its branches have the same key as the node itself.
 			 * If the key we're trying to insert is the same, we
@@ -108,8 +106,8 @@ struct cba_node *cba_insert_u32(cba_tree_t *root, struct cba_node *node)
 			//goto duptree;
 		}
 
-		l = (struct cba_u32 *)p->l;
-		r = (struct cba_u32 *)p->r;
+		l = container_of(p->node.l, struct cba_u32, node);
+		r = container_of(p->node.r, struct cba_u32, node);
 
 		/* we've reached a leaf */
 		if ((l->key ^ r->key) >= pxor && pxor != 0)
@@ -130,9 +128,9 @@ struct cba_node *cba_insert_u32(cba_tree_t *root, struct cba_node *node)
 		}
 
 		if ((key ^ l->key) < (key ^ r->key))
-			root = &p->l;
+			root = &p->node.l;
 		else
-			root = &p->r;
+			root = &p->node.r;
 	}
 
 	/* We're going to insert <node> above leaf <p> and below <root>. It's
@@ -147,10 +145,10 @@ struct cba_node *cba_insert_u32(cba_tree_t *root, struct cba_node *node)
 
 	if (key < p->key) {
 		node->l = node;
-		node->r = p;
+		node->r = &p->node;
 	}
 	else if (key > p->key) {
-		node->l = p;
+		node->l = &p->node;
 		node->r = node;
 	}
 	else {
@@ -159,7 +157,7 @@ struct cba_node *cba_insert_u32(cba_tree_t *root, struct cba_node *node)
 		 * it. Normally we should fall back to pure dup walk through and
 		 * insertion.
 		 */
-		node->l = __cba_dotag(p);
+		node->l = __cba_dotag(&p->node);
 		node->r = node;
 	}
 
