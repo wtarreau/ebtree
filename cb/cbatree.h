@@ -30,15 +30,8 @@
 #include <stddef.h>
 #include "../common/tools.h"
 
-///* Branch pointer tags used to find the downstream node type. These are stored
-// * in the lowest significant bit of the tree pointer.
-// */
-//#define CB_TYPE_NORMAL   0
-//#define CB_TYPE_SUBNODE  1
-//#define CB_TYPE_MASK     1
-
 /* Tree pointers are tagged absolute pointers to the next cba_node */
-typedef void * cba_tree_t;
+typedef struct cba_node * cba_tree_t;
 
 /* Standard node when using absolute pointers */
 struct cba_node {
@@ -47,25 +40,25 @@ struct cba_node {
 };
 
 /* tag an untagged pointer */
-static inline void *__cba_dotag(const void *node)
+static inline cba_tree_t __cba_dotag(const cba_tree_t node)
 {
-	return (void *)(size_t)node + 1;
+	return (cba_tree_t)(size_t)node + 1;
 }
 
 /* untag a tagged pointer */
-static inline void *__cba_untag(const void *node)
+static inline cba_tree_t __cba_untag(const cba_tree_t node)
 {
-	return (void *)(size_t)node - 1;
+	return (cba_tree_t)(size_t)node - 1;
 }
 
 /* clear a pointer's tag */
-static inline void *__cba_clrtag(const void *node)
+static inline cba_tree_t __cba_clrtag(const cba_tree_t node)
 {
-	return (void *)((size_t)node & ~((size_t)1));
+	return (cba_tree_t)((size_t)node & ~((size_t)1));
 }
 
 /* returns whether a pointer is tagged */
-static inline int __cba_tagged(const void *node)
+static inline int __cba_tagged(const cba_tree_t node)
 {
 	return !!((size_t)node & 1);
 }
@@ -82,8 +75,7 @@ static inline size_t __cba_intptr(cba_tree_t tree)
  */
 static inline int __cba_is_dup(const struct cba_node *node)
 {
-	//return ((__cba_intptr(node->l) | __cba_intptr(node->r)) & CB_TYPE_MASK) == CB_TYPE_SUBNODE;
-	return __cba_tagged((void *)(__cba_intptr(node->l) | __cba_intptr(node->r)));
+	return __cba_tagged((cba_tree_t)(__cba_intptr(node->l) | __cba_intptr(node->r)));
 }
 
 ///* Returns the type of the branch pointed to by <tree> among CB_TYPE_LEAF and
