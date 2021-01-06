@@ -42,13 +42,13 @@ struct cba_node {
 /* tag an untagged pointer */
 static inline struct cba_node *__cba_dotag(const struct cba_node *node)
 {
-	return (struct cba_node *)(size_t)node + 1;
+	return (struct cba_node *)((size_t)node + 1);
 }
 
 /* untag a tagged pointer */
 static inline struct cba_node *__cba_untag(const struct cba_node *node)
 {
-	return (struct cba_node *)(size_t)node - 1;
+	return (struct cba_node *)((size_t)node - 1);
 }
 
 /* clear a pointer's tag */
