@@ -235,7 +235,7 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 
 	while (1) {
 		p = container_of(*root, struct cba_u32, node);
-	
+
 		//if (p == p_old)
 		//	break;
 		if (__cba_is_dup(&p->node)) {
@@ -246,8 +246,6 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 			 * the key differs however we have to insert here. Thus
 			 * it is a node again.
 			 */
-			//if (key != p->key)
-			//	break; // insert here
 			goto insert_dup;
 		}
 
@@ -268,8 +266,6 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 
 		pxor = l->key ^ r->key;
 		if (!pxor) {
-			//if (key != p->key)
-			//	break; // insert here
 			/* That's the topmost node of a dup tree */
 			goto insert_dup;
 		}
@@ -287,11 +283,9 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 			 * (which is then necessarily a node).
 			 */
 			//fprintf(stderr, "key=%#x lkey=%#x rkey=%#x pxor=%#x\n", key, l->key, r->key, pxor);
-			//if (key == p->key)
-				goto insert_dup;
-				//break;
+			goto insert_dup;
 		}
-	
+
 		if ((key ^ l->key) < (key ^ r->key))
 			root = &p->node.l;
 		else
@@ -539,7 +533,7 @@ void *cba_dump_tree_u32(struct cba_node *node, u32 pxor, void *last,
 	if (!node) /* empty tree */
 		return node;
 
-	fprintf(stderr, "node=%p level=%d\n", node, level);
+	fprintf(stderr, "node=%p level=%d key=%u l=%p r=%p\n", node, level, *(unsigned *)((char*)(node)+16), node->l, node->r);
 
 	if (level < 0) {
 		/* we're inside a dup tree. Tagged pointers indicate nodes,
