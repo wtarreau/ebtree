@@ -164,6 +164,7 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 	u32 key = container_of(node, struct cba_u32, node)->key;
 	//u32 pxor_old = ~0;
 	//struct cba_u32 *p_old = 0;
+	int isdup = 0;
 
 	if (!*root) {
 		/* empty tree */
@@ -253,7 +254,8 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 			 * always have key != p->key here, hence insertion must
 			 * not fall back to a dup insert.
 			 */
-			pxor = 0;
+			isdup = 1;
+			//pxor = 0;
 			break;
 		}
 
@@ -283,6 +285,7 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 		if (pxor == 0) { // test using 4 4 1
 			/* That's the topmost node of a dup tree */
 			//fprintf(stderr, "[%u] *(%p) = %p [%p %p]\n", key, root, *root, (*root)->l, (*root)->r);
+			isdup = 1;
 			break;
 		}
 
@@ -336,7 +339,7 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 		node->l = node;
 		node->r = &p->node;
 	}
-	else if (key == p->key && !pxor) {
+	else if (key == p->key && /*!pxor*/ isdup) {
 		return cba_insert_dup(root, node);
 	}
 	else {
