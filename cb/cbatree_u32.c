@@ -295,17 +295,19 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 		//	break;
 		//pxor_old=pxor;
 		//p_old = p;
-	
+
 		//if ((key ^ l->key) > pxor && (key ^ l->key ^ pxor) > pxor) {
 		//pxor ^= key;
 		//if ((l->key) > pxor && (r->key) > pxor) {
 		//if ((key ^ (l->key & r->key)) >= pxor) {
 		if ((key ^ l->key) > pxor && (key ^ r->key) > pxor) {
 			/* can't go lower, the node must be inserted above p
-			 * (which is then necessarily a node).
+			 * (which is then necessarily a node). We also know
+			 * that (key != p->key) because p->key differs from at
+			 * least one of its subkeys by a higher bit than the
+			 * split bit.
 			 */
 			//fprintf(stderr, "key=%#x lkey=%#x rkey=%#x pxor=%#x\n", key, l->key, r->key, pxor);
-			pxor = 0;
 			break;
 		}
 
