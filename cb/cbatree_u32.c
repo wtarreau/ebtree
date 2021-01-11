@@ -248,7 +248,13 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 			 * the key differs however we have to insert here. Thus
 			 * it is a node again.
 			 */
-			goto insert_dup;
+			//fprintf(stderr, "[%u@%p] *(%p) = %p [%p %p]\n", key, node, root, *root, (*root)->l, (*root)->r);
+			/* this node has the same value as its parent so we
+			 * always have key != p->key here, hence insertion must
+			 * not fall back to a dup insert.
+			 */
+			pxor = 0;
+			break;
 		}
 
 		/* neither pointer is tagged */	
@@ -272,13 +278,13 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 		if ((l->key ^ r->key) > pxor) { // test using 2 4 6 4
 			break;
 		}
-		else if ((l->key ^ r->key) == 0) { // test using 4 4 1
-			/* That's the topmost node of a dup tree */
-			//fprintf(stderr, "[%u] *(%p) = %p [%p %p]\n", key, root, *root, (*root)->l, (*root)->r);
-			goto insert_dup;
-		}
 
 		pxor = l->key ^ r->key;
+		if (pxor == 0) { // test using 4 4 1
+			/* That's the topmost node of a dup tree */
+			//fprintf(stderr, "[%u] *(%p) = %p [%p %p]\n", key, root, *root, (*root)->l, (*root)->r);
+			break;
+		}
 
 		//if (!pxor) {
 		//	/* That's the topmost node of a dup tree */
@@ -299,7 +305,8 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 			 * (which is then necessarily a node).
 			 */
 			//fprintf(stderr, "key=%#x lkey=%#x rkey=%#x pxor=%#x\n", key, l->key, r->key, pxor);
-			goto insert_dup;
+			pxor = 0;
+			break;
 		}
 
 		//if ((key & (l->key & r->key)) > l->key)
@@ -323,14 +330,14 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 	 *    to take its place
 	 *  - whether we attach <p> left or right below us
 	 */
- insert_above:
 	if (key < p->key) {
 		node->l = node;
 		node->r = &p->node;
 	}
+	else if (key == p->key && !pxor) {
+		return cba_insert_dup(root, node);
+	}
 	else {
-		//if (key == p->key)
-		//	fprintf(stderr, "[%u@%p] *(%p) = %p [%p %p]\n", key, node, root, *root, (*root)->l, (*root)->r);
 		/* either larger, or equal above a leaf */
 		node->l = &p->node;
 		node->r = node;
@@ -339,13 +346,6 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
  done:
 	*root = node;
 	return node;
-
- insert_dup:
-	if (key != p->key)
-		goto insert_above;
-
-	//fprintf(stderr, "*(%p) = %p -> %p [%p %p]\n", root, *root, node, node->l, node->r);
-	return cba_insert_dup(root, node);
 }
 
 ///* returns the highest node which is less than or equal to data. This is
