@@ -111,6 +111,41 @@ struct cba_node *cba_insert_dup(struct cba_node **root, struct cba_node *node)
 	int ldepth, rdepth;
 	int pos;
 
+
+	/* If none of top's branches is tagged, we're either on a leaf or on
+	 * two leaves.
+	 */
+	if (!__cba_is_dup(top)) {
+		if (top->l == top->r) { /* top is the nodeless leaf */
+			node->l = top;
+			node->r = node;
+			*root = node;
+			goto done;
+		}
+		/* then one of the branches is top */
+		// FIXME: still fails the 1 4 5 4 test
+		if (top->l == top) {
+			root = &top->l;
+			node->l = *root;//top;
+			node->r = node;
+			*root = __cba_dotag(node);//node;
+			goto done;
+		}
+		else if (top->r == top) {// solves the 1 4 5 4 test
+			root = &top->r;
+			// install above
+			node->l = *root;
+			node->r = node;
+			*root = __cba_dotag(node);//node;
+			goto done;
+		}
+		// FIXME: still fails the 4 4 4 1 4 test
+		node->l = *root;//top;
+		node->r = node;
+		*root = node;//__cba_dotag(node);//node;
+		goto done;
+	}
+
 	ldepth = rdepth = 0;
 
 	/* Walk down right and stop once we meet an untagged branch,
@@ -339,10 +374,23 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 		node->l = node;
 		node->r = &p->node;
 	}
-	else if (key == p->key && /*!pxor*/ isdup) {
+	else if (key == p->key && /*!pxor*/ 1/* isdup*/) {
+		// 1 4 4 or 1 4 5 4
+		l = (typeof(l))(*root)->l;
+		r = (typeof(r))(*root)->r;
+		fprintf(stderr, "[%u@%p] *(%p) = %p [%#x@%p %#x@%p ^=%#x] pxor=%#x isdup=%d\n", key, node, root, *root, l->key, (*root)->l, r->key, (*root)->r, l->key^r->key, pxor, isdup);
+		//if (!isdup && l != r)
+		//	goto append;
 		return cba_insert_dup(root, node);
 	}
 	else {
+	append:
+		//if (key == p->key) {
+		//	// 1 4 4 or 1 4 5 4
+		//	l = (typeof(l))(*root)->l;
+		//	r = (typeof(r))(*root)->r;
+		//	fprintf(stderr, "[%u@%p] *(%p) = %p [%#x@%p %#x@%p ^=%#x] pxor=%#x\n", key, node, root, *root, l->key, (*root)->l, r->key, (*root)->r, l->key^r->key, pxor);
+		//}
 		/* either larger, or equal above a leaf */
 		node->l = &p->node;
 		node->r = node;
