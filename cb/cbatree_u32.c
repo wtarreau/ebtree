@@ -160,7 +160,7 @@ struct cba_node *cba_insert_dup(struct cba_node **root, struct cba_node *node)
 struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 {
 	struct cba_u32 *p, *l, *r;
-	u32 pxor = 0; // make sure we don't run the first test.
+	u32 pxor = ~0; // make sure we don't run the first test.
 	u32 key = container_of(node, struct cba_u32, node)->key;
 	//u32 pxor_old = ~0;
 	//struct cba_u32 *p_old = 0;
@@ -233,12 +233,14 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 	//	}
 	//}
 
+	/* the previous xor is initialized to the largest possible inter-branch
+	 * value so that it can never match on the first test as we want to use
+	 * it to detect a leaf vs node.
+	 */
 	while (1) {
 		p = container_of(*root, struct cba_u32, node);
 
-		//if (p == p_old)
-		//	break;
-		if (__cba_is_dup(&p->node)) {
+		if (__cba_is_dup(&p->node)) { // test using 4 4 4 1
 			/* This is a cover node on top of a dup tree so both of
 			 * its branches have the same key as the node itself.
 			 * If the key we're trying to insert is the same, we
@@ -253,22 +255,35 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 		l = container_of(p->node.l, struct cba_u32, node);
 		r = container_of(p->node.r, struct cba_u32, node);
 
-		/* maybe we've reached a leaf (including ours) ? */
-		if (l == r || ((l->key ^ r->key) >= pxor && pxor != 0)) {
-			/* this is the only case where we exit with a leaf. It
-			 * may be the first inserted one (l==r) or a regular
-			 * leaf, which is only possible after a node, hence
-			 * pxor not being zero.
-			 */
+		/* two equal pointers identifies the nodeless leaf */
+		if (l == r)
+			break;
+
+		/* so that's either a node or a leaf. Each leaf we visit had
+		 * its node part already visited. The only way to distinguish
+		 * them is that the inter-branch xor of the leaf will be the
+		 * node's one, and will necessarily be larger than the previous
+		 * node's xor if the node is above (we've already checked for
+		 * direct descendent below). Said differently, if an inter-
+		 * branch xor is strictly larger than the previous one, it
+		 * necessarily is the one of an upper node, so what we're
+		 * seeing cannot be the node, hence it's the leaf.
+		 */
+		if ((l->key ^ r->key) > pxor) { // test using 2 4 6 4
 			break;
 		}
-		//	fprintf(stderr, "[%u] *(%p) = %p [%p %p]\n", key, root, *root, (*root)->l, (*root)->r);
-
-		pxor = l->key ^ r->key;
-		if (!pxor) {
+		else if ((l->key ^ r->key) == 0) { // test using 4 4 1
 			/* That's the topmost node of a dup tree */
+			//fprintf(stderr, "[%u] *(%p) = %p [%p %p]\n", key, root, *root, (*root)->l, (*root)->r);
 			goto insert_dup;
 		}
+
+		pxor = l->key ^ r->key;
+
+		//if (!pxor) {
+		//	/* That's the topmost node of a dup tree */
+		//	goto insert_dup;
+		//}
 	
 		//if (pxor > pxor_old) // this is a leaf of previous node
 		//	break;
@@ -278,6 +293,7 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 		//if ((key ^ l->key) > pxor && (key ^ l->key ^ pxor) > pxor) {
 		//pxor ^= key;
 		//if ((l->key) > pxor && (r->key) > pxor) {
+		//if ((key ^ (l->key & r->key)) >= pxor) {
 		if ((key ^ l->key) > pxor && (key ^ r->key) > pxor) {
 			/* can't go lower, the node must be inserted above p
 			 * (which is then necessarily a node).
@@ -286,10 +302,16 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 			goto insert_dup;
 		}
 
+		//if ((key & (l->key & r->key)) > l->key)
 		if ((key ^ l->key) < (key ^ r->key))
 			root = &p->node.l;
 		else
 			root = &p->node.r;
+
+		if (p == container_of(*root, struct cba_u32, node)) {
+			// this is the previous node's leaf
+			break;
+		}
 	}
 
 	/* We're going to insert <node> above leaf <p> and below <root>. It's
