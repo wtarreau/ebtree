@@ -1,0 +1,81 @@
+2021-08-30 -- cbtree (Compact Binary Tree)
+
+Summary
+-------
+
+The cbtree is a much more compact variant of the ebtree, which only contains
+two tagged branch pointers. There is no upward pointers so some operations
+are slower as they will require a lookup. For example there is no next().
+
+But it provides a number of other benefits. The first one being the memory
+usage: the tree uses the same storage as a list, thus can be installed
+anywhere a list would be used. This can be particularly interesting for
+read-mostly data (configuration, append-only indexes etc). It preserves
+structure alignment, thus does not require to contain the data itself, the
+data may be appended just after the pointer nodes, which saves the need for
+typed trees thus typed operations. It may also make the code a bit cleaner,
+because with ebtree it's often tempting to touch node->key from the main
+code, without always realizing the impacts (namely with signed values).
+
+It should also be easier to implement variants (e.g. case insensitive strings
+lookups, or faster memory lookups matching one word at a time, etc) thanks to
+the unified types.
+
+Duplicates are possible by using list elements, but are a bit tricky to
+implement. They should be agnostic to the data representation.
+
+
+Properties
+----------
+
+- No two nodes may point to the same leaf, since a leaf only has one parent
+  node.
+
+- If a node has two leaves, one of them must be the node itself. Indeed, a
+  node's leaf is are always below the node so if the node has two leaves
+  there is no other node.
+
+- as a corrolary, no leaf pointer may point to a node having two leaves
+  except when it's the same.
+
+
+Principles
+----------
+
+Like for the ebtree, there are two parts:
+  - the node (contains the two branches)
+  - the leaf (the point that contains the unique value)
+
+They are differentiated by the tagged pointer that points to them. Like with
+ebtrees, the tag is placed in bit zero:
+  - a node has tag == 0
+  - a leaf has tag == 1
+
+Duplicates may be implemented using a construct very similar to dual-linked
+lists. For this, the node that normally points to a leaf will point to the
+list's last element, using a leaf tag. This element's "prev" pointer will point
+to the previous list element with a tagged pointer if it's another list link,
+or an untagged pointer for the original node. The list element's "next" pointer
+points to the element after the first node, which might be the element itself.
+This one is always tagged.
+
+The tree descent looks like this:
+
+1) go down until a tagged pointer is met
+2) this pointer is either for a leaf or for a list of duplicates
+3) if the tagged pointer is the same as the node's, it's a leaf
+4) if the pointer's N points to itself+1, cannot be a leaf thanks to principles
+   above, thus it's a list (single duplicate)
+5) if both of the pointed element's pointers are tagged, it cannot be a leaf,
+   thus it's a list with at least 2 duplicates
+//6) if neither pointer is tagged, it's necessarily a leaf (note that if at
+//   least the next pointer is untagged it cannot be a list thus it was a leaf)
+//7) if the pointer's P points to itself+1 (when?) it's a list
+8) otherwise it's a regular leaf
+
+Other rules might apply for 4 and next  above: lists always have N tagged. Thus
+if ptr->N is untagged, it's a leaf. Otherwise if ptr->P tagged, it's a 2+ list.
+Otherwise if ptr->N == ptr+1 it's a 1-dup list, otherwise it's a leaf. Check
+with "4,7,6" and "4,5,6".
+
+The first element in a dup-list is always untag(untag(ptr)->N)->P.
