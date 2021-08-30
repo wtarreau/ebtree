@@ -69,14 +69,14 @@ static inline size_t __cba_intptr(struct cba_node *tree)
 	return (size_t)tree;
 }
 
-/* returns true if at least one of the branches is a subtree node, indicating
- * that the current node is at the top of a duplicate sub-tree and that all
- * values below it are the same.
- */
-static inline int __cba_is_dup(const struct cba_node *node)
-{
-	return __cba_tagged((struct cba_node *)(__cba_intptr(node->l) | __cba_intptr(node->r)));
-}
+///* returns true if at least one of the branches is a subtree node, indicating
+// * that the current node is at the top of a duplicate sub-tree and that all
+// * values below it are the same.
+// */
+//static inline int __cba_is_dup(const struct cba_node *node)
+//{
+//	return __cba_tagged((struct cba_node *)(__cba_intptr(node->l) | __cba_intptr(node->r)));
+//}
 
 ///* Returns the type of the branch pointed to by <tree> among CB_TYPE_LEAF and
 // * CB_TYPE_NODE.
