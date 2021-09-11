@@ -4,8 +4,8 @@ Summary
 -------
 
 The cbtree is a much more compact variant of the ebtree, which only contains
-two tagged branch pointers. There is no upward pointers so some operations
-are slower as they will require a lookup. For example there is no next().
+two branch pointers. There is no upward pointers so some operations are slower
+as they will require a lookup. For example there is no next().
 
 But it provides a number of other benefits. The first one being the memory
 usage: the tree uses the same storage as a list, thus can be installed
@@ -19,7 +19,7 @@ code, without always realizing the impacts (namely with signed values).
 
 It should also be easier to implement variants (e.g. case insensitive strings
 lookups, or faster memory lookups matching one word at a time, etc) thanks to
-the unified types.
+the unified data types.
 
 Duplicates are possible by using list elements, but are a bit tricky to
 implement. They should be agnostic to the data representation.
@@ -27,9 +27,12 @@ implement. They should be agnostic to the data representation.
 
 Properties
 ----------
-
 - No two nodes may point to the same leaf, since a leaf only has one parent
   node.
+
+- given that each node has two pointers, there are twice as many pointers as
+  nodes in the tree, so each node appears twice (once as a node and once as a
+  leaf).
 
 - If a node has two leaves, one of them must be the node itself. Indeed, a
   node's leaf is are always below the node so if the node has two leaves
@@ -38,18 +41,27 @@ Properties
 - as a corrolary, no leaf pointer may point to a node having two leaves
   except when it's the same.
 
+- a node has up to two roles depending how it's reached. One is to be an
+  intermediary node, the other one is to be a leaf.
+
+- there are two types of nodes, some have a single role and are only leaves,
+  other ones are the dual-role nodes described above.
+
+- duplicates are stored in doubly-linked lists inserted between the node and
+  the first leaf. By convention, any duplicate is a leaf.
+
 
 Principles
 ----------
 
-Like for the ebtree, there are two parts:
+Like for the ebtree, a dual-role node has two parts:
   - the node (contains the two branches)
   - the leaf (the point that contains the unique value)
 
-They are differentiated by the tagged pointer that points to them. Like with
-ebtrees, the tag is placed in bit zero:
-  - a node has tag == 0
-  - a leaf has tag == 1
+They are solely differentiated by path followed to reach them. To put it
+simply, the tree is arranged so that double-role nodes have their node part
+visited first and their leaf part visited second. In practice it means that
+the same pointer is seen twice during the tree descent.
 
 Duplicates may be implemented using a construct very similar to dual-linked
 lists. For this, the node that normally points to a leaf will point to the
