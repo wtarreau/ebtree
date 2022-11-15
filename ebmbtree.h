@@ -651,6 +651,7 @@ __ebmb_insert_prefix(struct eb_root *root, struct ebmb_node *new, unsigned int l
 	int old_node_bit;
 	unsigned int npfx = new->node.pfx;
 	unsigned int npfx1 = npfx << 1;
+	const unsigned char *nkey = new->key;
 
 	side = EB_LEFT;
 	troot = root->b[EB_LEFT];
@@ -710,13 +711,13 @@ __ebmb_insert_prefix(struct eb_root *root, struct ebmb_node *new, unsigned int l
 			/* No need to compare everything if the leaves are shorter than the new one. */
 			if (len > old->node.pfx)
 				len = old->node.pfx;
-			bit = equal_bits(new->key, old->key, bit, len);
+			bit = equal_bits(nkey, old->key, bit, len);
 			break;
 		}
 
 		/* WARNING: for the two blocks below, <bit> is counted in half-bits */
 
-		bit = equal_bits(new->key, old->key, bit, old_node_bit >> 1);
+		bit = equal_bits(nkey, old->key, bit, old_node_bit >> 1);
 		bit = (bit << 1) + 1; // assume comparisons with normal nodes
 
 		/* we must always check that our prefix is larger than the nodes
@@ -741,7 +742,7 @@ __ebmb_insert_prefix(struct eb_root *root, struct ebmb_node *new, unsigned int l
 			new->node.node_p = old->node.node_p;
 			up_ptr = &old->node.node_p;
 			new->node.bit = bit;
-			diff = cmp_bits(new->key, old->key, bit >> 1);
+			diff = cmp_bits(nkey, old->key, bit >> 1);
 			goto insert_above;
 		}
 
@@ -777,7 +778,7 @@ __ebmb_insert_prefix(struct eb_root *root, struct ebmb_node *new, unsigned int l
 		root = &old->node.branches;
 		side = old_node_bit & 7;
 		side ^= 7;
-		side = (new->key[old_node_bit >> 3] >> side) & 1;
+		side = (nkey[old_node_bit >> 3] >> side) & 1;
 		troot = root->b[side];
 	}
 
@@ -820,7 +821,7 @@ __ebmb_insert_prefix(struct eb_root *root, struct ebmb_node *new, unsigned int l
 	 */
 	diff = 0;
 	if (bit < old->node.pfx && bit < (int)npfx)
-		diff = cmp_bits(new->key, old->key, bit);
+		diff = cmp_bits(nkey, old->key, bit);
 
 	if (diff == 0) {
 		/* Both keys match. Either it's a duplicate entry or we have to
