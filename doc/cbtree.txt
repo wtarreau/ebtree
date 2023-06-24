@@ -91,3 +91,46 @@ Otherwise if ptr->N == ptr+1 it's a 1-dup list, otherwise it's a leaf. Check
 with "4,7,6" and "4,5,6".
 
 The first element in a dup-list is always untag(untag(ptr)->N)->P.
+
+
+Possibly convenient approach
+----------------------------
+
+Since the tree is totally oriented in a single direction, all operations need
+to operate on the key using lookups. In order to ease code production, it's
+probably worth implementing generic lookup functions that are forcefully
+inlined and which return a wide variety of pointers depending on the use case:
+  - node's grand parent
+  - node's parent
+  - leaf's parent
+  - last left branch
+  - last right branch
+  - ... or variants of these such as pointer to the pointer itself, info on the
+    side and so on.
+
+These would be returned as void** or struct cbtree** that the calling functions
+(not inlined) would explicitly assign to &local_var or to NULL so that the
+compiler can trivially optimize them away.
+
+Parent/grand-parents are useful for inserting and removing. Last left and last
+right branches are useful to implement next() and prev(), combined with a
+rightmost or leftmost desccent.
+
+This way most of the complexity would be left into a single function per lookup
+method, and the rest of the code would just call it with a varying set of
+parameters. As a nice bonus, this would permit to relatively easily implement
+variants such as delete_by_value(), which would only cast the pointer to the
+value to a node before looking it up, just like the regular value lookup would
+do. This would also permit to easily implement extra methods such as lookup_gt
+and lookup_lt() which would just perform a lookup_ge()/lookup_le() with the
+pointer to left/right set so that the caller could trivially get the next/prev
+on exact match.
+
+Several short-term envisioned use cases warrant a first version not supporting
+duplicates (e.g. haproxy's pattern references and stick tables). Also, the
+experience gathered on existing code definitely indicates that support for
+duplicates shouldn't be a property of the tree storage but of the code using
+the tree, because the check for duplicates, the fallbacks, the use of insert()
+for lookups etc depends on this and is has a direct impact on how the code is
+written. This means that distinct functions should be written for this (likely
+with yet another argument passed to the generic inline function).
