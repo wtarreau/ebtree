@@ -17,6 +17,7 @@ void *cba_dump_tree_u32(struct cba_node *node, u32 pxor, void *last,
 			void (*leaf_dump)(struct cba_node *node, int level));
 
 struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node);
+struct cba_node *cba_lookup_u32(struct cba_node **root, u32 key);
 
 
 struct cba_node *cba_root = NULL;
@@ -74,11 +75,18 @@ struct cba_node *add_value(struct cba_node **root, uint32_t value)
 
 int main(int argc, char **argv)
 {
+	const struct cba_node *old;
 	char *orig_argv = argv[1];
 	char *p;
+	uint32_t v;
+
 
 	while (argc > 1) {
-		add_value(&cba_root, atoi(argv[1]));
+		v = atoi(argv[1]);
+		old = cba_lookup_u32(&cba_root, v);
+		if (old)
+			fprintf(stderr, "Note: value %u already present at %p\n", v, old);
+		add_value(&cba_root, v);
 		argv++;
 		argc--;
 	}
