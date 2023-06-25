@@ -224,6 +224,16 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 	return ret;
 }
 
+/* look up the specified key, and returns either the node containing it, or
+ * NULL if not found.
+ */
+struct cba_node *cba_lookup_u32(struct cba_node **root, u32 key)
+{
+	const struct cba_u32 *node = container_of(&key, struct cba_u32, key);
+
+	return cbau_descend_u32(root, node, NULL, NULL, NULL);
+}
+
 ///* returns the highest node which is less than or equal to data. This is
 // * typically used to know what memory area <data> belongs to.
 // */
