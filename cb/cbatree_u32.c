@@ -91,13 +91,14 @@ struct cba_u32 {
  * which must either point to a local variable in the caller, or be NULL.
  * It must not be called with an empty tree, it's the caller business to
  * deal with this special case. It returns in ret_root the location of the
- * pointer to the leaf (i.e. where we have to insert ourselves).
+ * pointer to the leaf (i.e. where we have to insert ourselves). The integer
+ * pointed to by ret_nside will contain the side the leaf should occupy at
+ * its own node, with the sibling being *ret_root.
  */
 static inline __attribute__((always_inline))
 struct cba_node *cbau_descend_u32(/*const*/ struct cba_node **root,
 				  /*const*/ struct cba_node *node,
-				  struct cba_node **ret_l,
-				  struct cba_node **ret_r,
+				  int *ret_nside,
 				  struct cba_node ***ret_root)
 {
 	struct cba_u32 *p, *l, *r;
@@ -183,22 +184,12 @@ struct cba_node *cbau_descend_u32(/*const*/ struct cba_node **root,
 	}
 
 	/* plain lookups just stop here */
-	if (!ret_root && !ret_l && !ret_r)
+	if (!ret_root && !ret_nside)
 		return NULL;
 
-	/* modifications (insert, delete) cotinue here */
-	if (key < p->key) {
-		if (ret_l)
-			*ret_l = node;
-		if (ret_r)
-			*ret_r = &p->node;
-	}
-	else {
-		if (ret_l)
-			*ret_l = &p->node;
-		if (ret_r)
-			*ret_r = node;
-	}
+	/* modifications (insert, delete) continue here */
+	if (ret_nside)
+		*ret_nside = key >= p->key;
 
 	if (ret_root)
 		*ret_root = root;
@@ -209,6 +200,7 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 {
 	struct cba_node **parent;
 	struct cba_node *ret;
+	int nside;
 
 	if (!*root) {
 		/* empty tree, insert a leaf only */
@@ -217,9 +209,19 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 		return node;
 	}
 
-	ret = cbau_descend_u32(root, node, &node->l, &node->r, &parent);
-	if (ret == node)
+	ret = cbau_descend_u32(root, node, &nside, &parent);
+
+	if (ret == node) {
+		if (!nside) {
+			node->l = node;
+			node->r = *parent;
+		}
+		else {
+			node->l = *parent;
+			node->r = node;
+		}
 		*parent = ret;
+	}
 	return ret;
 }
 
@@ -234,7 +236,7 @@ struct cba_node *cba_lookup_u32(struct cba_node **root, u32 key)
 	if (!*root)
 		return NULL;
 
-	return cbau_descend_u32(root, node, NULL, NULL, NULL);
+	return cbau_descend_u32(root, node, NULL, NULL);
 }
 
 ///* returns the highest node which is less than or equal to data. This is
