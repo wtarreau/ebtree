@@ -68,7 +68,7 @@ struct cba_node *add_value(struct cba_node **root, uint32_t value)
 {
 	struct key *key;
 
-	key = calloc(1, sizeof(key));
+	key = calloc(1, sizeof(*key));
 	key->key = value;
 	return cba_insert_u32(root, &key->node);
 }
