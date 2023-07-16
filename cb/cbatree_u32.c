@@ -137,6 +137,7 @@ struct cba_node *cbau_descend_u32(/*const*/ struct cba_node **root,
 		 * seeing cannot be the node, hence it's the leaf.
 		 */
 		if ((l->key ^ r->key) > pxor) { // test using 2 4 6 4
+			/* this is a leaf */
 			//fprintf(stderr, "key %u break at %d\n", key, __LINE__);
 			break;
 		}
@@ -149,7 +150,7 @@ struct cba_node *cbau_descend_u32(/*const*/ struct cba_node **root,
 			 * (which is then necessarily a node). We also know
 			 * that (key != p->key) because p->key differs from at
 			 * least one of its subkeys by a higher bit than the
-			 * split bit.
+			 * split bit, so lookups must fail here.
 			 */
 			//fprintf(stderr, "key %u break at %d\n", key, __LINE__);
 			break;
@@ -162,38 +163,52 @@ struct cba_node *cbau_descend_u32(/*const*/ struct cba_node **root,
 
 		if (p == container_of(*root, struct cba_u32, node)) {
 			//fprintf(stderr, "key %u break at %d\n", key, __LINE__);
+			/* loops over itself, it's a leaf */
 			break;
 		}
 	}
 
-	/* We're going to insert <node> above leaf <p> and below <root>. It's
-	 * possible that <p> is the first inserted node, or that it's any other
-	 * regular node or leaf. Therefore we don't care about pointer tagging.
-	 * We need to know two things :
-	 *  - whether <p> is left or right on <root>, to unlink it properly and
-	 *    to take its place
-	 *  - whether we attach <p> left or right below us
-	 */
-	if (!ret_root && key == p->key) {
-		/* for lookups this is sufficient. For insert the caller can
-		 * verify that the result is not node hence a conflicting value
-		 * already existed. We do not make more efforts for now towards
-		 * duplicates.
-		 */
-		return *root;
-	}
-
-	/* plain lookups just stop here */
-	if (!ret_root && !ret_nside)
-		return NULL;
-
-	/* modifications (insert, delete) continue here */
+	/* update the pointers needed for modifications (insert, delete) */
 	if (ret_nside)
 		*ret_nside = key >= p->key;
 
 	if (ret_root)
 		*ret_root = root;
+
+	/* For lookups, an equal value means an instant return. For insertions,
+	 * it is the same, we want to return the previously existing value so
+	 * that the caller can decide what to do. For deletion, we also want to
+	 * return the pointer that's about to be deleted.
+	 */
+	if (key == p->key)
+		return &p->node;//*root;  both are the same, but p->node should be cheaper
+
+//	/* We're going to insert <node> above leaf <p> and below <root>. It's
+//	 * possible that <p> is the first inserted node, or that it's any other
+//	 * regular node or leaf. Therefore we don't care about pointer tagging.
+//	 * We need to know two things :
+//	 *  - whether <p> is left or right on <root>, to unlink it properly and
+//	 *    to take its place
+//	 *  - whether we attach <p> left or right below us
+//	 */
+//	if (!ret_root && key == p->key) {
+//		/* for lookups this is sufficient. For insert the caller can
+//		 * verify that the result is not node hence a conflicting value
+//		 * already existed. We do not make more efforts for now towards
+//		 * duplicates.
+//		 */
+//		return *root;
+//	}
+
+	/* lookups and deletes fail here */
+	/* plain lookups just stop here */
+	if (!ret_root)
+		return NULL;
+
+	/* inserts return the node we expect to insert */
+	//printf("descent insert: node=%p key=%d root=%p *root=%p p->node=%p\n", node, key, root, *root, &p->node);
 	return node;
+	//return &p->node;
 }
 
 struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
