@@ -99,15 +99,32 @@ static inline __attribute__((always_inline))
 struct cba_node *cbau_descend_u32(/*const*/ struct cba_node **root,
 				  /*const*/ struct cba_node *node,
 				  int *ret_nside,
-				  struct cba_node ***ret_root)
+				  struct cba_node ***ret_root,
+				  struct cba_node **ret_lparent,
+				  int *ret_lpside,
+				  struct cba_node **ret_nparent,
+				  int *ret_npside,
+				  struct cba_node **ret_gparent,
+				  int *ret_gpside)
 {
 	struct cba_u32 *p, *l, *r;
 	u32 pxor = ~0; // make sure we don't run the first test.
 	u32 key = container_of(node, struct cba_u32, node)->key;
+	struct cba_node *gparent = NULL;
+	struct cba_node *nparent = NULL;
+	struct cba_node *lparent;
+	int gpside = 0; // side on the grand parent
+	int npside = 0;  // side on the node's parent
+	int lpside = 0;  // side on the leaf's parent
 
 	/* When exiting the loop, pxor will be zero for nodes and first leaf,
 	 * or non-zero for a leaf.
 	 */
+
+	/* the parent will be the (possibly virtual) node so that
+	 * &lparent->l == root.
+	 */
+	lparent = container_of(root, struct cba_node, l);
 
 	/* the previous xor is initialized to the largest possible inter-branch
 	 * value so that it can never match on the first test as we want to use
@@ -156,10 +173,28 @@ struct cba_node *cbau_descend_u32(/*const*/ struct cba_node **root,
 			break;
 		}
 
-		if ((key ^ l->key) < (key ^ r->key))
+		/* here we're guaranteed to be above a node. If this is the
+		 * same node as the one we're looking for, let's store the
+		 * parent as the node's parent.
+		 */
+		if (node == &p->node) {
+			nparent = lparent;
+			npside  = lpside;
+		}
+
+		/* shift all copies by one */
+		gparent = lparent;
+		gpside = lpside;
+		lparent = &p->node;
+
+		if ((key ^ l->key) < (key ^ r->key)) {
+			lpside = 0;
 			root = &p->node.l;
-		else
+		}
+		else {
+			lpside = 1;
 			root = &p->node.r;
+		}
 
 		if (p == container_of(*root, struct cba_u32, node)) {
 			//fprintf(stderr, "key %u break at %d\n", key, __LINE__);
@@ -174,6 +209,25 @@ struct cba_node *cbau_descend_u32(/*const*/ struct cba_node **root,
 
 	if (ret_root)
 		*ret_root = root;
+
+	/* info needed by delete */
+	if (ret_lpside)
+		*ret_lpside = lpside;
+
+	if (ret_lparent)
+		*ret_lparent = lparent;
+
+	if (ret_npside)
+		*ret_npside = npside;
+
+	if (ret_nparent)
+		*ret_nparent = nparent;
+
+	if (ret_gpside)
+		*ret_gpside = gpside;
+
+	if (ret_gparent)
+		*ret_gparent = gparent;
 
 	/* For lookups, an equal value means an instant return. For insertions,
 	 * it is the same, we want to return the previously existing value so
@@ -191,7 +245,7 @@ struct cba_node *cbau_descend_u32(/*const*/ struct cba_node **root,
 //	 *    to take its place
 //	 *  - whether we attach <p> left or right below us
 //	 */
-//	if (!ret_root && key == p->key) {
+//	if (!ret_root && !ret_lparent && key == p->key) {
 //		/* for lookups this is sufficient. For insert the caller can
 //		 * verify that the result is not node hence a conflicting value
 //		 * already existed. We do not make more efforts for now towards
@@ -224,7 +278,7 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 		return node;
 	}
 
-	ret = cbau_descend_u32(root, node, &nside, &parent);
+	ret = cbau_descend_u32(root, node, &nside, &parent, NULL, NULL, NULL, NULL, NULL, NULL);
 
 	if (ret == node) {
 		if (!nside) {
@@ -251,7 +305,67 @@ struct cba_node *cba_lookup_u32(struct cba_node **root, u32 key)
 	if (!*root)
 		return NULL;
 
-	return cbau_descend_u32(root, node, NULL, NULL);
+	return cbau_descend_u32(root, node, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+}
+
+/* look up the specified node with its key and deletes it if found, and in any
+ * case, returns the node.
+ */
+struct cba_node *cba_delete_u32(struct cba_node **root, struct cba_node *node)
+{
+	struct cba_node *lparent, *nparent, *gparent, *sibling;
+	int lpside, npside, gpside;
+	struct cba_node *ret;
+
+	if (!node->l) {
+		/* NULL on a branch means the node is not in the tree */
+		return node;
+	}
+
+	if (!*root) {
+		/* empty tree, the node cannot be there */
+		return node;
+	}
+
+	ret = cbau_descend_u32(root, node, NULL, NULL, &lparent, &lpside, &nparent, &npside, &gparent, &gpside);
+	if (ret == node) {
+		fprintf(stderr, "root=%p ret=%p l=%p[%d] n=%p[%d] g=%p[%d]\n", root, ret, lparent, lpside, nparent, npside, gparent, gpside);
+
+		if (&lparent->l == root) {
+			/* there was a single entry, this one */
+			*root = NULL;
+			goto done;
+		}
+		//printf("g=%p\n", gparent);
+
+		/* then we necessarily have a gparent */
+		sibling = lpside ? lparent->l : lparent->r;
+		if (!gpside)
+			gparent->l = sibling;
+		else
+			gparent->r = sibling;
+
+		if (lparent == node) {
+			/* we're removing the leaf and node together, nothing
+			 * more to do.
+			 */
+			goto done;
+		}
+
+		/* more complicated, the node was split from the leaf, we have
+		 * to find a spare one to switch it. The parent node is not
+		 * needed anymore so we can reuse it.
+		 */
+		lparent->l = node->l;
+		lparent->r = node->r;
+
+		if (!npside)
+			nparent->l = lparent;
+		else
+			nparent->r = lparent;
+	}
+done:
+	return ret;
 }
 
 ///* returns the highest node which is less than or equal to data. This is

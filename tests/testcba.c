@@ -18,7 +18,7 @@ void *cba_dump_tree_u32(struct cba_node *node, u32 pxor, void *last,
 
 struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node);
 struct cba_node *cba_lookup_u32(struct cba_node **root, u32 key);
-
+struct cba_node *cba_delete_u32(struct cba_node **root, struct cba_node *node);
 
 struct cba_node *cba_root = NULL;
 
@@ -67,10 +67,25 @@ static void dump_leaf(struct cba_node *node, int level)
 struct cba_node *add_value(struct cba_node **root, uint32_t value)
 {
 	struct key *key;
+	struct cba_node *prev, *ret;
 
 	key = calloc(1, sizeof(*key));
 	key->key = value;
-	return cba_insert_u32(root, &key->node);
+	do {
+		prev = cba_insert_u32(root, &key->node);
+		if (prev == &key->node)
+			return prev; // was properly inserted
+		/* otherwise was already there, let's try to remove it */
+		ret = cba_delete_u32(root, prev);
+		if (ret != prev) {
+			/* was not properly removed either: THIS IS A BUG! */
+			printf("failed to insert %p(%u) because %p has the same key and could not be removed because returns %p\n",
+			       &key->node, key->key, prev, ret);
+			free(key);
+			return NULL;
+		}
+		free(container_of(ret, struct key, node));
+	} while (1);
 }
 
 int main(int argc, char **argv)
