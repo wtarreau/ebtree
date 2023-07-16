@@ -89,6 +89,9 @@ struct cba_u32 {
 /* Generic tree descent function. It must absolutely be inlined so that the
  * compiler can eliminate the tests related to the various return pointers,
  * which must either point to a local variable in the caller, or be NULL.
+ * It must not be called with an empty tree, it's the caller business to
+ * deal with this special case. It returns in ret_root the location of the
+ * pointer to the leaf (i.e. where we have to insert ourselves).
  */
 static inline __attribute__((always_inline))
 struct cba_node *cbau_descend_u32(/*const*/ struct cba_node **root,
@@ -100,15 +103,6 @@ struct cba_node *cbau_descend_u32(/*const*/ struct cba_node **root,
 	struct cba_u32 *p, *l, *r;
 	u32 pxor = ~0; // make sure we don't run the first test.
 	u32 key = container_of(node, struct cba_u32, node)->key;
-
-	if (!*root) {
-		/* empty tree */
-		if (ret_l)
-			*ret_l = node;
-		if (ret_r)
-			*ret_r = node;
-		goto done;
-	}
 
 	/* When exiting the loop, pxor will be zero for nodes and first leaf,
 	 * or non-zero for a leaf.
@@ -179,7 +173,7 @@ struct cba_node *cbau_descend_u32(/*const*/ struct cba_node **root,
 	 *    to take its place
 	 *  - whether we attach <p> left or right below us
 	 */
-	if (key == p->key) {
+	if (!ret_root && key == p->key) {
 		/* for lookups this is sufficient. For insert the caller can
 		 * verify that the result is not node hence a conflicting value
 		 * already existed. We do not make more efforts for now towards
@@ -206,7 +200,6 @@ struct cba_node *cbau_descend_u32(/*const*/ struct cba_node **root,
 			*ret_r = node;
 	}
 
- done:
 	if (ret_root)
 		*ret_root = root;
 	return node;
@@ -216,6 +209,13 @@ struct cba_node *cba_insert_u32(struct cba_node **root, struct cba_node *node)
 {
 	struct cba_node **parent;
 	struct cba_node *ret;
+
+	if (!*root) {
+		/* empty tree, insert a leaf only */
+		node->l = node->r = node;
+		*root = node;
+		return node;
+	}
 
 	ret = cbau_descend_u32(root, node, &node->l, &node->r, &parent);
 	if (ret == node)
