@@ -230,6 +230,9 @@ struct cba_node *cba_lookup_u32(struct cba_node **root, u32 key)
 {
 	const struct cba_u32 *node = container_of(&key, struct cba_u32, key);
 
+	if (!*root)
+		return NULL;
+
 	return cbau_descend_u32(root, node, NULL, NULL, NULL);
 }
 
