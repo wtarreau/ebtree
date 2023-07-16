@@ -125,6 +125,7 @@ struct cba_node *cbau_descend_u32(/*const*/ struct cba_node **root,
 	 * &lparent->l == root.
 	 */
 	lparent = container_of(root, struct cba_node, l);
+	gparent = nparent = lparent;
 
 	/* the previous xor is initialized to the largest possible inter-branch
 	 * value so that it can never match on the first test as we want to use
