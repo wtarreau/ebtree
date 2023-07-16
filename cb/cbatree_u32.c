@@ -91,16 +91,15 @@ struct cba_u32 {
  * which must either point to a local variable in the caller, or be NULL.
  */
 static inline __attribute__((always_inline))
-struct cba_node *cbau_descend_u32(const struct cba_node **root,
-				  const struct cba_node *node,
+struct cba_node *cbau_descend_u32(/*const*/ struct cba_node **root,
+				  /*const*/ struct cba_node *node,
 				  struct cba_node **ret_l,
 				  struct cba_node **ret_r,
-				  struct cba_node **ret_root)
+				  struct cba_node ***ret_root)
 {
 	struct cba_u32 *p, *l, *r;
 	u32 pxor = ~0; // make sure we don't run the first test.
 	u32 key = container_of(node, struct cba_u32, node)->key;
-	int isdup = 0;
 
 	if (!*root) {
 		/* empty tree */
