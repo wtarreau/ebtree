@@ -330,7 +330,7 @@ struct cba_node *cba_delete_u32(struct cba_node **root, struct cba_node *node)
 
 	ret = cbau_descend_u32(root, node, NULL, NULL, &lparent, &lpside, &nparent, &npside, &gparent, &gpside);
 	if (ret == node) {
-		fprintf(stderr, "root=%p ret=%p l=%p[%d] n=%p[%d] g=%p[%d]\n", root, ret, lparent, lpside, nparent, npside, gparent, gpside);
+		//fprintf(stderr, "root=%p ret=%p l=%p[%d] n=%p[%d] g=%p[%d]\n", root, ret, lparent, lpside, nparent, npside, gparent, gpside);
 
 		if (&lparent->l == root) {
 			/* there was a single entry, this one */
