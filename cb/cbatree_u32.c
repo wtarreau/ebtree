@@ -353,6 +353,14 @@ struct cba_node *cba_delete_u32(struct cba_node **root, struct cba_node *node)
 			goto done;
 		}
 
+		if (node->l == node->r) {
+			/* we're removing the node-less item, the parent will
+			 * take this role.
+			 */
+			lparent->l = lparent->r = lparent;
+			goto done;
+		}
+
 		/* more complicated, the node was split from the leaf, we have
 		 * to find a spare one to switch it. The parent node is not
 		 * needed anymore so we can reuse it.
