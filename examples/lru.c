@@ -189,7 +189,7 @@ static unsigned long long sum(unsigned long long x)
 
 static long get_value(struct lru64_head *lru, long a)
 {
-	struct lru64 *item;
+	struct lru64 *item = NULL;
 
 	if (lru) {
 		item = lru64_get(a, lru, lru, 0);
@@ -220,6 +220,8 @@ int main(int argc, char **argv)
 
 	if (argc > 2) /* cache size */
 		lru = lru64_new(atoi(argv[2]));
+	else
+		lru = lru64_new(16384);
 
 	ret = 0;
 	for (loops = 0; loops < total; loops++) {
