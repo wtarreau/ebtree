@@ -176,6 +176,16 @@ int lru64_destroy(struct lru64_head *lru)
 
 static unsigned int misses;
 
+/* xorshift generator */
+static unsigned int rnd32seed = 2463534242U;
+static unsigned int rnd32()
+{
+	rnd32seed ^= rnd32seed << 13;
+	rnd32seed ^= rnd32seed >> 17;
+	rnd32seed ^= rnd32seed << 5;
+	return rnd32seed;
+}
+
 static unsigned long long sum(unsigned long long x)
 {
 #ifndef TEST_LRU_FAST_OPERATION
@@ -225,7 +235,7 @@ int main(int argc, char **argv)
 
 	ret = 0;
 	for (loops = 0; loops < total; loops++) {
-		ret += get_value(lru, rand() & 65535);
+		ret += get_value(lru, rnd32() & 65535);
 	}
 	/* just for accuracy control */
 	printf("ret=%llx, hits=%d, misses=%d (%d %% hits)\n", ret, total-misses, misses, (int)((float)(total-misses) * 100.0 / total));
