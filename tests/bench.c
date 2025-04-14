@@ -158,6 +158,7 @@ __attribute__((noreturn)) void die(int code, const char *format, ...)
 	exit(code);
 }
 
+#ifndef NODEBUG
 #define BUG_ON(x) do {							\
 		if (x) {						\
 			fprintf(stderr, "BUG at %s:%d after %lu loops: %s\n", \
@@ -165,6 +166,9 @@ __attribute__((noreturn)) void die(int code, const char *format, ...)
 			__builtin_trap();				\
 		}							\
 	} while (0)
+#else
+#define BUG_ON(x) do { } while (0)
+#endif
 
 /* flags for item->flags */
 #define IN_TREE         0x00000001
