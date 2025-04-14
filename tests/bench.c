@@ -297,6 +297,10 @@ void run(void *arg)
 #else
 			itm->key = v;
 #endif
+
+#ifdef SET_KEY
+			SET_KEY(&itm->node, itm->key);
+#endif
 			//fprintf(stderr, "idx=%5u itm=%p key=%llu flg=%lu intr=%d\n", idx, itm, (unsigned long long)itm->key, itm->flags, NODE_INTREE(&itm->node));
 			node1 = NODE_INS(&ctx->root, &itm->node);
 
