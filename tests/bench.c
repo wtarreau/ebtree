@@ -17,6 +17,7 @@
 # define ROOT_TYPE    struct ceb_root*
 # define NODE_INS(r,k)     cebul_insert(r,k)
 # define NODE_DEL(r,k)     cebul_delete(r,k)
+# define NODE_FND(r,k)     cebul_lookup(r,k)
 # define NODE_INTREE(n)    ceb_intree(n)
 # define STORAGE_STRING 0  // greater for string size
 #endif
@@ -191,6 +192,7 @@ struct ctx {
 	unsigned long min, max;
 	pthread_t thr;
 	unsigned long loops;
+	unsigned long ins;
 } __attribute__((aligned(64)));
 
 
@@ -201,6 +203,7 @@ static struct timeval start, prev, now;
 unsigned int nbthreads = 1;
 unsigned int nbelem = 32768;
 unsigned int arg_run = 1;
+unsigned int arg_lkups = 0; // distance between two writes
 
 /* run the test for a thread */
 void run(void *arg)
@@ -210,6 +213,7 @@ void run(void *arg)
 	unsigned int idx;
 	struct item *itm;
 	NODE_TYPE *node1;
+	int ign_write = 0;
 	DATA_TYPE v;
 
 	rnd32seed += tid + 1;
@@ -242,32 +246,43 @@ void run(void *arg)
 			 */
 			BUG_ON(!NODE_INTREE(&itm->node));
 
-			/* If the new picked value matches the existing
-			 * one, it is just removed. If it does not match,
-			 * it is removed and we try to enter the new one.
-			 */
-			node1 = NODE_DEL(&ctx->root, &itm->node);
-
-			//cebl_default_dump(&ctx->root, "del", &itm->node, ctx->loops);
-
-			if (node1 != &itm->node) {
+			if (ign_write) {
+				/* only perform a lookup */
+				node1 = NODE_FND(&ctx->root, itm->key);
+				BUG_ON(!node1);
 #if STORAGE_STRING > 0
-				fprintf(stderr, "BUG@%d: node1=%p('%s',%d,%lu) itm->node=%p('%s',%d,%lu)\n", __LINE__,
-					node1, container_of(node1, struct item, node)->key,
-					NODE_INTREE(node1), container_of(node1, struct item, node)->flags,
-					&itm->node, itm->key, NODE_INTREE(&itm->node), itm->flags);
+				BUG_ON(strcmp(container_of(node1, struct item, node)->key, itm->key) != 0);
 #else
-				fprintf(stderr, "BUG@%d: node1=%p(%llu,%d,%lu) itm->node=%p(%llu,%d,%lu)\n", __LINE__,
-					node1, (unsigned long long)container_of(node1, struct item, node)->key,
-					NODE_INTREE(node1), container_of(node1, struct item, node)->flags,
-					&itm->node, (unsigned long long)itm->key, NODE_INTREE(&itm->node), itm->flags);
+				BUG_ON(container_of(node1, struct item, node)->key != itm->key);
 #endif
-				BUG_ON(node1 != &itm->node);
+				ign_write--;
+			} else {
+				/* If the new picked value matches the existing
+				 * one, it is just removed. If it does not match,
+				 * it is removed and we try to enter the new one.
+				 */
+				node1 = NODE_DEL(&ctx->root, &itm->node);
+				ign_write = arg_lkups;
+
+				//cebl_default_dump(&ctx->root, "del", &itm->node, ctx->loops);
+
+				if (node1 != &itm->node) {
+#if STORAGE_STRING > 0
+					fprintf(stderr, "BUG@%d: node1=%p('%s',%d,%lu) itm->node=%p('%s',%d,%lu)\n", __LINE__,
+						node1, container_of(node1, struct item, node)->key,
+						NODE_INTREE(node1), container_of(node1, struct item, node)->flags,
+						&itm->node, itm->key, NODE_INTREE(&itm->node), itm->flags);
+#else
+					fprintf(stderr, "BUG@%d: node1=%p(%llu,%d,%lu) itm->node=%p(%llu,%d,%lu)\n", __LINE__,
+						node1, (unsigned long long)container_of(node1, struct item, node)->key,
+						NODE_INTREE(node1), container_of(node1, struct item, node)->flags,
+						&itm->node, (unsigned long long)itm->key, NODE_INTREE(&itm->node), itm->flags);
+#endif
+					BUG_ON(node1 != &itm->node);
+				}
+				BUG_ON(NODE_INTREE(node1));
+				itm->flags &= ~IN_TREE;
 			}
-
-			BUG_ON(NODE_INTREE(node1));
-
-			itm->flags &= ~IN_TREE;
 		} else {
 			/* this item is not in the tree, let's invent a new
 			 * value.
@@ -291,6 +306,7 @@ void run(void *arg)
 			/* note: we support both dups and unique entries */
 			if (node1 == &itm->node)
 				itm->flags |= IN_TREE;
+			ctx->ins++;
 		}
 	}
 
@@ -304,12 +320,15 @@ void run(void *arg)
 /* wakes up on SIG_ALRM to report stats or to stop */
 void alarm_handler(int sig)
 {
-	static unsigned long prev_loops;
+	static unsigned long prev_loops, prev_ins;
 	unsigned long loops = 0;
+	unsigned long ins = 0;
 	int i;
 
-	for (i = 0; i < (int)nbthreads; i++)
+	for (i = 0; i < (int)nbthreads; i++) {
 		loops += th_ctx[i].loops;
+		ins += th_ctx[i].ins;
+	}
 
 	gettimeofday(&now, NULL);
 
@@ -320,10 +339,12 @@ void alarm_handler(int sig)
 	}
 	i = i / 1000 + (int)(now.tv_sec - prev.tv_sec) * 1000;
 
-	printf("meas: %d threads: %d loops: %lu time(ms): %u rate(lps): %llu\n",
-	       meas, nbthreads, loops - prev_loops, i, (loops - prev_loops) * 1000ULL / (unsigned)i);
+	printf("meas: %d threads: %d loops: %lu (%lu ins) time(ms): %u rate(lps): %llu (%llu ins)\n",
+	       meas, nbthreads, loops - prev_loops, ins - prev_ins, i,
+	       (loops - prev_loops) * 1000ULL / (unsigned)i, (ins - prev_ins) * 1000ULL / (unsigned)i);
 
 	prev_loops = loops;
+	prev_ins = ins;
 	prev = now;
 	meas++;
 
@@ -336,7 +357,7 @@ void alarm_handler(int sig)
 
 void usage(const char *name, int ret)
 {
-	die(ret, "usage: %s [-h] [-d*] [-n nbelem] [-t threads] [-r run_secs] [-s seed]\n", name);
+	die(ret, "usage: %s [-h] [-d*] [-n nbelem] [-t threads] [-r run_secs] [-s seed] [-l lkups]\n", name);
 }
 
 int main(int argc, char **argv)
@@ -374,6 +395,11 @@ int main(int argc, char **argv)
 			if (--argc < 0)
 				usage(argv0, 1);
 			arg_run = atol(*++argv);
+		}
+		else if (!strcmp(*argv, "-l")) {
+			if (--argc < 0)
+				usage(argv0, 1);
+			arg_lkups = atol(*++argv);
 		}
 		else if (strcmp(*argv, "-h") == 0)
 			usage(argv0, 0);

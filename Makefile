@@ -23,16 +23,16 @@ tests/test%: test%.c libebtree.a
 	$(CC) $(CFLAGS) -o $@ $< -L. -lebtree
 
 tests/bencheb32: tests/bench.c libebtree.a
-	$(CC) $(CFLAGS) -I. -o $@ $< -L. -lebtree -pthread -DINCLUDE_FILE='"eb32tree.h"' -DDATA_TYPE='unsigned int' -DNODE_TYPE='struct eb32_node' -DROOT_TYPE='struct eb_root' -D'NODE_INS(r,n)=eb32_insert(r,n)' '-DNODE_DEL(r,n)=({ eb32_delete((n)); (n); })' -D'NODE_INTREE(n)=(!!(n)->node.leaf_p)'
+	$(CC) $(CFLAGS) -I. -o $@ $< -L. -lebtree -pthread -DINCLUDE_FILE='"eb32tree.h"' -DDATA_TYPE='unsigned int' -DNODE_TYPE='struct eb32_node' -DROOT_TYPE='struct eb_root' -D'NODE_INS(r,n)=eb32_insert(r,n)' -D'NODE_DEL(r,n)=({ eb32_delete((n)); (n); })' -D'NODE_FND(r,k)=eb32_lookup(r,k)' -D'NODE_INTREE(n)=(!!(n)->node.leaf_p)'
 
 tests/bencheb64: tests/bench.c libebtree.a
-	$(CC) $(CFLAGS) -I. -o $@ $< -L. -lebtree -pthread -DINCLUDE_FILE='"eb64tree.h"' -DDATA_TYPE='unsigned long long' -DNODE_TYPE='struct eb64_node' -DROOT_TYPE='struct eb_root' -D'NODE_INS(r,n)=eb64_insert(r,n)' '-DNODE_DEL(r,n)=({ eb64_delete((n)); (n); })' -D'NODE_INTREE(n)=(!!(n)->node.leaf_p)'
+	$(CC) $(CFLAGS) -I. -o $@ $< -L. -lebtree -pthread -DINCLUDE_FILE='"eb64tree.h"' -DDATA_TYPE='unsigned long long' -DNODE_TYPE='struct eb64_node' -DROOT_TYPE='struct eb_root' -D'NODE_INS(r,n)=eb64_insert(r,n)' -D'NODE_DEL(r,n)=({ eb64_delete((n)); (n); })' -D'NODE_FND(r,k)=eb64_lookup(r,k)' -D'NODE_INTREE(n)=(!!(n)->node.leaf_p)'
 
 tests/benchebmb: tests/bench.c libebtree.a
-	$(CC) $(CFLAGS) -I. -o $@ $< -L. -lebtree -pthread -DINCLUDE_FILE='"ebmbtree.h"' -DDATA_TYPE='unsigned long long' -DNODE_TYPE='struct ebmb_node' -DROOT_TYPE='struct eb_root' -D'NODE_INS(r,n)=ebmb_insert(r,n,sizeof(long long))' '-DNODE_DEL(r,n)=({ ebmb_delete((n)); (n); })' -D'NODE_INTREE(n)=(!!(n)->node.leaf_p)'
+	$(CC) $(CFLAGS) -I. -o $@ $< -L. -lebtree -pthread -DINCLUDE_FILE='"ebmbtree.h"' -DDATA_TYPE='unsigned long long' -DNODE_TYPE='struct ebmb_node' -DROOT_TYPE='struct eb_root' -D'NODE_INS(r,n)=ebmb_insert(r,n,sizeof(long long))' -D'NODE_DEL(r,n)=({ ebmb_delete((n)); (n); })' -D'NODE_FND(r,k)=ebmb_lookup(r,&k,sizeof(long long))' -D'NODE_INTREE(n)=(!!(n)->node.leaf_p)'
 
 tests/benchebst: tests/bench.c libebtree.a
-	$(CC) $(CFLAGS) -I. -o $@ $< -L. -lebtree -pthread -DINCLUDE_FILE='"ebsttree.h"' -DDATA_TYPE='unsigned long long' -DNODE_TYPE='struct ebmb_node' -DROOT_TYPE='struct eb_root' -D'NODE_INS(r,n)=ebst_insert(r,n)' '-DNODE_DEL(r,n)=({ ebmb_delete((n)); (n); })' -D'NODE_INTREE(n)=(!!(n)->node.leaf_p)' -DSTORAGE_STRING=21
+	$(CC) $(CFLAGS) -I. -o $@ $< -L. -lebtree -pthread -DINCLUDE_FILE='"ebsttree.h"' -DDATA_TYPE='unsigned long long' -DNODE_TYPE='struct ebmb_node' -DROOT_TYPE='struct eb_root' -D'NODE_INS(r,n)=ebst_insert(r,n)' -D'NODE_DEL(r,n)=({ ebmb_delete((n)); (n); })' -D'NODE_FND(r,k)=ebst_lookup(r,k)' -D'NODE_INTREE(n)=(!!(n)->node.leaf_p)' -DSTORAGE_STRING=21
 
 clean:
 	-rm -fv libebtree.a $(OBJS) *~ *.rej core ${EXAMPLES} ${TEST_BIN}
