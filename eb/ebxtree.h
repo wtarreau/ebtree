@@ -334,7 +334,7 @@ struct ebx_node {
 	struct ebx_root branches; /* branches, must be at the beginning */
 	short int       bit;     /* link's bit position. */
 	short unsigned int pfx; /* data prefix length, always related to leaf */
-} __attribute__((packed));
+};// __attribute__((packed));
 #else
 /* absolute pointer mode : optimal with branches first */
 struct ebx_node {
@@ -343,7 +343,7 @@ struct ebx_node {
 	ebx_link_t       leaf_p;  /* leaf node's parent */
 	short int       bit;     /* link's bit position. */
 	short unsigned int pfx; /* data prefix length, always related to leaf */
-} __attribute__((packed));
+};// __attribute__((packed));
 #endif
 
 
