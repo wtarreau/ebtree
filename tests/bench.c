@@ -22,6 +22,10 @@
 # define STORAGE_STRING 0  // greater for string size
 #endif
 
+#if !defined(INIT_ROOT)
+# define INIT_ROOT(x) do { } while(0)
+#endif
+
 #if !defined(STORAGE_STRING)
 # define STORAGE_STRING 0
 #endif
@@ -219,6 +223,8 @@ void run(void *arg)
 
 	rnd32seed += tid + 1;
 	rnd64seed += tid + 1;
+
+	INIT_ROOT(ctx->root);
 
 	/* step 0: create all threads */
 	while (__atomic_load_n(&step, __ATOMIC_ACQUIRE) == 0) {
