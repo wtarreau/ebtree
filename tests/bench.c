@@ -325,7 +325,7 @@ void run(void *arg)
 }
 
 /* wakes up on SIG_ALRM to report stats or to stop */
-void alarm_handler(int sig)
+void alarm_handler(int sig __attribute__((unused)))
 {
 	static unsigned long prev_loops, prev_ins, prev_del;
 	unsigned long loops = 0;
