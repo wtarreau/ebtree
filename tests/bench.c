@@ -193,6 +193,7 @@ struct ctx {
 	pthread_t thr;
 	unsigned long loops;
 	unsigned long ins;
+	unsigned long del;
 } __attribute__((aligned(64)));
 
 
@@ -282,6 +283,7 @@ void run(void *arg)
 				}
 				BUG_ON(NODE_INTREE(node1));
 				itm->flags &= ~IN_TREE;
+				ctx->del++;
 			}
 		} else {
 			/* this item is not in the tree, let's invent a new
@@ -308,9 +310,10 @@ void run(void *arg)
 
 			BUG_ON(!NODE_INTREE(node1));
 			/* note: we support both dups and unique entries */
-			if (node1 == &itm->node)
+			if (node1 == &itm->node) {
 				itm->flags |= IN_TREE;
-			ctx->ins++;
+				ctx->ins++;
+			}
 		}
 	}
 
@@ -324,14 +327,16 @@ void run(void *arg)
 /* wakes up on SIG_ALRM to report stats or to stop */
 void alarm_handler(int sig)
 {
-	static unsigned long prev_loops, prev_ins;
+	static unsigned long prev_loops, prev_ins, prev_del;
 	unsigned long loops = 0;
 	unsigned long ins = 0;
+	unsigned long del = 0;
 	int i;
 
 	for (i = 0; i < (int)nbthreads; i++) {
 		loops += th_ctx[i].loops;
 		ins += th_ctx[i].ins;
+		del += th_ctx[i].del;
 	}
 
 	gettimeofday(&now, NULL);
@@ -343,12 +348,14 @@ void alarm_handler(int sig)
 	}
 	i = i / 1000 + (int)(now.tv_sec - prev.tv_sec) * 1000;
 
-	printf("meas: %d threads: %d loops: %lu (%lu ins) time(ms): %u rate(lps): %llu (%llu ins)\n",
-	       meas, nbthreads, loops - prev_loops, ins - prev_ins, i,
-	       (loops - prev_loops) * 1000ULL / (unsigned)i, (ins - prev_ins) * 1000ULL / (unsigned)i);
+	printf("meas: %d, threads: %d, num: %ld, time(ms): %u, rates: %lld lu/s, %lld ins/s, %lld del/s\n",
+	       meas, nbthreads, (long)(ins - del), i,
+	       (long)(loops - prev_loops - ins + prev_ins - del + prev_del) * 1000LL / (unsigned)i,
+	       (long)(ins - prev_ins) * 1000LL / (unsigned)i, (long)(del - prev_del) * 1000LL / (unsigned)i);
 
 	prev_loops = loops;
 	prev_ins = ins;
+	prev_del = del;
 	prev = now;
 	meas++;
 
