@@ -9,6 +9,8 @@
  * The types are defined using the macros below.
  */
 
+#define _GNU_SOURCE
+
 /* set defaults to cebul */
 #ifndef INCLUDE_FILE
 # define INCLUDE_FILE "cebul_tree.h"
