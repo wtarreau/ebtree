@@ -141,7 +141,7 @@ static forceinline struct eb64_node *__eb64_lookup(struct eb_root *root, u64 x)
 {
 	struct eb64_node *node;
 	eb_troot_t *troot;
-	u64 y;
+	u64 y, z;
 
 	troot = root->b[EB_LEFT];
 	if (unlikely(troot == NULL))
@@ -159,7 +159,13 @@ static forceinline struct eb64_node *__eb64_lookup(struct eb_root *root, u64 x)
 		node = container_of(eb_untag(troot, EB_NODE),
 				    struct eb64_node, node.branches);
 
+		__builtin_prefetch(node->node.branches.b[0], 0);
+		__builtin_prefetch(node->node.branches.b[1], 0);
+
 		y = node->key ^ x;
+		z = 1ULL << (node->node.bit & 63);
+		troot = (x & z) ? node->node.branches.b[1] : node->node.branches.b[0];
+
 		if (!y) {
 			/* Either we found the node which holds the key, or
 			 * we have a dup tree. In the later case, we have to
@@ -177,8 +183,6 @@ static forceinline struct eb64_node *__eb64_lookup(struct eb_root *root, u64 x)
 
 		if ((y >> node->node.bit) >= EB_NODE_BRANCHES)
 			return NULL; /* no more common bits */
-
-		troot = node->node.branches.b[(x >> node->node.bit) & EB_NODE_BRANCH_MASK];
 	}
 }
 
@@ -191,7 +195,7 @@ static forceinline struct eb64_node *__eb64i_lookup(struct eb_root *root, s64 x)
 	struct eb64_node *node;
 	eb_troot_t *troot;
 	u64 key = x ^ (1ULL << 63);
-	u64 y;
+	u64 y, z;
 
 	troot = root->b[EB_LEFT];
 	if (unlikely(troot == NULL))
@@ -209,7 +213,13 @@ static forceinline struct eb64_node *__eb64i_lookup(struct eb_root *root, s64 x)
 		node = container_of(eb_untag(troot, EB_NODE),
 				    struct eb64_node, node.branches);
 
+		__builtin_prefetch(node->node.branches.b[0], 0);
+		__builtin_prefetch(node->node.branches.b[1], 0);
+
 		y = node->key ^ x;
+		z = 1ULL << (node->node.bit & 63);
+		troot = (key & z) ? node->node.branches.b[1] : node->node.branches.b[0];
+
 		if (!y) {
 			/* Either we found the node which holds the key, or
 			 * we have a dup tree. In the later case, we have to
@@ -227,8 +237,6 @@ static forceinline struct eb64_node *__eb64i_lookup(struct eb_root *root, s64 x)
 
 		if ((y >> node->node.bit) >= EB_NODE_BRANCHES)
 			return NULL; /* no more common bits */
-
-		troot = node->node.branches.b[(key >> node->node.bit) & EB_NODE_BRANCH_MASK];
 	}
 }
 
