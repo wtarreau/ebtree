@@ -200,6 +200,7 @@ struct ctx {
 	unsigned long loops;
 	unsigned long ins;
 	unsigned long del;
+	unsigned long ctr;
 } __attribute__((aligned(64)));
 
 
@@ -211,6 +212,7 @@ unsigned int nbthreads = 1;
 unsigned int nbelem = 32768;
 unsigned int arg_run = 1;
 unsigned int arg_lkups = 0; // distance between two writes
+unsigned int arg_series = 0;  // 0: random; 1: worst case; 2: ctr (e.g. timers);
 
 /* run the test for a thread */
 void run(void *arg)
@@ -298,9 +300,11 @@ void run(void *arg)
 			 * value.
 			 */
 			BUG_ON(NODE_INTREE(&itm->node));
-
-			v = rnd64();
-			v >>= (v & 63);
+			switch (arg_series) {
+			case 2:  v = ctx->ctr++; break;
+			case 1:  v = rnd64(); v  = (int64_t)v >> (v & 63); break;
+			default: v = rnd64(); break;
+			}
 
 #if STORAGE_STRING > 0
 			ulltoa(v, itm->key, sizeof(itm->key));
@@ -376,7 +380,13 @@ void alarm_handler(int sig __attribute__((unused)))
 
 void usage(const char *name, int ret)
 {
-	die(ret, "usage: %s [-h] [-d*] [-n nbelem] [-t threads] [-r run_secs] [-s seed] [-l lkups]\n", name);
+	die(ret,
+	    "usage: %s [-h] [-d*] [-S series] [-n nbelem] [-t threads] [-r run_secs] [-s seed] [-l lkups]\n"
+	    "Series for -S:\n"
+	    "  0: pure 64-bit random (default)\n"
+	    "  1: worst case 64-bit randoms (e.g. cache DoS)\n"
+	    "  2: grouped data (counter, to mimmick timers)\n"
+	    "", name);
 }
 
 int main(int argc, char **argv)
@@ -394,6 +404,11 @@ int main(int argc, char **argv)
 	while (argc && **argv == '-') {
 		if (strcmp(*argv, "-d") == 0) {
 			debug++;
+		}
+		else if (strcmp(*argv, "-S") == 0) {
+			if (--argc < 0)
+				usage(argv0, 1);
+			arg_series = atol(*++argv);
 		}
 		else if (!strcmp(*argv, "-n")) {
 			if (--argc < 0)
