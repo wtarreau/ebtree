@@ -141,14 +141,14 @@ static forceinline struct ebmb_node *
 __ebst_insert(struct eb_root *root, struct ebmb_node *new)
 {
 	struct ebmb_node *old;
-	unsigned int side;
+	unsigned int side_mask, new_side_mask;
 	eb_troot_t *troot;
 	eb_troot_t *root_right;
 	int diff;
 	int bit;
 	int old_node_bit;
 
-	side = EB_LEFT;
+	side_mask = !!EB_LEFT;
 	troot = root->b[EB_LEFT];
 	root_right = root->b[EB_RGHT];
 	if (unlikely(troot == NULL)) {
@@ -220,7 +220,7 @@ __ebst_insert(struct eb_root *root, struct ebmb_node *new)
 				new->node.branches.b[EB_LEFT] = old_leaf;
 				new->node.branches.b[EB_RGHT] = new_leaf;
 				new->node.bit = -1;
-				root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
+				root->b[!!side_mask] = eb_dotag(&new->node.branches, EB_NODE);
 				return new;
 			}
 
@@ -244,7 +244,13 @@ __ebst_insert(struct eb_root *root, struct ebmb_node *new)
 		/* OK we're walking down this link */
 		old = container_of(eb_untag(troot, EB_NODE),
 				   struct ebmb_node, node.branches);
+
+		__builtin_prefetch(old->node.branches.b[0], 0);
+		__builtin_prefetch(old->node.branches.b[1], 0);
+
 		old_node_bit = old->node.bit;
+		new_side_mask = (unsigned char)1 << (~old_node_bit & 7);
+		new_side_mask &= new->key[old_node_bit >> 3];
 
 		/* Stop going down when we don't have common bits anymore. We
 		 * also stop in front of a duplicates tree because it means we
@@ -307,9 +313,9 @@ __ebst_insert(struct eb_root *root, struct ebmb_node *new)
 		}
 
 		/* walk down */
+		troot = new_side_mask ? old->node.branches.b[1] : old->node.branches.b[0];
 		root = &old->node.branches;
-		side = (new->key[old_node_bit >> 3] >> (~old_node_bit & 7)) & 1;
-		troot = root->b[side];
+		side_mask = new_side_mask;
 	}
 
 	/* Ok, now we are inserting <new> between <root> and <old>. <old>'s
@@ -323,7 +329,7 @@ __ebst_insert(struct eb_root *root, struct ebmb_node *new)
 	 * NOTE: we can't get here whit bit < 0 since we found a dup !
 	 */
 	new->node.bit = bit;
-	root->b[side] = eb_dotag(&new->node.branches, EB_NODE);
+	root->b[!!side_mask] = eb_dotag(&new->node.branches, EB_NODE);
 	return new;
 }
 
