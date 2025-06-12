@@ -338,6 +338,10 @@ __eb64_insert(struct eb_root *root, struct eb64_node *new) {
 		/* OK we're walking down this link */
 		old = container_of(eb_untag(troot, EB_NODE),
 				    struct eb64_node, node.branches);
+
+		__builtin_prefetch(old->node.branches.b[0], 0);
+		__builtin_prefetch(old->node.branches.b[1], 0);
+
 		old_node_bit = old->node.bit;
 
 		/* Stop going down when we don't have common bits anymore. We
@@ -382,7 +386,6 @@ __eb64_insert(struct eb_root *root, struct eb64_node *new) {
 		}
 
 		/* walk down */
-		root = &old->node.branches;
 
 		if (sizeof(long) >= 8) {
 			side = newkey >> old_node_bit;
@@ -398,7 +401,8 @@ __eb64_insert(struct eb_root *root, struct eb64_node *new) {
 			}
 		}
 		side &= EB_NODE_BRANCH_MASK;
-		troot = root->b[side];
+		troot = side ? old->node.branches.b[1] : old->node.branches.b[0];
+		root = &old->node.branches;
 	}
 
 	/* Ok, now we are inserting <new> between <root> and <old>. <old>'s
@@ -520,6 +524,10 @@ __eb64i_insert(struct eb_root *root, struct eb64_node *new) {
 		/* OK we're walking down this link */
 		old = container_of(eb_untag(troot, EB_NODE),
 				    struct eb64_node, node.branches);
+
+		__builtin_prefetch(old->node.branches.b[0], 0);
+		__builtin_prefetch(old->node.branches.b[1], 0);
+
 		old_node_bit = old->node.bit;
 
 		/* Stop going down when we don't have common bits anymore. We
@@ -564,7 +572,6 @@ __eb64i_insert(struct eb_root *root, struct eb64_node *new) {
 		}
 
 		/* walk down */
-		root = &old->node.branches;
 
 		if (sizeof(long) >= 8) {
 			side = newkey >> old_node_bit;
@@ -580,7 +587,8 @@ __eb64i_insert(struct eb_root *root, struct eb64_node *new) {
 			}
 		}
 		side &= EB_NODE_BRANCH_MASK;
-		troot = root->b[side];
+		troot = side ? old->node.branches.b[1] : old->node.branches.b[0];
+		root = &old->node.branches;
 	}
 
 	/* Ok, now we are inserting <new> between <root> and <old>. <old>'s
