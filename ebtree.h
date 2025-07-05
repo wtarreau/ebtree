@@ -285,6 +285,15 @@
 # endif
 #endif
 
+/* __builtin_prefetch() appears in gcc-3.1 documentation */
+#if !defined(eb_prefetch)
+# if defined(__GNUC__) && ((__GNUC__ > 3) || ((__GNUC__ == 3) && (__GNUC_MINOR__ >= 1)))
+#  define eb_prefetch(a,b) __builtin_prefetch(a,b)
+# else
+#  define eb_prefetch(a,b) do { } while (0)
+# endif
+#endif
+
 
 /* returns clz from 7 to 0 for 0x01 to 0xFF. Returns 7 for 0 as well. */
 static inline unsigned int clz8(unsigned char c)
