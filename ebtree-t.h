@@ -21,7 +21,24 @@
 #ifndef _EBTREE_T_H
 #define _EBTREE_T_H
 
-#include "compiler.h"
+/* sets alignment for current field or variable */
+#ifndef ALIGNED
+#define ALIGNED(x) __attribute__((aligned(x)))
+#endif
+
+/* add a mandatory alignment for next fields in a structure */
+#ifndef ALWAYS_ALIGN
+#define ALWAYS_ALIGN(x)  union { } ALIGNED(x)
+#endif
+
+/* add an optional alignment for next fields in a structure, only for archs
+ * which do not support unaligned accesses.
+ */
+#ifndef MAYBE_ALIGN
+#define MAYBE_ALIGN(x)  union { } ALIGNED(x)
+#else
+#define MAYBE_ALIGN(x)
+#endif
 
 /*
  * generic types for ebtree
