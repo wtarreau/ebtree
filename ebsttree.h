@@ -65,8 +65,6 @@ static forceinline struct ebmb_node *__ebst_lookup(struct eb_root *root, const v
 
 	bit = 0;
 	while (1) {
-		unsigned char b, side;
-
 		if ((eb_gettag(troot) == EB_LEAF)) {
 			node = container_of(eb_untag(troot, EB_LEAF),
 					    struct ebmb_node, node.branches);
@@ -77,10 +75,6 @@ static forceinline struct ebmb_node *__ebst_lookup(struct eb_root *root, const v
 		}
 		node = container_of(eb_untag(troot, EB_NODE),
 				    struct ebmb_node, node.branches);
-
-		eb_prefetch(node->node.branches.b[0], 0);
-		eb_prefetch(node->node.branches.b[1], 0);
-
 		node_bit = node->node.bit;
 
 		if (node_bit < 0) {
@@ -102,10 +96,6 @@ static forceinline struct ebmb_node *__ebst_lookup(struct eb_root *root, const v
 		/* OK, normal data node, let's walk down but don't compare data
 		 * if we already reached the end of the key.
 		 */
-		b = ((unsigned char *)x)[node_bit >> 3];
-		side = (unsigned char)1 << (~node_bit & 7);
-		troot = (b & side) ? node->node.branches.b[1] : node->node.branches.b[0];
-
 		if (likely(bit >= 0)) {
 			bit = string_equal_bits(x, node->key, bit);
 			if (likely(bit < node_bit)) {
@@ -129,6 +119,9 @@ static forceinline struct ebmb_node *__ebst_lookup(struct eb_root *root, const v
 			else
 				bit = node_bit;
 		}
+
+		troot = node->node.branches.b[(((unsigned char*)x)[node_bit >> 3] >>
+					       (~node_bit & 7)) & 1];
 	}
 }
 
